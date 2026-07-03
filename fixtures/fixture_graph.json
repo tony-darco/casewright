@@ -1,0 +1,168 @@
+{
+  "nodes": {
+    "GET /organizations": {
+      "method": "get",
+      "path": "/organizations",
+      "operation_id": "getOrganizations",
+      "summary": "List organizations",
+      "description": "List the organizations the user has access to",
+      "tags": [],
+      "params": [],
+      "is_array_response": true,
+      "response_fields": [
+        "id",
+        "name"
+      ]
+    },
+    "GET /organizations/{organizationId}/networks": {
+      "method": "get",
+      "path": "/organizations/{organizationId}/networks",
+      "operation_id": "getOrganizationNetworks",
+      "summary": "List networks in an organization",
+      "description": "List the networks in an organization",
+      "tags": [],
+      "params": [
+        {
+          "name": "organizationId",
+          "orphan": false
+        }
+      ],
+      "is_array_response": true,
+      "response_fields": [
+        "id",
+        "name",
+        "organizationId"
+      ]
+    },
+    "GET /networks/{networkId}": {
+      "method": "get",
+      "path": "/networks/{networkId}",
+      "operation_id": "getNetwork",
+      "summary": "Return a network (decoy get-by-id)",
+      "description": "Get a single network by ID. Must NOT be selected as a producer -- it returns a single object, not an array.",
+      "tags": [],
+      "params": [
+        {
+          "name": "networkId",
+          "orphan": false
+        }
+      ],
+      "is_array_response": false,
+      "response_fields": [
+        "id",
+        "name"
+      ]
+    },
+    "GET /networks/{networkId}/wireless/ssids": {
+      "method": "get",
+      "path": "/networks/{networkId}/wireless/ssids",
+      "operation_id": "getNetworkWirelessSsids",
+      "summary": "List wireless SSIDs",
+      "description": "List the wireless SSIDs in a network",
+      "tags": [],
+      "params": [
+        {
+          "name": "networkId",
+          "orphan": false
+        }
+      ],
+      "is_array_response": true,
+      "response_fields": [
+        "name",
+        "number"
+      ]
+    },
+    "PUT /networks/{networkId}/wireless/ssids/{number}": {
+      "method": "put",
+      "path": "/networks/{networkId}/wireless/ssids/{number}",
+      "operation_id": "updateNetworkWirelessSsid",
+      "summary": "Update a wireless SSID",
+      "description": "Update the attributes of an SSID",
+      "tags": [],
+      "params": [
+        {
+          "name": "networkId",
+          "orphan": false
+        },
+        {
+          "name": "number",
+          "orphan": false
+        }
+      ],
+      "is_array_response": false,
+      "response_fields": [
+        "name",
+        "number"
+      ]
+    },
+    "GET /devices/{serial}": {
+      "method": "get",
+      "path": "/devices/{serial}",
+      "operation_id": "getDevice",
+      "summary": "Return a device (no lister exists for devices in this fixture)",
+      "description": "Get a single device by serial. There is no GET /devices (or similar) lister in this fixture, so 'serial' must resolve to orphan: true.",
+      "tags": [],
+      "params": [
+        {
+          "name": "serial",
+          "orphan": true
+        }
+      ],
+      "is_array_response": false,
+      "response_fields": [
+        "name",
+        "serial"
+      ]
+    }
+  },
+  "edges": [
+    {
+      "producer": "GET /organizations",
+      "consumer": "GET /organizations/{organizationId}/networks",
+      "param": "organizationId",
+      "rule": 1
+    },
+    {
+      "producer": "GET /organizations/{organizationId}/networks",
+      "consumer": "GET /networks/{networkId}",
+      "param": "networkId",
+      "rule": 1
+    },
+    {
+      "producer": "GET /organizations/{organizationId}/networks",
+      "consumer": "GET /networks/{networkId}/wireless/ssids",
+      "param": "networkId",
+      "rule": 1
+    },
+    {
+      "producer": "GET /organizations/{organizationId}/networks",
+      "consumer": "PUT /networks/{networkId}/wireless/ssids/{number}",
+      "param": "networkId",
+      "rule": 1
+    },
+    {
+      "producer": "GET /networks/{networkId}/wireless/ssids",
+      "consumer": "PUT /networks/{networkId}/wireless/ssids/{number}",
+      "param": "number",
+      "rule": 2
+    }
+  ],
+  "ambiguities": [],
+  "orphans": [
+    {
+      "consumer": "GET /devices/{serial}",
+      "param": "serial",
+      "reason": "not an {xId}-style param; no lister for 'devices' confirms field 'serial' (Rule 2)"
+    }
+  ],
+  "stats": {
+    "node_count": 6,
+    "edge_count": 5,
+    "orphan_param_count": 1,
+    "ambiguities_resolved": 0,
+    "standalone_candidate_count": 1,
+    "standalone_candidates": [
+      "GET /devices/{serial}"
+    ]
+  }
+}

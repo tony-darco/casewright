@@ -1,0 +1,207 @@
+{
+  "openapi": "3.0.1",
+  "info": { "title": "Fixture Spec", "version": "1.0.0" },
+  "paths": {
+    "/organizations": {
+      "get": {
+        "operationId": "getOrganizations",
+        "summary": "List organizations",
+        "description": "List the organizations the user has access to",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "description": "Organization ID" },
+                      "name": { "type": "string", "description": "Organization name" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationId}/networks": {
+      "get": {
+        "operationId": "getOrganizationNetworks",
+        "summary": "List networks in an organization",
+        "description": "List the networks in an organization",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "Organization ID",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "description": "Network ID" },
+                      "organizationId": { "type": "string", "description": "Organization ID" },
+                      "name": { "type": "string", "description": "Network name" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/networks/{networkId}": {
+      "get": {
+        "operationId": "getNetwork",
+        "summary": "Return a network (decoy get-by-id)",
+        "description": "Get a single network by ID. Must NOT be selected as a producer -- it returns a single object, not an array.",
+        "parameters": [
+          {
+            "name": "networkId",
+            "in": "path",
+            "description": "Network ID",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "description": "Network ID" },
+                    "name": { "type": "string", "description": "Network name" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/networks/{networkId}/wireless/ssids": {
+      "get": {
+        "operationId": "getNetworkWirelessSsids",
+        "summary": "List wireless SSIDs",
+        "description": "List the wireless SSIDs in a network",
+        "parameters": [
+          {
+            "name": "networkId",
+            "in": "path",
+            "description": "Network ID",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "number": { "type": "integer", "description": "Unique identifier of the SSID" },
+                      "name": { "type": "string", "description": "The name of the SSID" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/networks/{networkId}/wireless/ssids/{number}": {
+      "put": {
+        "operationId": "updateNetworkWirelessSsid",
+        "summary": "Update a wireless SSID",
+        "description": "Update the attributes of an SSID",
+        "parameters": [
+          {
+            "name": "networkId",
+            "in": "path",
+            "description": "Network ID",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "description": "Unique identifier of the SSID",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "number": { "type": "integer", "description": "Unique identifier of the SSID" },
+                    "name": { "type": "string", "description": "The name of the SSID" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/devices/{serial}": {
+      "get": {
+        "operationId": "getDevice",
+        "summary": "Return a device (no lister exists for devices in this fixture)",
+        "description": "Get a single device by serial. There is no GET /devices (or similar) lister in this fixture, so 'serial' must resolve to orphan: true.",
+        "parameters": [
+          {
+            "name": "serial",
+            "in": "path",
+            "description": "Device serial number",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "serial": { "type": "string", "description": "Device serial number" },
+                    "name": { "type": "string", "description": "Device name" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

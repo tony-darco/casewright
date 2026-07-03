@@ -1,0 +1,4458 @@
+- description: 001 | multihop_d2_without
+  vars:
+    question: Write a test that removes a configured scanning API receiver from an organization and confirms
+      it no longer appears afterward.
+    expected_endpoints:
+    - GET /organizations
+    - DELETE /organizations/{organizationId}/wireless/location/scanning/receivers/{receiverId}
+  metadata:
+    cell: multihop_d2_without
+    record_id: '001'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: DELETE
+      path: /organizations/{organizationId}/wireless/location/scanning/receivers/{receiverId}
+      summary: Delete a scanning API receiver
+      description: Delete a scanning API receiver
+- description: 002 | multihop_d2_without
+  vars:
+    question: I need a test that deletes a zero-touch deployment for a wireless access point and verifies
+      it's gone from subsequent listings.
+    expected_endpoints:
+    - GET /organizations
+    - DELETE /organizations/{organizationId}/wireless/devices/provisioning/deployments/{deploymentId}
+  metadata:
+    cell: multihop_d2_without
+    record_id: '002'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: DELETE
+      path: /organizations/{organizationId}/wireless/devices/provisioning/deployments/{deploymentId}
+      summary: Delete a zero touch deployment
+      description: Delete a zero touch deployment
+- description: 003 | multihop_d2_without
+  vars:
+    question: Create a test that deletes an existing camera role from an organization and checks that
+      role lookups afterward return not-found.
+    expected_endpoints:
+    - GET /organizations
+    - DELETE /organizations/{organizationId}/camera/roles/{roleId}
+  metadata:
+    cell: multihop_d2_without
+    record_id: '003'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: DELETE
+      path: /organizations/{organizationId}/camera/roles/{roleId}
+      summary: Delete an existing role for this organization.
+      description: Delete an existing role for this organization.
+- description: 004 | multihop_d2_without
+  vars:
+    question: Write a test that removes a MAC address entry from the L2 isolation allow list and confirms
+      the entry is no longer present.
+    expected_endpoints:
+    - GET /organizations
+    - DELETE /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries/{entryId}
+  metadata:
+    cell: multihop_d2_without
+    record_id: '004'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: DELETE
+      path: /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries/{entryId}
+      summary: Destroy isolation allow list MAC entry for this organization
+      description: Destroy isolation allow list MAC entry for this organization
+- description: 005 | multihop_d2_without
+  vars:
+    question: Draft a test that fetches the current Air Marshal rogue-AP rules configured for an organization
+      and validates the shape of each rule returned.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/airMarshal/rules
+  metadata:
+    cell: multihop_d2_without
+    record_id: '005'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/airMarshal/rules
+      summary: Returns the current Air Marshal rules for this organization
+      description: Returns the current Air Marshal rules for this organization
+- description: 006 | multihop_d2_without
+  vars:
+    question: I want a test that retrieves the configured area boundaries for cameras across an organization,
+      broken down by device.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/boundaries/areas/byDevice
+  metadata:
+    cell: multihop_d2_without
+    record_id: '006'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/boundaries/areas/byDevice
+      summary: Returns all configured area boundaries of cameras
+      description: Returns all configured area boundaries of cameras
+- description: 007 | multihop_d2_without
+  vars:
+    question: Write a test pulling a time-series of average channel utilization per band, segmented by
+      access point, and check the data points are chronologically ordered.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/history/byDevice/byInterval
+  metadata:
+    cell: multihop_d2_without
+    record_id: '007'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/channelUtilization/history/byDevice/byInterval
+      summary: Get a time-series of average channel utilization for all bands, segmented by device.
+      description: Get a time-series of average channel utilization for all bands, segmented by device.
+- description: 008 | multihop_d2_without
+  vars:
+    question: Add a test that reads the current access-point client counts across an organization and
+      asserts counts are non-negative for every AP.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/clients/overview/byDevice
+  metadata:
+    cell: multihop_d2_without
+    record_id: '008'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/clients/overview/byDevice
+      summary: List access point client count at the moment in an organization
+      description: List access point client count at the moment in an organization
+- description: 009 | multihop_d2_without
+  vars:
+    question: Write a test that lists the custom analytics artifacts registered for an organization's
+      cameras.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts
+  metadata:
+    cell: multihop_d2_without
+    record_id: '009'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/customAnalytics/artifacts
+      summary: List Custom Analytics Artifacts
+      description: List Custom Analytics Artifacts
+- description: 010 | multihop_d2_without
+  vars:
+    question: Create a test retrieving camera analytics detection data for a boundary over a series of
+      time intervals.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/detections/history/byBoundary/byInterval
+  metadata:
+    cell: multihop_d2_without
+    record_id: '010'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/detections/history/byBoundary/byInterval
+      summary: Returns analytics data for timespans
+      description: Returns analytics data for timespans
+- description: 011 | multihop_d2_without
+  vars:
+    question: I'd like a test that checks the most recent Ethernet link speed, duplex, and power-mode
+      status for wireless devices across an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/ethernet/statuses
+  metadata:
+    cell: multihop_d2_without
+    record_id: '011'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/ethernet/statuses
+      summary: List the most recent Ethernet link speed, duplex, aggregation and power mode and status
+        information for wireless devices.
+      description: List the most recent Ethernet link speed, duplex, aggregation and power mode and status
+        information for wireless devices.
+- description: 012 | multihop_d2_without
+  vars:
+    question: Write a test confirming the scanning API settings are correctly returned for each network
+      in an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/location/scanning/byNetwork
+  metadata:
+    cell: multihop_d2_without
+    record_id: '012'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/location/scanning/byNetwork
+      summary: Return scanning API settings
+      description: Return scanning API settings
+- description: 013 | multihop_d2_without
+  vars:
+    question: Draft a test that retrieves the MQTT broker settings configured for networks in an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/mqtt/settings
+  metadata:
+    cell: multihop_d2_without
+    record_id: '013'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/mqtt/settings
+      summary: Return MQTT Settings for networks
+      description: Return MQTT Settings for networks
+- description: 014 | multihop_d2_without
+  vars:
+    question: Write a test that checks the onboarding status of cameras across an organization, including
+      ones still mid-setup.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/onboarding/statuses
+  metadata:
+    cell: multihop_d2_without
+    record_id: '014'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/onboarding/statuses
+      summary: Fetch onboarding status of cameras
+      description: Fetch onboarding status of cameras
+- description: 015 | multihop_d2_without
+  vars:
+    question: Create a test that pulls average wireless packet loss over a given timespan for every network
+      in an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/packetLoss/byNetwork
+  metadata:
+    cell: multihop_d2_without
+    record_id: '015'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/packetLoss/byNetwork
+      summary: Get average packet loss for the given timespan for all networks in the organization.
+      description: Get average packet loss for the given timespan for all networks in the organization.
+- description: 016 | multihop_d2_without
+  vars:
+    question: I need a test that lists the available permission scopes defined for an organization's cameras.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/permissions
+  metadata:
+    cell: multihop_d2_without
+    record_id: '016'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/permissions
+      summary: List the permissions scopes for this organization
+      description: List the permissions scopes for this organization
+- description: 017 | multihop_d2_without
+  vars:
+    question: Write a test that fetches the history of power-mode changes for wireless devices and confirms
+      the events come back ordered by timestamp.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/power/mode/history
+  metadata:
+    cell: multihop_d2_without
+    record_id: '017'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/power/mode/history
+      summary: Return a record of power mode changes for wireless devices in the organization
+      description: Return a record of power mode changes for wireless devices in the organization. For
+        each device, it provides a series of events with timestamps indicating when a power mode change
+        occurred and the new mode. The events are ordered by timestamp.
+- description: 018 | multihop_d2_without
+  vars:
+    question: Add a test listing the zero-touch deployments configured for wireless access points in an
+      organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/provisioning/deployments
+  metadata:
+    cell: multihop_d2_without
+    record_id: '018'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/provisioning/deployments
+      summary: List the zero touch deployments for wireless access points in an organization
+      description: List the zero touch deployments for wireless access points in an organization
+- description: 019 | multihop_d2_without
+  vars:
+    question: Write a test that retrieves the AutoRF settings for every network in an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/radio/rrm/byNetwork
+  metadata:
+    cell: multihop_d2_without
+    record_id: '019'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/radio/rrm/byNetwork
+      summary: List the AutoRF settings of an organization by network
+      description: List the AutoRF settings of an organization by network
+- description: 020 | multihop_d2_without
+  vars:
+    question: Draft a test that queries the delta certificate revocation list for an organization's RadSec
+      device certificate authority.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities/crls/deltas
+  metadata:
+    cell: multihop_d2_without
+    record_id: '020'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities/crls/deltas
+      summary: Query for all delta certificate revocation list (CRL) for the organization's RadSec device
+        Certificate Authority (CA) with the given id.
+      description: Query for all delta certificate revocation list (CRL) for the organization's RadSec
+        device Certificate Authority (CA) with the given id.
+- description: 021 | multihop_d2_without
+  vars:
+    question: Write a test that lists RF profile assignments across an organization's wireless devices,
+      grouped by device.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/rfProfiles/assignments/byDevice
+  metadata:
+    cell: multihop_d2_without
+    record_id: '021'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/rfProfiles/assignments/byDevice
+      summary: List the RF profiles of an organization by device
+      description: List the RF profiles of an organization by device
+- description: 022 | multihop_d2_without
+  vars:
+    question: Create a test that lists every administrative role defined in an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/roles
+  metadata:
+    cell: multihop_d2_without
+    record_id: '022'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/roles
+      summary: List all the roles in this organization
+      description: List all the roles in this organization
+- description: 023 | multihop_d2_without
+  vars:
+    question: I want a test verifying the L2 isolation allow-list entries configured for an organization
+      come back correctly.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries
+  metadata:
+    cell: multihop_d2_without
+    record_id: '023'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries
+      summary: List the L2 isolation allow list MAC entry in an organization
+      description: List the L2 isolation allow list MAC entry in an organization
+- description: 024 | multihop_d2_without
+  vars:
+    question: Write a test pulling CPU load history for a set of wireless devices in an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/system/cpu/load/history
+  metadata:
+    cell: multihop_d2_without
+    record_id: '024'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/system/cpu/load/history
+      summary: Return the CPU Load history for a list of wireless devices in the organization.
+      description: Return the CPU Load history for a list of wireless devices in the organization.
+- description: 025 | multihop_d2_without
+  vars:
+    question: Add a test that retrieves information about an organization's Catalyst access points, grouped
+      by device.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/wirelessControllers/byDevice
+  metadata:
+    cell: multihop_d2_without
+    record_id: '025'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/wirelessControllers/byDevice
+      summary: List of Catalyst access points information
+      description: List of Catalyst access points information
+- description: 026 | multihop_d2_without
+  vars:
+    question: Draft a test that lists the Zigbee-enabled wireless devices registered to an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/zigbee/devices
+  metadata:
+    cell: multihop_d2_without
+    record_id: '026'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/zigbee/devices
+      summary: List the Zigbee wireless devices for an organization or the supplied network(s)
+      description: List the Zigbee wireless devices for an organization or the supplied network(s)
+- description: 027 | multihop_d2_without
+  vars:
+    question: Write a test that creates a new custom analytics artifact for cameras and checks the response
+      includes an upload URL with an expiry.
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/camera/customAnalytics/artifacts
+  metadata:
+    cell: multihop_d2_without
+    record_id: '027'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: POST
+      path: /organizations/{organizationId}/camera/customAnalytics/artifacts
+      summary: Create custom analytics artifact
+      description: Create custom analytics artifact. Returns an artifact upload URL with expiry time.
+        Upload the artifact file with a put request to the returned upload URL before its expiry.
+- description: 028 | multihop_d2_without
+  vars:
+    question: Create a test that registers a new scanning API receiver for an organization and confirms
+      it's saved with the given settings.
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/location/scanning/receivers
+  metadata:
+    cell: multihop_d2_without
+    record_id: '028'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: POST
+      path: /organizations/{organizationId}/wireless/location/scanning/receivers
+      summary: Add new receiver for scanning API
+      description: Add new receiver for scanning API
+- description: 029 | multihop_d2_without
+  vars:
+    question: Write a test creating a zero-touch deployment for a wireless access point and validating
+      the deployment record that comes back.
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/devices/provisioning/deployments
+  metadata:
+    cell: multihop_d2_without
+    record_id: '029'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: POST
+      path: /organizations/{organizationId}/wireless/devices/provisioning/deployments
+      summary: Create a zero touch deployment for a wireless access point
+      description: Create a zero touch deployment for a wireless access point
+- description: 030 | multihop_d2_without
+  vars:
+    question: I need a test that triggers a recalculation of automatically-assigned radio channels across
+      a set of networks.
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/radio/autoRf/channels/recalculate
+  metadata:
+    cell: multihop_d2_without
+    record_id: '030'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: POST
+      path: /organizations/{organizationId}/wireless/radio/autoRf/channels/recalculate
+      summary: Recalculates automatically assigned channels for every AP within specified the specified
+        network(s)
+      description: 'Recalculates automatically assigned channels for every AP within specified the specified
+        network(s). Note: This could cause a brief loss in connectivity for wireless clients.'
+- description: 031 | multihop_d2_without
+  vars:
+    question: Draft a test that kicks off creation of an organization's RadSec device certificate authority
+      and checks the request is accepted.
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
+  metadata:
+    cell: multihop_d2_without
+    record_id: '031'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: POST
+      path: /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
+      summary: Create an organization's RadSec device Certificate Authority (CA)
+      description: Create an organization's RadSec device Certificate Authority (CA). Call this endpoint
+        when turning on RadSec in the firmware for the first time. Calling this endpoint starts an asynchronous
+        process to generate the CA; call GET afterwards to retrieve the contents of the CA. Note this
+        CA is generated and controlled by Meraki. Subsequent calls will not generate a new CA.
+- description: 032 | multihop_d2_without
+  vars:
+    question: Write a test that creates a new administrative role for an organization with a given set
+      of permissions.
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/camera/roles
+  metadata:
+    cell: multihop_d2_without
+    record_id: '032'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: POST
+      path: /organizations/{organizationId}/camera/roles
+      summary: Creates new role for this organization.
+      description: Creates new role for this organization.
+- description: 033 | multihop_d2_without
+  vars:
+    question: Add a test that adds a new MAC address to an organization's L2 isolation allow list.
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries
+  metadata:
+    cell: multihop_d2_without
+    record_id: '033'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: POST
+      path: /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries
+      summary: Create isolation allow list MAC entry for this organization
+      description: Create isolation allow list MAC entry for this organization
+- description: 034 | multihop_d2_without
+  vars:
+    question: Write a test that enqueues a job to disenroll door locks from an organization's Zigbee-configured
+      wireless devices.
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/zigbee/disenrollments
+  metadata:
+    cell: multihop_d2_without
+    record_id: '034'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: POST
+      path: /organizations/{organizationId}/wireless/zigbee/disenrollments
+      summary: Enqueue a job to start disenrolling door locks on zigbee configured wireless devices
+      description: Enqueue a job to start disenrolling door locks on zigbee configured wireless devices
+- description: 035 | multihop_d2_without
+  vars:
+    question: Create a test that updates the settings of an existing scanning API receiver and confirms
+      the changes stick.
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/wireless/location/scanning/receivers/{receiverId}
+  metadata:
+    cell: multihop_d2_without
+    record_id: '035'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: PUT
+      path: /organizations/{organizationId}/wireless/location/scanning/receivers/{receiverId}
+      summary: Change scanning API receiver settings
+      description: Change scanning API receiver settings
+- description: 036 | multihop_d2_without
+  vars:
+    question: Write a test configuring a new MQTT broker for wireless and verifying the broker config
+      is saved.
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/wireless/mqtt/settings
+  metadata:
+    cell: multihop_d2_without
+    record_id: '036'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: PUT
+      path: /organizations/{organizationId}/wireless/mqtt/settings
+      summary: Add new broker config for wireless MQTT
+      description: Add new broker config for wireless MQTT
+- description: 037 | multihop_d2_without
+  vars:
+    question: Draft a test that notifies the system a credential handoff to a camera has completed and
+      checks the onboarding status updates accordingly.
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/camera/onboarding/statuses
+  metadata:
+    cell: multihop_d2_without
+    record_id: '037'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: PUT
+      path: /organizations/{organizationId}/camera/onboarding/statuses
+      summary: Notify that credential handoff to camera has completed
+      description: Notify that credential handoff to camera has completed
+- description: 038 | multihop_d2_without
+  vars:
+    question: Write a test that updates an existing zero-touch deployment for a wireless AP and confirms
+      the changes are reflected.
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/wireless/devices/provisioning/deployments
+  metadata:
+    cell: multihop_d2_without
+    record_id: '038'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: PUT
+      path: /organizations/{organizationId}/wireless/devices/provisioning/deployments
+      summary: Update a zero touch deployment
+      description: Update a zero touch deployment
+- description: 039 | multihop_d2_without
+  vars:
+    question: I want a test that transitions an organization's RadSec certificate authority to a trusted
+      state and verifies the state change.
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
+  metadata:
+    cell: multihop_d2_without
+    record_id: '039'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: PUT
+      path: /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
+      summary: Update an organization's RadSec device Certificate Authority (CA) state
+      description: Update an organization's RadSec device Certificate Authority (CA) state. Note this
+        CA is generated and controlled by Meraki. Call this endpoint to update the state to "trusted",
+        at which point Meraki will generate device certificates. "trusted" means the CA is placed on your
+        RadSec server(s) and devices establishing a secure connection using certs signed by this CA will
+        pass verification.
+- description: 040 | multihop_d2_without
+  vars:
+    question: Create a test that updates the permissions on an existing administrative role and checks
+      the update was applied.
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/camera/roles/{roleId}
+  metadata:
+    cell: multihop_d2_without
+    record_id: '040'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: PUT
+      path: /organizations/{organizationId}/camera/roles/{roleId}
+      summary: Update an existing role in this organization.
+      description: Update an existing role in this organization.
+- description: 041 | multihop_d2_without
+  vars:
+    question: Write a test updating the details of an existing MAC entry on the L2 isolation allow list.
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries/{entryId}
+  metadata:
+    cell: multihop_d2_without
+    record_id: '041'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: PUT
+      path: /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries/{entryId}
+      summary: Update isolation allow list MAC entry info
+      description: Update isolation allow list MAC entry info
+- description: 042 | multihop_d2_without
+  vars:
+    question: Draft a test that fetches the current Air Marshal settings across every network in an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/airMarshal/settings/byNetwork
+  metadata:
+    cell: multihop_d2_without
+    record_id: '042'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/airMarshal/settings/byNetwork
+      summary: Returns the current Air Marshal settings for this network
+      description: Returns the current Air Marshal settings for this network
+- description: 043 | multihop_d2_without
+  vars:
+    question: Write a test that retrieves the configured line-crossing boundaries for cameras across an
+      organization, grouped by device.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/boundaries/lines/byDevice
+  metadata:
+    cell: multihop_d2_without
+    record_id: '043'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/boundaries/lines/byDevice
+      summary: Returns all configured crossingline boundaries of cameras
+      description: Returns all configured crossingline boundaries of cameras
+- description: 044 | multihop_d2_without
+  vars:
+    question: Add a test comparing average channel utilization across bands, broken down per access point,
+      for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/byDevice
+  metadata:
+    cell: multihop_d2_without
+    record_id: '044'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/channelUtilization/byDevice
+      summary: Get average channel utilization for all bands in a network, split by AP
+      description: Get average channel utilization for all bands in a network, split by AP
+- description: 045 | multihop_d2_without
+  vars:
+    question: Write a test that lists all scanning API receivers registered to an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/location/scanning/receivers
+  metadata:
+    cell: multihop_d2_without
+    record_id: '045'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/location/scanning/receivers
+      summary: Return scanning API receivers
+      description: Return scanning API receivers
+- description: 046 | multihop_d2_without
+  vars:
+    question: Create a test pulling average wireless packet loss over a timespan, broken down by client,
+      across an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/packetLoss/byClient
+  metadata:
+    cell: multihop_d2_without
+    record_id: '046'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/packetLoss/byClient
+      summary: Get average packet loss for the given timespan for all clients in the organization.
+      description: Get average packet loss for the given timespan for all clients in the organization.
+- description: 047 | multihop_d2_without
+  vars:
+    question: I need a test that looks up a single permission scope by its ID and checks the returned
+      details.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/permissions/{permissionScopeId}
+  metadata:
+    cell: multihop_d2_without
+    record_id: '047'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/permissions/{permissionScopeId}
+      summary: Retrieve a single permission scope
+      description: Retrieve a single permission scope
+- description: 048 | multihop_d2_without
+  vars:
+    question: Write a test querying the certificate revocation list for an organization's RadSec device
+      certificate authorities.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities/crls
+  metadata:
+    cell: multihop_d2_without
+    record_id: '048'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities/crls
+      summary: Query for certificate revocation list (CRL) for the organization's RadSec device Certificate
+        Authorities (CAs).
+      description: Query for certificate revocation list (CRL) for the organization's RadSec device Certificate
+        Authorities (CAs).
+- description: 049 | multihop_d2_without
+  vars:
+    question: Draft a test that fetches a single administrative role by ID and checks its permissions
+      are returned correctly.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/roles/{roleId}
+  metadata:
+    cell: multihop_d2_without
+    record_id: '049'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/roles/{roleId}
+      summary: Retrieve a single role.
+      description: Retrieve a single role.
+- description: 050 | multihop_d2_without
+  vars:
+    question: Write a test listing the status of every BSSID broadcast across an organization's wireless
+      devices.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/ssids/statuses/byDevice
+  metadata:
+    cell: multihop_d2_without
+    record_id: '050'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/ssids/statuses/byDevice
+      summary: List status information of all BSSIDs in your organization
+      description: List status information of all BSSIDs in your organization
+- description: 051 | multihop_d2_without
+  vars:
+    question: Add a test that returns the Zigbee configuration for each network in an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/zigbee/byNetwork
+  metadata:
+    cell: multihop_d2_without
+    record_id: '051'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/zigbee/byNetwork
+      summary: Return list of Zigbee configs
+      description: Return list of Zigbee configs
+- description: 052 | multihop_d2_without
+  vars:
+    question: Write a test pulling a time-series of average channel utilization across bands for every
+      network in an organization and checking the interval boundaries.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/history/byNetwork/byInterval
+  metadata:
+    cell: multihop_d2_without
+    record_id: '052'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/channelUtilization/history/byNetwork/byInterval
+      summary: Get a time-series of average channel utilization for all bands
+      description: Get a time-series of average channel utilization for all bands
+- description: 053 | multihop_d2_without
+  vars:
+    question: Create a test that fetches average packet loss per device across an organization and confirms
+      a device's own traffic isn't counted.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/packetLoss/byDevice
+  metadata:
+    cell: multihop_d2_without
+    record_id: '053'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/packetLoss/byDevice
+      summary: Get average packet loss for the given timespan for all devices in the organization
+      description: Get average packet loss for the given timespan for all devices in the organization.
+        Does not include device's own traffic.
+- description: 054 | multihop_d2_without
+  vars:
+    question: Write a test that retrieves details on an organization's RadSec device certificate authorities,
+      including their signing status.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
+  metadata:
+    cell: multihop_d2_without
+    record_id: '054'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
+      summary: Query for details on the organization's RadSec device Certificate Authority certificates
+        (CAs)
+      description: Query for details on the organization's RadSec device Certificate Authority certificates
+        (CAs). The primary CA signs all the certificates that devices present when establishing a secure
+        connection to RADIUS servers via RadSec protocol. This API returns an array of the status of all
+        of the CAs as well as their contents, if they've been generated. An organization will have at
+        most one CA unless the CA is being rotated.
+- description: 055 | multihop_d2_without
+  vars:
+    question: Draft a test that fetches the OpenRoaming SSID configuration for each network in an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/ssids/openRoaming/byNetwork
+  metadata:
+    cell: multihop_d2_without
+    record_id: '055'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/ssids/openRoaming/byNetwork
+      summary: Returns an array of objects, each containing SSID OpenRoaming configs for the corresponding
+        network
+      description: Returns an array of objects, each containing SSID OpenRoaming configs for the corresponding
+        network
+- description: 056 | multihop_d2_without
+  vars:
+    question: Write a test looking up a specific Zigbee disenrollment job by ID and checking its status.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/zigbee/disenrollments/{disenrollmentId}
+  metadata:
+    cell: multihop_d2_without
+    record_id: '056'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/zigbee/disenrollments/{disenrollmentId}
+      summary: Return a disenrollment
+      description: Return a disenrollment
+- description: 057 | multihop_d2_without
+  vars:
+    question: Add a test comparing average wireless channel utilization across every network in an organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/byNetwork
+  metadata:
+    cell: multihop_d2_without
+    record_id: '057'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/devices/channelUtilization/byNetwork
+      summary: Get average channel utilization across all bands for all networks in the organization
+      description: Get average channel utilization across all bands for all networks in the organization
+- description: 058 | multihop_d2_without
+  vars:
+    question: Write a test that lists the Zigbee-connected door locks configured for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/zigbee/doorLocks
+  metadata:
+    cell: multihop_d2_without
+    record_id: '058'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/zigbee/doorLocks
+      summary: Return the list of door locks for a network
+      description: Return the list of door locks for a network
+- description: 059 | multihop_d3_without
+  vars:
+    question: Write a test that deletes a specific Air Marshal rule from a network and confirms it's no
+      longer enforced.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - DELETE /networks/{networkId}/wireless/airMarshal/rules/{ruleId}
+  metadata:
+    cell: multihop_d3_without
+    record_id: '059'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: DELETE
+      path: /networks/{networkId}/wireless/airMarshal/rules/{ruleId}
+      summary: Delete an Air Marshal rule.
+      description: Delete an Air Marshal rule.
+- description: 060 | multihop_d3_without
+  vars:
+    question: Create a test that removes a specific custom analytics artifact you already have registered
+      in your organization's cameras.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts
+    - DELETE /organizations/{organizationId}/camera/customAnalytics/artifacts/{artifactId}
+  metadata:
+    cell: multihop_d3_without
+    record_id: '060'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/customAnalytics/artifacts
+      summary: List Custom Analytics Artifacts
+      description: List Custom Analytics Artifacts
+    - method: DELETE
+      path: /organizations/{organizationId}/camera/customAnalytics/artifacts/{artifactId}
+      summary: Delete Custom Analytics Artifact
+      description: Delete Custom Analytics Artifact
+- description: 061 | multihop_d3_without
+  vars:
+    question: Write a test that deletes an RF profile from a network and checks it can no longer be assigned
+      to access points.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - DELETE /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
+  metadata:
+    cell: multihop_d3_without
+    record_id: '061'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: DELETE
+      path: /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
+      summary: Delete a RF Profile
+      description: Delete a RF Profile
+- description: 062 | multihop_d3_without
+  vars:
+    question: Draft a test that pulls the rogue-AP scan results Air Marshal has collected for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/airMarshal
+  metadata:
+    cell: multihop_d3_without
+    record_id: '062'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/airMarshal
+      summary: List Air Marshal scan results from a network
+      description: List Air Marshal scan results from a network
+- description: 063 | multihop_d3_without
+  vars:
+    question: Write a test that checks the alternate management interface for a network, including which
+      devices currently have IPs assigned on it.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/alternateManagementInterface
+  metadata:
+    cell: multihop_d3_without
+    record_id: '063'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/alternateManagementInterface
+      summary: Return alternate management interface and devices with IP assigned
+      description: Return alternate management interface and devices with IP assigned
+- description: 064 | multihop_d3_without
+  vars:
+    question: I need a test that reads back the billing configuration for a wireless network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/billing
+  metadata:
+    cell: multihop_d3_without
+    record_id: '064'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/billing
+      summary: Return the billing settings of this network
+      description: Return the billing settings of this network
+- description: 065 | multihop_d3_without
+  vars:
+    question: Create a test verifying the Bluetooth Low Energy settings for a network, assuming BLE has
+      already been turned on.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/bluetooth/settings
+  metadata:
+    cell: multihop_d3_without
+    record_id: '065'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/bluetooth/settings
+      summary: Return the Bluetooth settings for a network. <a href="https://documentation.meraki.com/MR/Bluetooth/Bluetooth_Low_Energy_(BLE)">Bluetooth
+        settings</a> must be enabled on the network.
+      description: Return the Bluetooth settings for a network. <a href="https://documentation.meraki.com/MR/Bluetooth/Bluetooth_Low_Energy_(BLE)">Bluetooth
+        settings</a> must be enabled on the network.
+- description: 066 | multihop_d3_without
+  vars:
+    question: Write a test pulling channel utilization history over time for a wireless client on a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/channelUtilizationHistory
+  metadata:
+    cell: multihop_d3_without
+    record_id: '066'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/channelUtilizationHistory
+      summary: Return AP channel utilization over time for a device or network client
+      description: Return AP channel utilization over time for a device or network client
+- description: 067 | multihop_d3_without
+  vars:
+    question: Draft a test that tracks wireless client counts over time for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/clientCountHistory
+  metadata:
+    cell: multihop_d3_without
+    record_id: '067'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/clientCountHistory
+      summary: Return wireless client counts over time for a network, device, or network client
+      description: Return wireless client counts over time for a network, device, or network client
+- description: 068 | multihop_d3_without
+  vars:
+    question: Write a test that fetches connectivity stats for a network's wireless clients, aggregated
+      per client.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/clients/connectionStats
+  metadata:
+    cell: multihop_d3_without
+    record_id: '068'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/clients/connectionStats
+      summary: Aggregated connectivity info for this network, grouped by clients
+      description: Aggregated connectivity info for this network, grouped by clients
+- description: 069 | multihop_d3_without
+  vars:
+    question: I want a test that fetches aggregated connectivity stats for a network's access points,
+      grouped by device.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/devices/connectionStats
+  metadata:
+    cell: multihop_d3_without
+    record_id: '069'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/devices/connectionStats
+      summary: Aggregated connectivity info for this network, grouped by node
+      description: Aggregated connectivity info for this network, grouped by node
+- description: 070 | multihop_d3_without
+  vars:
+    question: Create a test that fetches the details of a single custom analytics artifact already registered
+      for your organization's cameras.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts
+    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts/{artifactId}
+  metadata:
+    cell: multihop_d3_without
+    record_id: '070'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/camera/customAnalytics/artifacts
+      summary: List Custom Analytics Artifacts
+      description: List Custom Analytics Artifacts
+    - method: GET
+      path: /organizations/{organizationId}/camera/customAnalytics/artifacts/{artifactId}
+      summary: Get Custom Analytics Artifact
+      description: Get Custom Analytics Artifact
+- description: 071 | multihop_d3_without
+  vars:
+    question: Write a test that pulls PHY data-rate history over time for a wireless client on a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/dataRateHistory
+  metadata:
+    cell: multihop_d3_without
+    record_id: '071'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/dataRateHistory
+      summary: Return PHY data rates over time for a network, device, or network client
+      description: Return PHY data rates over time for a network, device, or network client
+- description: 072 | multihop_d3_without
+  vars:
+    question: Draft a test that reads the electronic shelf label settings configured for a wireless network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/electronicShelfLabel
+  metadata:
+    cell: multihop_d3_without
+    record_id: '072'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/electronicShelfLabel
+      summary: Return the ESL settings of a wireless network
+      description: Return the ESL settings of a wireless network
+- description: 073 | multihop_d3_without
+  vars:
+    question: Write a test listing the AP port profiles defined for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/ethernet/ports/profiles
+  metadata:
+    cell: multihop_d3_without
+    record_id: '073'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/ethernet/ports/profiles
+      summary: List the AP port profiles for this network
+      description: List the AP port profiles for this network
+- description: 074 | multihop_d3_without
+  vars:
+    question: Add a test that fetches failed wireless connection attempts on a network over a given time
+      range.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/failedConnections
+  metadata:
+    cell: multihop_d3_without
+    record_id: '074'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/failedConnections
+      summary: List of all failed client connection events on this network in a given time range
+      description: List of all failed client connection events on this network in a given time range
+- description: 075 | multihop_d3_without
+  vars:
+    question: Write a test tracking average wireless latency over time for a client on a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/latencyHistory
+  metadata:
+    cell: multihop_d3_without
+    record_id: '075'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/latencyHistory
+      summary: Return average wireless latency over time for a network, device, or network client
+      description: Return average wireless latency over time for a network, device, or network client
+- description: 076 | multihop_d3_without
+  vars:
+    question: Create a test that fetches aggregated wireless latency stats for a network as a whole.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/latencyStats
+  metadata:
+    cell: multihop_d3_without
+    record_id: '076'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/latencyStats
+      summary: Aggregated latency info for this network
+      description: Aggregated latency info for this network
+- description: 077 | multihop_d3_without
+  vars:
+    question: Draft a test listing the mesh status of wireless repeaters on a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/meshStatuses
+  metadata:
+    cell: multihop_d3_without
+    record_id: '077'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/meshStatuses
+      summary: List wireless mesh statuses for repeaters
+      description: List wireless mesh statuses for repeaters
+- description: 078 | multihop_d3_without
+  vars:
+    question: Write a test listing the camera quality-and-retention profiles configured for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/camera/qualityRetentionProfiles
+  metadata:
+    cell: multihop_d3_without
+    record_id: '078'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/camera/qualityRetentionProfiles
+      summary: List the quality retention profiles for this network
+      description: List the quality retention profiles for this network
+- description: 079 | multihop_d3_without
+  vars:
+    question: I need a test that fetches the details of a specific RF profile configured on a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
+  metadata:
+    cell: multihop_d3_without
+    record_id: '079'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
+      summary: Return a RF profile
+      description: Return a RF profile
+- description: 080 | multihop_d3_without
+  vars:
+    question: Write a test that lists all the camera recording schedules set up for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/camera/schedules
+  metadata:
+    cell: multihop_d3_without
+    record_id: '080'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/camera/schedules
+      summary: Returns a list of all camera recording schedules.
+      description: Returns a list of all camera recording schedules.
+- description: 081 | multihop_d3_without
+  vars:
+    question: Create a test that reads back the general wireless configuration for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/settings
+  metadata:
+    cell: multihop_d3_without
+    record_id: '081'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/settings
+      summary: Return the wireless settings for a network
+      description: Return the wireless settings for a network
+- description: 082 | multihop_d3_without
+  vars:
+    question: Draft a test pulling signal-quality history (SNR/RSSI) over time for a device on a wireless
+      network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/signalQualityHistory
+  metadata:
+    cell: multihop_d3_without
+    record_id: '082'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/signalQualityHistory
+      summary: Return signal quality (SNR/RSSI) over time for a device or network client
+      description: Return signal quality (SNR/RSSI) over time for a device or network client
+- description: 083 | multihop_d3_without
+  vars:
+    question: Write a test that lists every SSID broadcast on a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/ssids
+  metadata:
+    cell: multihop_d3_without
+    record_id: '083'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/ssids
+      summary: List the MR SSIDs in a network
+      description: List the MR SSIDs in a network
+- description: 084 | multihop_d3_without
+  vars:
+    question: Add a test tracking access-point usage over time for a client on a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/usageHistory
+  metadata:
+    cell: multihop_d3_without
+    record_id: '084'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/usageHistory
+      summary: Return AP usage over time for a device or network client
+      description: Return AP usage over time for a device or network client
+- description: 085 | multihop_d3_without
+  vars:
+    question: Write a test listing the camera wireless profiles configured for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/camera/wirelessProfiles
+  metadata:
+    cell: multihop_d3_without
+    record_id: '085'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/camera/wirelessProfiles
+      summary: List the camera wireless profiles for this network.
+      description: List the camera wireless profiles for this network.
+- description: 086 | multihop_d3_without
+  vars:
+    question: Create a test that adds a new Air Marshal rule to a network and confirms it takes effect.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/wireless/airMarshal/rules
+  metadata:
+    cell: multihop_d3_without
+    record_id: '086'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: POST
+      path: /networks/{networkId}/wireless/airMarshal/rules
+      summary: Creates a new rule
+      description: Creates a new rule
+- description: 087 | multihop_d3_without
+  vars:
+    question: Write a test that creates a new AP port profile for a network and checks the returned profile
+      matches what was submitted.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/wireless/ethernet/ports/profiles
+  metadata:
+    cell: multihop_d3_without
+    record_id: '087'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: POST
+      path: /networks/{networkId}/wireless/ethernet/ports/profiles
+      summary: Create an AP port profile
+      description: Create an AP port profile
+- description: 088 | multihop_d3_without
+  vars:
+    question: Draft a test that creates a new camera quality-and-retention profile for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/camera/qualityRetentionProfiles
+  metadata:
+    cell: multihop_d3_without
+    record_id: '088'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: POST
+      path: /networks/{networkId}/camera/qualityRetentionProfiles
+      summary: Creates new quality retention profile for this network.
+      description: Creates new quality retention profile for this network.
+- description: 089 | multihop_d3_without
+  vars:
+    question: Write a test creating a new RF profile for a network and validating its settings persist.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/wireless/rfProfiles
+  metadata:
+    cell: multihop_d3_without
+    record_id: '089'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: POST
+      path: /networks/{networkId}/wireless/rfProfiles
+      summary: Creates new RF profile for this network
+      description: Creates new RF profile for this network
+- description: 090 | multihop_d3_without
+  vars:
+    question: I want a test creating a new camera wireless profile for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/camera/wirelessProfiles
+  metadata:
+    cell: multihop_d3_without
+    record_id: '090'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: POST
+      path: /networks/{networkId}/camera/wirelessProfiles
+      summary: Creates a new camera wireless profile for this network.
+      description: Creates a new camera wireless profile for this network.
+- description: 091 | multihop_d3_without
+  vars:
+    question: Write a test that updates a network's Air Marshal settings and confirms the new configuration
+      applies.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/airMarshal/settings
+  metadata:
+    cell: multihop_d3_without
+    record_id: '091'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/airMarshal/settings
+      summary: Updates Air Marshal settings.
+      description: Updates Air Marshal settings.
+- description: 092 | multihop_d3_without
+  vars:
+    question: Create a test updating a network's alternate management interface, including its device
+      static IP configuration.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/alternateManagementInterface
+  metadata:
+    cell: multihop_d3_without
+    record_id: '092'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/alternateManagementInterface
+      summary: Update alternate management interface and device static IP
+      description: Update alternate management interface and device static IP
+- description: 093 | multihop_d3_without
+  vars:
+    question: Write a test that changes the billing configuration for a wireless network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/billing
+  metadata:
+    cell: multihop_d3_without
+    record_id: '093'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/billing
+      summary: Update the billing settings
+      description: Update the billing settings
+- description: 094 | multihop_d3_without
+  vars:
+    question: Draft a test updating a network's Bluetooth Low Energy settings and confirming the change
+      persisted.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/bluetooth/settings
+  metadata:
+    cell: multihop_d3_without
+    record_id: '094'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/bluetooth/settings
+      summary: Update the Bluetooth settings for a network
+      description: Update the Bluetooth settings for a network. See the docs page for <a href="https://documentation.meraki.com/MR/Bluetooth/Bluetooth_Low_Energy_(BLE)">Bluetooth
+        settings</a>.
+- description: 095 | multihop_d3_without
+  vars:
+    question: Write a test updating the electronic shelf label settings for a wireless network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/electronicShelfLabel
+  metadata:
+    cell: multihop_d3_without
+    record_id: '095'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/electronicShelfLabel
+      summary: Update the ESL settings of a wireless network
+      description: Update the ESL settings of a wireless network
+- description: 096 | multihop_d3_without
+  vars:
+    question: Add a test that changes a network's scanning API configuration.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/location/scanning
+  metadata:
+    cell: multihop_d3_without
+    record_id: '096'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/location/scanning
+      summary: Change scanning API settings
+      description: Change scanning API settings
+- description: 097 | multihop_d3_without
+  vars:
+    question: Write a test updating the AutoRF settings for a wireless network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/radio/rrm
+  metadata:
+    cell: multihop_d3_without
+    record_id: '097'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/radio/rrm
+      summary: Update the AutoRF settings for a wireless network
+      description: Update the AutoRF settings for a wireless network
+- description: 098 | multihop_d3_without
+  vars:
+    question: Create a test that updates a custom RF profile on a network, and confirms attempting the
+      same update on a built-in profile is rejected.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
+  metadata:
+    cell: multihop_d3_without
+    record_id: '098'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
+      summary: Updates specified RF profile for this network
+      description: 'Updates specified RF profile for this network. Note: built-in RF profiles can only
+        be assigned as a default, and its attributes are immutable'
+- description: 099 | multihop_d3_without
+  vars:
+    question: Write a test that updates the general wireless settings for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/settings
+  metadata:
+    cell: multihop_d3_without
+    record_id: '099'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/settings
+      summary: Update the wireless settings for a network
+      description: Update the wireless settings for a network
+- description: 100 | multihop_d3_without
+  vars:
+    question: Draft a test that batch-updates the parameters of Zigbee-connected door locks across your
+      organization.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/zigbee/doorLocks
+    - PUT /organizations/{organizationId}/wireless/zigbee/doorLocks/{doorLockId}
+  metadata:
+    cell: multihop_d3_without
+    record_id: '100'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/wireless/zigbee/doorLocks
+      summary: Return the list of door locks for a network
+      description: Return the list of door locks for a network
+    - method: PUT
+      path: /organizations/{organizationId}/wireless/zigbee/doorLocks/{doorLockId}
+      summary: Endpoint to batch update door locks params
+      description: Endpoint to batch update door locks params
+- description: 101 | multihop_d3_without
+  vars:
+    question: Write a test fetching aggregated wireless latency stats for a network, broken down per client.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/clients/latencyStats
+  metadata:
+    cell: multihop_d3_without
+    record_id: '101'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/clients/latencyStats
+      summary: Aggregated latency info for this network, grouped by clients
+      description: Aggregated latency info for this network, grouped by clients
+- description: 102 | multihop_d3_without
+  vars:
+    question: I need a test that fetches overall aggregated wireless connectivity stats for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/connectionStats
+  metadata:
+    cell: multihop_d3_without
+    record_id: '102'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/connectionStats
+      summary: Aggregated connectivity info for this network
+      description: Aggregated connectivity info for this network
+- description: 103 | multihop_d3_without
+  vars:
+    question: Create a test listing every device on a network eligible for electronic shelf labels.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/electronicShelfLabel/configuredDevices
+  metadata:
+    cell: multihop_d3_without
+    record_id: '103'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/electronicShelfLabel/configuredDevices
+      summary: Get a list of all ESL eligible devices of a network
+      description: Get a list of all ESL eligible devices of a network
+- description: 104 | multihop_d3_without
+  vars:
+    question: Write a test fetching aggregated wireless latency stats for a network, broken down per access
+      point.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/devices/latencyStats
+  metadata:
+    cell: multihop_d3_without
+    record_id: '104'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/devices/latencyStats
+      summary: Aggregated latency info for this network, grouped by node
+      description: Aggregated latency info for this network, grouped by node
+- description: 105 | multihop_d3_without
+  vars:
+    question: Draft a test that lists all RF profiles configured for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/rfProfiles
+  metadata:
+    cell: multihop_d3_without
+    record_id: '105'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: GET
+      path: /networks/{networkId}/wireless/rfProfiles
+      summary: List RF profiles for this network
+      description: List RF profiles for this network
+- description: 106 | multihop_d3_without
+  vars:
+    question: Write a test that sets a particular AP port profile as the default for a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/wireless/ethernet/ports/profiles/setDefault
+  metadata:
+    cell: multihop_d3_without
+    record_id: '106'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: POST
+      path: /networks/{networkId}/wireless/ethernet/ports/profiles/setDefault
+      summary: Set the AP port profile to be default for this network
+      description: Set the AP port profile to be default for this network
+- description: 107 | multihop_d3_without
+  vars:
+    question: Add a test that updates the details of an existing Air Marshal rule on a network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/airMarshal/rules/{ruleId}
+  metadata:
+    cell: multihop_d3_without
+    record_id: '107'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/airMarshal/rules/{ruleId}
+      summary: Update a rule
+      description: Update a rule
+- description: 108 | multihop_d3_without
+  vars:
+    question: Write a test that updates the Zigbee configuration for a specific network.
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/zigbee
+  metadata:
+    cell: multihop_d3_without
+    record_id: '108'
+    control: false
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+    - method: PUT
+      path: /networks/{networkId}/wireless/zigbee
+      summary: Update Zigbee Configs for specified network
+      description: Update Zigbee Configs for specified network
+- description: 109 | with_endpoint_control
+  vars:
+    question: "I've already got the reference below pulled from our internal API notes. Using it, write\
+      \ a test that assigns an AP port profile to a batch of access points and confirms the assignment\
+      \ call succeeds.\n\nReference:\n- GET /organizations\n    params: none\n    returns: array of {api,\
+      \ cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- POST /networks/{networkId}/wireless/ethernet/ports/profiles/assign\n\
+      \    params: networkId\n    returns: object {profileId, serials}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/wireless/ethernet/ports/profiles/assign
+  metadata:
+    cell: with_endpoint_control
+    record_id: '109'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: &id001
+        - api
+        - cloud
+        - id
+        - licensing
+        - management
+        - name
+        - privacy
+        - url
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: &id002
+        - enrollmentString
+        - id
+        - isBoundToConfigTemplate
+        - name
+        - notes
+        - organizationId
+        - productTypes
+        - tags
+        - timeZone
+        - url
+    - method: POST
+      path: /networks/{networkId}/wireless/ethernet/ports/profiles/assign
+      summary: Assign AP port profile to list of APs
+      description: Assign AP port profile to list of APs
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - profileId
+        - serials
+- description: 110 | with_endpoint_control
+  vars:
+    question: "Here's the API reference I'm working from. Write a test that deletes an existing camera\
+      \ quality-and-retention profile from a network and confirms it's gone afterward.\n\nReference:\n\
+      - GET /organizations\n    params: none\n    returns: array of {api, cloud, id, licensing, management,\
+      \ name, privacy, url}\n- GET /organizations/{organizationId}/networks\n    params: organizationId\n\
+      \    returns: array of {enrollmentString, id, isBoundToConfigTemplate, name, notes, organizationId,\
+      \ productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/camera/qualityRetentionProfiles\n\
+      \    params: networkId\n    returns: array of {audioRecordingEnabled, axisVideoQuality, cloudArchiveEnabled,\
+      \ id, maxRetentionDays, motionBasedRetentionEnabled, motionDetectorVersion, name, networkId, restrictedBandwidthModeEnabled,\
+      \ scheduleId, smartRetention, videoSettings}\n- DELETE /networks/{networkId}/camera/qualityRetentionProfiles/{qualityRetentionProfileId}\n\
+      \    params: networkId, qualityRetentionProfileId\n    returns: no response body"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/camera/qualityRetentionProfiles
+    - DELETE /networks/{networkId}/camera/qualityRetentionProfiles/{qualityRetentionProfileId}
+  metadata:
+    cell: with_endpoint_control
+    record_id: '110'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/camera/qualityRetentionProfiles
+      summary: List the quality retention profiles for this network
+      description: List the quality retention profiles for this network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: &id004
+        - audioRecordingEnabled
+        - axisVideoQuality
+        - cloudArchiveEnabled
+        - id
+        - maxRetentionDays
+        - motionBasedRetentionEnabled
+        - motionDetectorVersion
+        - name
+        - networkId
+        - restrictedBandwidthModeEnabled
+        - scheduleId
+        - smartRetention
+        - videoSettings
+    - method: DELETE
+      path: /networks/{networkId}/camera/qualityRetentionProfiles/{qualityRetentionProfileId}
+      summary: Delete an existing quality retention profile for this network.
+      description: Delete an existing quality retention profile for this network.
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: qualityRetentionProfileId
+          orphan: false
+        is_array_response: false
+        response_fields: []
+- description: 111 | with_endpoint_control
+  vars:
+    question: "Pasting the relevant API details below. Write a test that deletes a camera wireless profile\
+      \ from a network and checks it can no longer be retrieved.\n\nReference:\n- GET /organizations\n\
+      \    params: none\n    returns: array of {api, cloud, id, licensing, management, name, privacy,\
+      \ url}\n- GET /organizations/{organizationId}/networks\n    params: organizationId\n    returns:\
+      \ array of {enrollmentString, id, isBoundToConfigTemplate, name, notes, organizationId, productTypes,\
+      \ tags, timeZone, url}\n- GET /networks/{networkId}/camera/wirelessProfiles\n    params: networkId\n\
+      \    returns: array of {appliedDeviceCount, id, identity, name, ssid}\n- DELETE /networks/{networkId}/camera/wirelessProfiles/{wirelessProfileId}\n\
+      \    params: networkId, wirelessProfileId\n    returns: no response body"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/camera/wirelessProfiles
+    - DELETE /networks/{networkId}/camera/wirelessProfiles/{wirelessProfileId}
+  metadata:
+    cell: with_endpoint_control
+    record_id: '111'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/camera/wirelessProfiles
+      summary: List the camera wireless profiles for this network.
+      description: List the camera wireless profiles for this network.
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: &id005
+        - appliedDeviceCount
+        - id
+        - identity
+        - name
+        - ssid
+    - method: DELETE
+      path: /networks/{networkId}/camera/wirelessProfiles/{wirelessProfileId}
+      summary: Delete an existing camera wireless profile for this network.
+      description: Delete an existing camera wireless profile for this network.
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: wirelessProfileId
+          orphan: false
+        is_array_response: false
+        response_fields: []
+- description: 112 | with_endpoint_control
+  vars:
+    question: "I have the schema details for this pulled up already. Write a test that deletes an AP port\
+      \ profile from a network and verifies subsequent lookups return not-found.\n\nReference:\n- GET\
+      \ /organizations\n    params: none\n    returns: array of {api, cloud, id, licensing, management,\
+      \ name, privacy, url}\n- GET /organizations/{organizationId}/networks\n    params: organizationId\n\
+      \    returns: array of {enrollmentString, id, isBoundToConfigTemplate, name, notes, organizationId,\
+      \ productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/wireless/ethernet/ports/profiles\n\
+      \    params: networkId\n    returns: array of {isDefault, name, ports, profileId, usbPorts}\n- DELETE\
+      \ /networks/{networkId}/wireless/ethernet/ports/profiles/{profileId}\n    params: networkId, profileId\n\
+      \    returns: no response body"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/ethernet/ports/profiles
+    - DELETE /networks/{networkId}/wireless/ethernet/ports/profiles/{profileId}
+  metadata:
+    cell: with_endpoint_control
+    record_id: '112'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/wireless/ethernet/ports/profiles
+      summary: List the AP port profiles for this network
+      description: List the AP port profiles for this network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: &id006
+        - isDefault
+        - name
+        - ports
+        - profileId
+        - usbPorts
+    - method: DELETE
+      path: /networks/{networkId}/wireless/ethernet/ports/profiles/{profileId}
+      summary: Delete an AP port profile
+      description: Delete an AP port profile
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: profileId
+          orphan: false
+        is_array_response: false
+        response_fields: []
+- description: 113 | with_endpoint_control
+  vars:
+    question: "Using the reference below, write a test that fetches the most recent analytics-zone record\
+      \ for a specific camera and validates the response fields.\n\nReference:\n- GET /organizations\n\
+      \    params: none\n    returns: array of {api, cloud, id, licensing, management, name, privacy,\
+      \ url}\n- GET /organizations/{organizationId}/networks\n    params: organizationId\n    returns:\
+      \ array of {enrollmentString, id, isBoundToConfigTemplate, name, notes, organizationId, productTypes,\
+      \ tags, timeZone, url}\n- GET /networks/{networkId}/devices\n    params: networkId\n    returns:\
+      \ array of {address, beaconIdParams, details, firmware, floorPlanId, lanIp, lat, lng, mac, model,\
+      \ name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/analytics/recent\n\
+      \    params: serial\n    returns: array of {averageCount, endTs, entrances, startTs, zoneId}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/camera/analytics/recent
+  metadata:
+    cell: with_endpoint_control
+    record_id: '113'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: &id003
+        - address
+        - beaconIdParams
+        - details
+        - firmware
+        - floorPlanId
+        - lanIp
+        - lat
+        - lng
+        - mac
+        - model
+        - name
+        - networkId
+        - notes
+        - serial
+        - tags
+        - url
+    - method: GET
+      path: /devices/{serial}/camera/analytics/recent
+      summary: Returns most recent record for analytics zones
+      description: Returns most recent record for analytics zones
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: true
+        response_fields:
+        - averageCount
+        - endTs
+        - entrances
+        - startTs
+        - zoneId
+- description: 114 | with_endpoint_control
+  vars:
+    question: "Here's what I have on hand for this. Write a test that requests a short video clip from\
+      \ a specific camera and checks the response completes successfully.\n\nReference:\n- GET /organizations\n\
+      \    params: none\n    returns: array of {api, cloud, id, licensing, management, name, privacy,\
+      \ url}\n- GET /organizations/{organizationId}/networks\n    params: organizationId\n    returns:\
+      \ array of {enrollmentString, id, isBoundToConfigTemplate, name, notes, organizationId, productTypes,\
+      \ tags, timeZone, url}\n- GET /networks/{networkId}/devices\n    params: networkId\n    returns:\
+      \ array of {address, beaconIdParams, details, firmware, floorPlanId, lanIp, lat, lng, mac, model,\
+      \ name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/clip\n    params: serial\n\
+      \    returns: no response body"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/camera/clip
+  metadata:
+    cell: with_endpoint_control
+    record_id: '114'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/camera/clip
+      summary: Generate a video clip of up to 5 minutes long.
+      description: Generate a video clip of up to 5 minutes long.
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields: []
+- description: 115 | with_endpoint_control
+  vars:
+    question: "I've pasted the API details below. Write a test that reads back the custom analytics configuration\
+      \ for a specific camera.\n\nReference:\n- GET /organizations\n    params: none\n    returns: array\
+      \ of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/customAnalytics\n\
+      \    params: serial\n    returns: object {artifactId, enabled, parameters}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/camera/customAnalytics
+  metadata:
+    cell: with_endpoint_control
+    record_id: '115'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/camera/customAnalytics
+      summary: Return custom analytics settings for a camera
+      description: Return custom analytics settings for a camera
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - artifactId
+        - enabled
+        - parameters
+- description: 116 | with_endpoint_control
+  vars:
+    question: "Working from the reference below, write a test that fetches the quality and retention settings\
+      \ configured on a specific camera.\n\nReference:\n- GET /organizations\n    params: none\n    returns:\
+      \ array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/qualityAndRetention\n\
+      \    params: serial\n    returns: object {audioRecordingEnabled, motionBasedRetentionEnabled, motionDetectorVersion,\
+      \ profileId, quality, resolution, restrictedBandwidthModeEnabled}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/camera/qualityAndRetention
+  metadata:
+    cell: with_endpoint_control
+    record_id: '116'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/camera/qualityAndRetention
+      summary: Returns quality and retention settings for the given camera
+      description: Returns quality and retention settings for the given camera
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - audioRecordingEnabled
+        - motionBasedRetentionEnabled
+        - motionDetectorVersion
+        - profileId
+        - quality
+        - resolution
+        - restrictedBandwidthModeEnabled
+- description: 117 | with_endpoint_control
+  vars:
+    question: "Here's the schema I already have. Write a test that fetches the Sense settings configured\
+      \ on a specific camera.\n\nReference:\n- GET /organizations\n    params: none\n    returns: array\
+      \ of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/sense\n\
+      \    params: serial\n    returns: object {audioDetection, detectionModelId, mqttBrokerId, mqttTopics,\
+      \ senseEnabled}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/camera/sense
+  metadata:
+    cell: with_endpoint_control
+    record_id: '117'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/camera/sense
+      summary: Returns sense settings for a given camera
+      description: Returns sense settings for a given camera
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - audioDetection
+        - detectionModelId
+        - mqttBrokerId
+        - mqttTopics
+        - senseEnabled
+- description: 118 | with_endpoint_control
+  vars:
+    question: "Using the pasted reference below, write a test that reads the video settings configured\
+      \ on a specific camera.\n\nReference:\n- GET /organizations\n    params: none\n    returns: array\
+      \ of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/video/settings\n\
+      \    params: serial\n    returns: object {externalRtspEnabled, rtspUrl}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/camera/video/settings
+  metadata:
+    cell: with_endpoint_control
+    record_id: '118'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/camera/video/settings
+      summary: Returns video settings for the given camera
+      description: Returns video settings for the given camera
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - externalRtspEnabled
+        - rtspUrl
+- description: 119 | with_endpoint_control
+  vars:
+    question: "I've got this API reference on hand. Write a test that fetches the video link for a specific\
+      \ camera, including the case where a timestamp is provided.\n\nReference:\n- GET /organizations\n\
+      \    params: none\n    returns: array of {api, cloud, id, licensing, management, name, privacy,\
+      \ url}\n- GET /organizations/{organizationId}/networks\n    params: organizationId\n    returns:\
+      \ array of {enrollmentString, id, isBoundToConfigTemplate, name, notes, organizationId, productTypes,\
+      \ tags, timeZone, url}\n- GET /networks/{networkId}/devices\n    params: networkId\n    returns:\
+      \ array of {address, beaconIdParams, details, firmware, floorPlanId, lanIp, lat, lng, mac, model,\
+      \ name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/videoLink\n    params:\
+      \ serial\n    returns: object {url, visionUrl}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/camera/videoLink
+  metadata:
+    cell: with_endpoint_control
+    record_id: '119'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/camera/videoLink
+      summary: Returns video link to the specified camera
+      description: Returns video link to the specified camera. If a timestamp is supplied, it links to
+        that timestamp.
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - url
+        - visionUrl
+- description: 120 | with_endpoint_control
+  vars:
+    question: "Pasting the details I have below. Write a test that reads the Bluetooth settings reported\
+      \ by a specific wireless access point.\n\nReference:\n- GET /organizations\n    params: none\n \
+      \   returns: array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/bluetooth/settings\n\
+      \    params: serial\n    returns: object {major, minor, uuid}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/wireless/bluetooth/settings
+  metadata:
+    cell: with_endpoint_control
+    record_id: '120'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/wireless/bluetooth/settings
+      summary: Return the bluetooth settings for a wireless device
+      description: Return the bluetooth settings for a wireless device
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - major
+        - minor
+        - uuid
+- description: 121 | with_endpoint_control
+  vars:
+    question: "Here's the reference I'm using. Write a test that fetches aggregated wireless connectivity\
+      \ stats for a specific access point.\n\nReference:\n- GET /organizations\n    params: none\n   \
+      \ returns: array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/connectionStats\n\
+      \    params: serial\n    returns: object {connectionStats, serial}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/wireless/connectionStats
+  metadata:
+    cell: with_endpoint_control
+    record_id: '121'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/wireless/connectionStats
+      summary: Aggregated connectivity info for a given AP on this network
+      description: Aggregated connectivity info for a given AP on this network
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - connectionStats
+        - serial
+- description: 122 | with_endpoint_control
+  vars:
+    question: "I have the schema pulled up already. Write a test that reads the electronic shelf label\
+      \ settings for a specific device.\n\nReference:\n- GET /organizations\n    params: none\n    returns:\
+      \ array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/electronicShelfLabel\n\
+      \    params: serial\n    returns: object {apEslId, channel, enabled, hostname, networkId, provider,\
+      \ serial}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/wireless/electronicShelfLabel
+  metadata:
+    cell: with_endpoint_control
+    record_id: '122'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/wireless/electronicShelfLabel
+      summary: Return the ESL settings of a device
+      description: Return the ESL settings of a device
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - apEslId
+        - channel
+        - enabled
+        - hostname
+        - networkId
+        - provider
+        - serial
+- description: 123 | with_endpoint_control
+  vars:
+    question: "Using the API details below, write a test that fetches aggregated wireless latency stats\
+      \ for a specific access point.\n\nReference:\n- GET /organizations\n    params: none\n    returns:\
+      \ array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/latencyStats\n\
+      \    params: serial\n    returns: object {latencyStats, serial}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/wireless/latencyStats
+  metadata:
+    cell: with_endpoint_control
+    record_id: '123'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/wireless/latencyStats
+      summary: Aggregated latency info for a given AP on this network
+      description: Aggregated latency info for a given AP on this network
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - latencyStats
+        - serial
+- description: 124 | with_endpoint_control
+  vars:
+    question: "Here's what I've got for this endpoint. Write a test that reads the manually configured\
+      \ radio overrides for a specific wireless device.\n\nReference:\n- GET /organizations\n    params:\
+      \ none\n    returns: array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET\
+      \ /organizations/{organizationId}/networks\n    params: organizationId\n    returns: array of {enrollmentString,\
+      \ id, isBoundToConfigTemplate, name, notes, organizationId, productTypes, tags, timeZone, url}\n\
+      - GET /networks/{networkId}/devices\n    params: networkId\n    returns: array of {address, beaconIdParams,\
+      \ details, firmware, floorPlanId, lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags,\
+      \ url}\n- GET /devices/{serial}/wireless/radio/settings\n    params: serial\n    returns: object\
+      \ {fiveGhzSettings, rfProfileId, serial, twoFourGhzSettings}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/wireless/radio/settings
+  metadata:
+    cell: with_endpoint_control
+    record_id: '124'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/wireless/radio/settings
+      summary: Return the manually configured radio settings overrides of a device, which take precedence
+        over RF profiles.
+      description: Return the manually configured radio settings overrides of a device, which take precedence
+        over RF profiles.
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - fiveGhzSettings
+        - rfProfileId
+        - serial
+        - twoFourGhzSettings
+- description: 125 | with_endpoint_control
+  vars:
+    question: "Pasting the reference below. Write a test that fetches the SSID broadcast status reported\
+      \ by a specific access point.\n\nReference:\n- GET /organizations\n    params: none\n    returns:\
+      \ array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/status\n\
+      \    params: serial\n    returns: object {basicServiceSets}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/wireless/status
+  metadata:
+    cell: with_endpoint_control
+    record_id: '125'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/wireless/status
+      summary: Return the SSID statuses of an access point
+      description: Return the SSID statuses of an access point
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - basicServiceSets
+- description: 126 | with_endpoint_control
+  vars:
+    question: "I already have the schema for this. Write a test that looks up a specific Zigbee enrollment\
+      \ on a device by its enrollment ID and checks the returned status.\n\nReference:\n- GET /organizations\n\
+      \    params: none\n    returns: array of {api, cloud, id, licensing, management, name, privacy,\
+      \ url}\n- GET /organizations/{organizationId}/networks\n    params: organizationId\n    returns:\
+      \ array of {enrollmentString, id, isBoundToConfigTemplate, name, notes, organizationId, productTypes,\
+      \ tags, timeZone, url}\n- GET /networks/{networkId}/devices\n    params: networkId\n    returns:\
+      \ array of {address, beaconIdParams, details, firmware, floorPlanId, lanIp, lat, lng, mac, model,\
+      \ name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/zigbee/enrollments/{enrollmentId}\n\
+      \    params: serial, enrollmentId\n    returns: object {doorLocks, enrollmentId, enrollmentStartedAt,\
+      \ request, status, url}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - GET /devices/{serial}/wireless/zigbee/enrollments/{enrollmentId}
+  metadata:
+    cell: with_endpoint_control
+    record_id: '126'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: GET
+      path: /devices/{serial}/wireless/zigbee/enrollments/{enrollmentId}
+      summary: Return an enrollment
+      description: Return an enrollment
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        - name: enrollmentId
+          orphan: true
+        is_array_response: false
+        response_fields:
+        - doorLocks
+        - enrollmentId
+        - enrollmentStartedAt
+        - request
+        - status
+        - url
+- description: 127 | with_endpoint_control
+  vars:
+    question: "Working from the API notes below, write a test that retrieves a single camera quality-and-retention\
+      \ profile by ID.\n\nReference:\n- GET /organizations\n    params: none\n    returns: array of {api,\
+      \ cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/camera/qualityRetentionProfiles\n\
+      \    params: networkId\n    returns: array of {audioRecordingEnabled, axisVideoQuality, cloudArchiveEnabled,\
+      \ id, maxRetentionDays, motionBasedRetentionEnabled, motionDetectorVersion, name, networkId, restrictedBandwidthModeEnabled,\
+      \ scheduleId, smartRetention, videoSettings}\n- GET /networks/{networkId}/camera/qualityRetentionProfiles/{qualityRetentionProfileId}\n\
+      \    params: networkId, qualityRetentionProfileId\n    returns: object {audioRecordingEnabled, axisVideoQuality,\
+      \ cloudArchiveEnabled, id, maxRetentionDays, motionBasedRetentionEnabled, motionDetectorVersion,\
+      \ name, networkId, restrictedBandwidthModeEnabled, scheduleId, smartRetention, videoSettings}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/camera/qualityRetentionProfiles
+    - GET /networks/{networkId}/camera/qualityRetentionProfiles/{qualityRetentionProfileId}
+  metadata:
+    cell: with_endpoint_control
+    record_id: '127'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/camera/qualityRetentionProfiles
+      summary: List the quality retention profiles for this network
+      description: List the quality retention profiles for this network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id004
+    - method: GET
+      path: /networks/{networkId}/camera/qualityRetentionProfiles/{qualityRetentionProfileId}
+      summary: Retrieve a single quality retention profile
+      description: Retrieve a single quality retention profile
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: qualityRetentionProfileId
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - audioRecordingEnabled
+        - axisVideoQuality
+        - cloudArchiveEnabled
+        - id
+        - maxRetentionDays
+        - motionBasedRetentionEnabled
+        - motionDetectorVersion
+        - name
+        - networkId
+        - restrictedBandwidthModeEnabled
+        - scheduleId
+        - smartRetention
+        - videoSettings
+- description: 128 | with_endpoint_control
+  vars:
+    question: "Here's the reference I have on hand. Write a test that retrieves a single camera wireless\
+      \ profile by ID.\n\nReference:\n- GET /organizations\n    params: none\n    returns: array of {api,\
+      \ cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/camera/wirelessProfiles\n\
+      \    params: networkId\n    returns: array of {appliedDeviceCount, id, identity, name, ssid}\n-\
+      \ GET /networks/{networkId}/camera/wirelessProfiles/{wirelessProfileId}\n    params: networkId,\
+      \ wirelessProfileId\n    returns: object {appliedDeviceCount, id, identity, name, ssid}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/camera/wirelessProfiles
+    - GET /networks/{networkId}/camera/wirelessProfiles/{wirelessProfileId}
+  metadata:
+    cell: with_endpoint_control
+    record_id: '128'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/camera/wirelessProfiles
+      summary: List the camera wireless profiles for this network.
+      description: List the camera wireless profiles for this network.
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id005
+    - method: GET
+      path: /networks/{networkId}/camera/wirelessProfiles/{wirelessProfileId}
+      summary: Retrieve a single camera wireless profile.
+      description: Retrieve a single camera wireless profile.
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: wirelessProfileId
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - appliedDeviceCount
+        - id
+        - identity
+        - name
+        - ssid
+- description: 129 | with_endpoint_control
+  vars:
+    question: "Using the pasted details below, write a test that fetches aggregated wireless connection\
+      \ stats for one specific client on a network.\n\nReference:\n- GET /organizations\n    params: none\n\
+      \    returns: array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/clients\n\
+      \    params: networkId\n    returns: array of {adaptivePolicyGroup, description, deviceTypePrediction,\
+      \ firstSeen, groupPolicy8021x, id, ip, ip6, ip6Local, lastSeen, mac, manufacturer, namedVlan, notes,\
+      \ os, pskGroup, recentDeviceConnection, recentDeviceMac, recentDeviceName, recentDeviceSerial, smInstalled,\
+      \ ssid, status, switchport, usage, user, vlan, wirelessCapabilities}\n- GET /networks/{networkId}/wireless/clients/{clientId}/connectionStats\n\
+      \    params: networkId, clientId\n    returns: object {connectionStats, mac}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/clients
+    - GET /networks/{networkId}/wireless/clients/{clientId}/connectionStats
+  metadata:
+    cell: with_endpoint_control
+    record_id: '129'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/clients
+      summary: List the clients that have used this network in the timespan
+      description: List the clients that have used this network in the timespan. The data is updated at
+        most once every five minutes.
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields:
+        - adaptivePolicyGroup
+        - description
+        - deviceTypePrediction
+        - firstSeen
+        - groupPolicy8021x
+        - id
+        - ip
+        - ip6
+        - ip6Local
+        - lastSeen
+        - mac
+        - manufacturer
+        - namedVlan
+        - notes
+        - os
+        - pskGroup
+        - recentDeviceConnection
+        - recentDeviceMac
+        - recentDeviceName
+        - recentDeviceSerial
+        - smInstalled
+        - ssid
+        - status
+        - switchport
+        - usage
+        - user
+        - vlan
+        - wirelessCapabilities
+    - method: GET
+      path: /networks/{networkId}/wireless/clients/{clientId}/connectionStats
+      summary: Aggregated connectivity info for a given client on this network
+      description: Aggregated connectivity info for a given client on this network. Clients are identified
+        by their MAC.
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: clientId
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - connectionStats
+        - mac
+- description: 130 | with_endpoint_control
+  vars:
+    question: "I've got the schema for this pulled up. Write a test that fetches a single AP port profile\
+      \ by ID for a network.\n\nReference:\n- GET /organizations\n    params: none\n    returns: array\
+      \ of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/wireless/ethernet/ports/profiles\n\
+      \    params: networkId\n    returns: array of {isDefault, name, ports, profileId, usbPorts}\n- GET\
+      \ /networks/{networkId}/wireless/ethernet/ports/profiles/{profileId}\n    params: networkId, profileId\n\
+      \    returns: object {isDefault, name, ports, profileId, usbPorts}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/ethernet/ports/profiles
+    - GET /networks/{networkId}/wireless/ethernet/ports/profiles/{profileId}
+  metadata:
+    cell: with_endpoint_control
+    record_id: '130'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/wireless/ethernet/ports/profiles
+      summary: List the AP port profiles for this network
+      description: List the AP port profiles for this network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id006
+    - method: GET
+      path: /networks/{networkId}/wireless/ethernet/ports/profiles/{profileId}
+      summary: Show the AP port profile by ID for this network
+      description: Show the AP port profile by ID for this network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: profileId
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - isDefault
+        - name
+        - ports
+        - profileId
+        - usbPorts
+- description: 131 | with_endpoint_control
+  vars:
+    question: "Pasting the API reference below. Write a test that fetches the L7 firewall rules configured\
+      \ for a specific SSID.\n\nReference:\n- GET /organizations\n    params: none\n    returns: array\
+      \ of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/wireless/ssids\n\
+      \    params: networkId\n    returns: array of {adaptivePolicyGroupId, adminSplashUrl, adultContentFilteringEnabled,\
+      \ authMode, availabilityTags, availableOnAllAps, bandSelection, defaultVlanId, dnsRewrite, dot11r,\
+      \ dot11w, enabled, encryptionMode, enterpriseAdminAccess, gre, ipAssignmentMode, lanIsolationEnabled,\
+      \ localAuth, localAuthFallback, mandatoryDhcpEnabled, minBitrate, name, namedVlans, number, oauth,\
+      \ perClientBandwidthLimitDown, perClientBandwidthLimitUp, perSsidBandwidthLimitDown, perSsidBandwidthLimitUp,\
+      \ psk, radiusAccountingEnabled, radiusAccountingServers, radiusAttributeForGroupPolicies, radiusAuthenticationNasId,\
+      \ radiusCalledStationId, radiusCoaEnabled, radiusEnabled, radiusFailoverPolicy, radiusFallbackEnabled,\
+      \ radiusLoadBalancingPolicy, radiusOverride, radiusProxyEnabled, radiusServerAttemptsLimit, radiusServerTimeout,\
+      \ radiusServers, radiusTestingEnabled, security, speedBurst, splashPage, splashTimeout, ssidAdminAccessible,\
+      \ useVlanTagging, visible, walledGardenEnabled, walledGardenRanges, wifiPersonalNetworkEnabled,\
+      \ wpaEncryptionMode}\n- GET /networks/{networkId}/wireless/ssids/{number}/firewall/l7FirewallRules\n\
+      \    params: networkId, number\n    returns: object {rules}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/ssids
+    - GET /networks/{networkId}/wireless/ssids/{number}/firewall/l7FirewallRules
+  metadata:
+    cell: with_endpoint_control
+    record_id: '131'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/wireless/ssids
+      summary: List the MR SSIDs in a network
+      description: List the MR SSIDs in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: &id007
+        - adaptivePolicyGroupId
+        - adminSplashUrl
+        - adultContentFilteringEnabled
+        - authMode
+        - availabilityTags
+        - availableOnAllAps
+        - bandSelection
+        - defaultVlanId
+        - dnsRewrite
+        - dot11r
+        - dot11w
+        - enabled
+        - encryptionMode
+        - enterpriseAdminAccess
+        - gre
+        - ipAssignmentMode
+        - lanIsolationEnabled
+        - localAuth
+        - localAuthFallback
+        - mandatoryDhcpEnabled
+        - minBitrate
+        - name
+        - namedVlans
+        - number
+        - oauth
+        - perClientBandwidthLimitDown
+        - perClientBandwidthLimitUp
+        - perSsidBandwidthLimitDown
+        - perSsidBandwidthLimitUp
+        - psk
+        - radiusAccountingEnabled
+        - radiusAccountingServers
+        - radiusAttributeForGroupPolicies
+        - radiusAuthenticationNasId
+        - radiusCalledStationId
+        - radiusCoaEnabled
+        - radiusEnabled
+        - radiusFailoverPolicy
+        - radiusFallbackEnabled
+        - radiusLoadBalancingPolicy
+        - radiusOverride
+        - radiusProxyEnabled
+        - radiusServerAttemptsLimit
+        - radiusServerTimeout
+        - radiusServers
+        - radiusTestingEnabled
+        - security
+        - speedBurst
+        - splashPage
+        - splashTimeout
+        - ssidAdminAccessible
+        - useVlanTagging
+        - visible
+        - walledGardenEnabled
+        - walledGardenRanges
+        - wifiPersonalNetworkEnabled
+        - wpaEncryptionMode
+    - method: GET
+      path: /networks/{networkId}/wireless/ssids/{number}/firewall/l7FirewallRules
+      summary: Return the L7 firewall rules for an SSID on an MR network
+      description: Return the L7 firewall rules for an SSID on an MR network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: number
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - rules
+- description: 132 | with_endpoint_control
+  vars:
+    question: "Here's what I have already. Write a test that generates a snapshot from a specific camera\
+      \ at a given time and checks the response includes a usable image link.\n\nReference:\n- GET /organizations\n\
+      \    params: none\n    returns: array of {api, cloud, id, licensing, management, name, privacy,\
+      \ url}\n- GET /organizations/{organizationId}/networks\n    params: organizationId\n    returns:\
+      \ array of {enrollmentString, id, isBoundToConfigTemplate, name, notes, organizationId, productTypes,\
+      \ tags, timeZone, url}\n- GET /networks/{networkId}/devices\n    params: networkId\n    returns:\
+      \ array of {address, beaconIdParams, details, firmware, floorPlanId, lanIp, lat, lng, mac, model,\
+      \ name, networkId, notes, serial, tags, url}\n- POST /devices/{serial}/camera/generateSnapshot\n\
+      \    params: serial\n    returns: no response body"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - POST /devices/{serial}/camera/generateSnapshot
+  metadata:
+    cell: with_endpoint_control
+    record_id: '132'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: POST
+      path: /devices/{serial}/camera/generateSnapshot
+      summary: Generate a snapshot of what the camera sees at the specified time and return a link to
+        that image.
+      description: Generate a snapshot of what the camera sees at the specified time and return a link
+        to that image.
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields: []
+- description: 133 | with_endpoint_control
+  vars:
+    question: "Using the reference below, write a test that enqueues a job to enroll door locks on a Zigbee-configured\
+      \ wireless device and checks the job status returned.\n\nReference:\n- GET /organizations\n    params:\
+      \ none\n    returns: array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET\
+      \ /organizations/{organizationId}/networks\n    params: organizationId\n    returns: array of {enrollmentString,\
+      \ id, isBoundToConfigTemplate, name, notes, organizationId, productTypes, tags, timeZone, url}\n\
+      - GET /networks/{networkId}/devices\n    params: networkId\n    returns: array of {address, beaconIdParams,\
+      \ details, firmware, floorPlanId, lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags,\
+      \ url}\n- POST /devices/{serial}/wireless/zigbee/enrollments\n    params: serial\n    returns: object\
+      \ {enrollmentId, request, status, url}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - POST /devices/{serial}/wireless/zigbee/enrollments
+  metadata:
+    cell: with_endpoint_control
+    record_id: '133'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: POST
+      path: /devices/{serial}/wireless/zigbee/enrollments
+      summary: Enqueue a job to start enrolling door locks on zigbee configured wireless devices
+      description: Enqueue a job to start enrolling door locks on zigbee configured wireless devices
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - enrollmentId
+        - request
+        - status
+        - url
+- description: 134 | with_endpoint_control
+  vars:
+    question: "I've pasted the relevant schema below. Write a test that creates a new Identity PSK for\
+      \ an SSID and confirms the returned passphrase details.\n\nReference:\n- GET /organizations\n  \
+      \  params: none\n    returns: array of {api, cloud, id, licensing, management, name, privacy, url}\n\
+      - GET /organizations/{organizationId}/networks\n    params: organizationId\n    returns: array of\
+      \ {enrollmentString, id, isBoundToConfigTemplate, name, notes, organizationId, productTypes, tags,\
+      \ timeZone, url}\n- GET /networks/{networkId}/wireless/ssids\n    params: networkId\n    returns:\
+      \ array of {adaptivePolicyGroupId, adminSplashUrl, adultContentFilteringEnabled, authMode, availabilityTags,\
+      \ availableOnAllAps, bandSelection, defaultVlanId, dnsRewrite, dot11r, dot11w, enabled, encryptionMode,\
+      \ enterpriseAdminAccess, gre, ipAssignmentMode, lanIsolationEnabled, localAuth, localAuthFallback,\
+      \ mandatoryDhcpEnabled, minBitrate, name, namedVlans, number, oauth, perClientBandwidthLimitDown,\
+      \ perClientBandwidthLimitUp, perSsidBandwidthLimitDown, perSsidBandwidthLimitUp, psk, radiusAccountingEnabled,\
+      \ radiusAccountingServers, radiusAttributeForGroupPolicies, radiusAuthenticationNasId, radiusCalledStationId,\
+      \ radiusCoaEnabled, radiusEnabled, radiusFailoverPolicy, radiusFallbackEnabled, radiusLoadBalancingPolicy,\
+      \ radiusOverride, radiusProxyEnabled, radiusServerAttemptsLimit, radiusServerTimeout, radiusServers,\
+      \ radiusTestingEnabled, security, speedBurst, splashPage, splashTimeout, ssidAdminAccessible, useVlanTagging,\
+      \ visible, walledGardenEnabled, walledGardenRanges, wifiPersonalNetworkEnabled, wpaEncryptionMode}\n\
+      - POST /networks/{networkId}/wireless/ssids/{number}/identityPsks\n    params: networkId, number\n\
+      \    returns: object {email, expiresAt, groupPolicyId, id, name, passphrase, wifiPersonalNetworkId}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/ssids
+    - POST /networks/{networkId}/wireless/ssids/{number}/identityPsks
+  metadata:
+    cell: with_endpoint_control
+    record_id: '134'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/wireless/ssids
+      summary: List the MR SSIDs in a network
+      description: List the MR SSIDs in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id007
+    - method: POST
+      path: /networks/{networkId}/wireless/ssids/{number}/identityPsks
+      summary: Create an Identity PSK
+      description: Create an Identity PSK
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: number
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - email
+        - expiresAt
+        - groupPolicyId
+        - id
+        - name
+        - passphrase
+        - wifiPersonalNetworkId
+- description: 135 | with_endpoint_control
+  vars:
+    question: "Working from the API details I have on hand, write a test that updates the custom analytics\
+      \ configuration on a specific camera.\n\nReference:\n- GET /organizations\n    params: none\n  \
+      \  returns: array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- PUT /devices/{serial}/camera/customAnalytics\n\
+      \    params: serial\n    returns: object {artifactId, enabled, parameters}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - PUT /devices/{serial}/camera/customAnalytics
+  metadata:
+    cell: with_endpoint_control
+    record_id: '135'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: PUT
+      path: /devices/{serial}/camera/customAnalytics
+      summary: Update custom analytics settings for a camera
+      description: Update custom analytics settings for a camera
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - artifactId
+        - enabled
+        - parameters
+- description: 136 | with_endpoint_control
+  vars:
+    question: "Here's the reference below. Write a test that updates the IPv6 address on a device's alternate\
+      \ management interface.\n\nReference:\n- GET /organizations\n    params: none\n    returns: array\
+      \ of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- PUT /devices/{serial}/wireless/alternateManagementInterface/ipv6\n\
+      \    params: serial\n    returns: object {addresses}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - PUT /devices/{serial}/wireless/alternateManagementInterface/ipv6
+  metadata:
+    cell: with_endpoint_control
+    record_id: '136'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: PUT
+      path: /devices/{serial}/wireless/alternateManagementInterface/ipv6
+      summary: Update alternate management interface IPv6 address
+      description: Update alternate management interface IPv6 address
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - addresses
+- description: 137 | with_endpoint_control
+  vars:
+    question: "Using the schema I've already pulled up, write a test that updates the Bluetooth settings\
+      \ on a specific wireless access point.\n\nReference:\n- GET /organizations\n    params: none\n \
+      \   returns: array of {api, cloud, id, licensing, management, name, privacy, url}\n- GET /organizations/{organizationId}/networks\n\
+      \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
+      \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- GET /networks/{networkId}/devices\n\
+      \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
+      \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- PUT /devices/{serial}/wireless/bluetooth/settings\n\
+      \    params: serial\n    returns: object {major, minor, uuid}"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/devices
+    - PUT /devices/{serial}/wireless/bluetooth/settings
+  metadata:
+    cell: with_endpoint_control
+    record_id: '137'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/devices
+      summary: List the devices in a network
+      description: List the devices in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id003
+    - method: PUT
+      path: /devices/{serial}/wireless/bluetooth/settings
+      summary: Update the bluetooth settings for a wireless device
+      description: Update the bluetooth settings for a wireless device
+      schema_excerpt:
+        params:
+        - name: serial
+          orphan: false
+        is_array_response: false
+        response_fields:
+        - major
+        - minor
+        - uuid
+- description: 138 | with_endpoint_control
+  vars:
+    question: "Pasting the full reference below. Write a test that deletes a specific Identity PSK from\
+      \ an SSID and confirms it no longer appears in the PSK listing.\n\nReference:\n- GET /organizations\n\
+      \    params: none\n    returns: array of {api, cloud, id, licensing, management, name, privacy,\
+      \ url}\n- GET /organizations/{organizationId}/networks\n    params: organizationId\n    returns:\
+      \ array of {enrollmentString, id, isBoundToConfigTemplate, name, notes, organizationId, productTypes,\
+      \ tags, timeZone, url}\n- GET /networks/{networkId}/wireless/ssids\n    params: networkId\n    returns:\
+      \ array of {adaptivePolicyGroupId, adminSplashUrl, adultContentFilteringEnabled, authMode, availabilityTags,\
+      \ availableOnAllAps, bandSelection, defaultVlanId, dnsRewrite, dot11r, dot11w, enabled, encryptionMode,\
+      \ enterpriseAdminAccess, gre, ipAssignmentMode, lanIsolationEnabled, localAuth, localAuthFallback,\
+      \ mandatoryDhcpEnabled, minBitrate, name, namedVlans, number, oauth, perClientBandwidthLimitDown,\
+      \ perClientBandwidthLimitUp, perSsidBandwidthLimitDown, perSsidBandwidthLimitUp, psk, radiusAccountingEnabled,\
+      \ radiusAccountingServers, radiusAttributeForGroupPolicies, radiusAuthenticationNasId, radiusCalledStationId,\
+      \ radiusCoaEnabled, radiusEnabled, radiusFailoverPolicy, radiusFallbackEnabled, radiusLoadBalancingPolicy,\
+      \ radiusOverride, radiusProxyEnabled, radiusServerAttemptsLimit, radiusServerTimeout, radiusServers,\
+      \ radiusTestingEnabled, security, speedBurst, splashPage, splashTimeout, ssidAdminAccessible, useVlanTagging,\
+      \ visible, walledGardenEnabled, walledGardenRanges, wifiPersonalNetworkEnabled, wpaEncryptionMode}\n\
+      - GET /networks/{networkId}/wireless/ssids/{number}/identityPsks\n    params: networkId, number\n\
+      \    returns: array of {email, expiresAt, groupPolicyId, id, name, passphrase, wifiPersonalNetworkId}\n\
+      - DELETE /networks/{networkId}/wireless/ssids/{number}/identityPsks/{identityPskId}\n    params:\
+      \ networkId, number, identityPskId\n    returns: no response body"
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/ssids
+    - GET /networks/{networkId}/wireless/ssids/{number}/identityPsks
+    - DELETE /networks/{networkId}/wireless/ssids/{number}/identityPsks/{identityPskId}
+  metadata:
+    cell: with_endpoint_control
+    record_id: '138'
+    control: true
+    target_detail:
+    - method: GET
+      path: /organizations
+      summary: List the organizations that the user has privileges on
+      description: List the organizations that the user has privileges on
+      schema_excerpt:
+        params: []
+        is_array_response: true
+        response_fields: *id001
+    - method: GET
+      path: /organizations/{organizationId}/networks
+      summary: List the networks that the user has privileges on in an organization
+      description: List the networks that the user has privileges on in an organization
+      schema_excerpt:
+        params:
+        - name: organizationId
+          orphan: false
+        is_array_response: true
+        response_fields: *id002
+    - method: GET
+      path: /networks/{networkId}/wireless/ssids
+      summary: List the MR SSIDs in a network
+      description: List the MR SSIDs in a network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        is_array_response: true
+        response_fields: *id007
+    - method: GET
+      path: /networks/{networkId}/wireless/ssids/{number}/identityPsks
+      summary: List all Identity PSKs in a wireless network
+      description: List all Identity PSKs in a wireless network
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: number
+          orphan: false
+        is_array_response: true
+        response_fields:
+        - email
+        - expiresAt
+        - groupPolicyId
+        - id
+        - name
+        - passphrase
+        - wifiPersonalNetworkId
+    - method: DELETE
+      path: /networks/{networkId}/wireless/ssids/{number}/identityPsks/{identityPskId}
+      summary: Delete an Identity PSK
+      description: Delete an Identity PSK
+      schema_excerpt:
+        params:
+        - name: networkId
+          orphan: false
+        - name: number
+          orphan: false
+        - name: identityPskId
+          orphan: false
+        is_array_response: false
+        response_fields: []
