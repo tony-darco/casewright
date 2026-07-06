@@ -5,6 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 from langchain_core.documents import Document
 
+HTTP_METHODS = ("get", "put", "post", "delete", "patch", "options", "head", "trace")
+
 OUT_DIR = Path("data/specs/path_docs")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -22,12 +24,20 @@ def write_one(item):
     path_part = path_name.replace("/{", "").replace("}", "").replace("/", "_")
     input_texts = []
     for method, operation in path_doc.items():
+        if method.lower() not in HTTP_METHODS:
+            continue  # skip path-level "parameters" and vendor extensions
         out_path = OUT_DIR / f"{method}{path_part}.json"
         if not out_path.exists():
             out_path.write_text(json.dumps(operation, indent=2), encoding="utf-8")
 
         input_texts.append(Document(
-            page_content=json.dumps(operation, indent=2), metadata={"source": "https://raw.githubusercontent.com/meraki/openapi/refs/heads/master/oenapi/spec3.json"}
+            page_content=json.dumps(operation, indent=2),
+            metadata={
+                "source": "https://raw.githubusercontent.com/meraki/openapi/refs/heads/master/oenapi/spec3.json",
+                "method": method.upper(),
+                "path": path_name,
+                "endpoint_id": f"{method.upper()} {path_name}",
+            },
         ))
     
     return input_texts

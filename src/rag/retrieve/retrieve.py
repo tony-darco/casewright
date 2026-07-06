@@ -1,13 +1,13 @@
-import sys
-from pathlib import Path
+from rag.ingest.embed import vector_store
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+from langchain_ollama import OllamaEmbeddings
 
-from embed import vector_store
+
+retriever = vector_store.as_retriever()
 
 if __name__ == "__main__":
     ans = vector_store.similarity_search_with_relevance_scores(
-        query="Return wireless profile assigned to the given camera"
+        query="List the organizations"
     )
     for doc, score in ans:
         print(score, doc.page_content)

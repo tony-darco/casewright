@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 
-from split import paths_data, write_one
+from rag.ingest.split import paths_data, write_one
 
 ollama_emb = OllamaEmbeddings(
     base_url = "http://192.168.1.17:11434",
