@@ -21,7 +21,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 
 DEFAULT_BASE_URL = "http://192.168.1.17:11434"
-DEFAULT_CHAT_MODEL = "mistral-small:22b"   # tool-capable, non-thinking -> reliable structured output
+DEFAULT_CHAT_MODEL = "qwen3.5:latest"   # tool-capable, non-thinking -> reliable structured output
 DEFAULT_EMBED_MODEL = "nomic-embed-text:latest"
 
 # Chroma store identity. Mirrors src/rag/ingest/embed.py so the pipeline reads

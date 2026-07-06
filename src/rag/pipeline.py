@@ -24,6 +24,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 
+from rag.depgraph import get_default_graph
 from rag.graph import prompts
 from rag.graph.fusion import reciprocal_rank_fusion
 from rag.graph.state import PipelineState
@@ -60,6 +61,10 @@ class AutoTestLLM:
         self.chat = build_chat_model(self.config)
         self.embeddings = build_embeddings(self.config)
         self.vector_store = build_vector_store(self.embeddings)
+        try:
+            self.depgraph = get_default_graph()   # API dependency graph; optional
+        except Exception:
+            self.depgraph = None
         self.graph = self.build_graph()
 
     # -- agnostic model ops --------------------------------------------------
@@ -155,18 +160,27 @@ class AutoTestLLM:
 
     # -- generation (first pass) --------------------------------------------
 
-    def generate_tests(self, query: str, docs):
+    def generate_tests(self, query: str, docs, dependencies: str = ""):
         if not docs:
             return ""
         context = "\n\n".join(self._render_full(d) for d in docs)
         msgs = [
             SystemMessage(prompts.GENERATE_SYSTEM),
-            HumanMessage(prompts.user_generate(query, context)),
+            HumanMessage(prompts.user_generate(query, context, dependencies)),
         ]
         try:
             return self.chat.invoke(msgs).content or ""
         except Exception:
             return ""
+
+    # -- API dependency graph ------------------------------------------------
+
+    def endpoint_dependencies(self, endpoints, direction: str = "both"):
+        """Rendered call-order dependencies for the given endpoint ids, or "" if
+        the dependency graph is unavailable."""
+        if self.depgraph is None or not endpoints:
+            return ""
+        return self.depgraph.render(endpoints, direction=direction)
 
     # -- rendering / mapping helpers ----------------------------------------
 
@@ -230,10 +244,13 @@ class AutoTestLLM:
             docs = state.get("graded") or state.get("ranked") or []
             return {"endpoints": self._endpoint_ids(docs)}
 
+        def dependencies_node(state):
+            return {"dependencies": self.endpoint_dependencies(state.get("endpoints", []))}
+
         def generate_node(state):
             docs = state.get("graded") or state.get("ranked") or []
             question = state.get("original_query", state["query"])
-            return {"tests": self.generate_tests(question, docs)}
+            return {"tests": self.generate_tests(question, docs, state.get("dependencies", ""))}
 
         def decide(state) -> Literal["rewrite", "finalize"]:
             if state.get("confidence") == "low" and state.get("attempts", 0) < MAX_ATTEMPTS:
@@ -246,6 +263,7 @@ class AutoTestLLM:
         builder.add_node("grade", grade_node)
         builder.add_node("rewrite", rewrite_node)
         builder.add_node("finalize", finalize_node)
+        builder.add_node("dependencies", dependencies_node)
         builder.add_node("generate", generate_node)
 
         builder.add_edge(START, "generate_queries")
@@ -255,7 +273,8 @@ class AutoTestLLM:
         builder.add_conditional_edges("grade", decide,
                                       {"rewrite": "rewrite", "finalize": "finalize"})
         builder.add_edge("rewrite", "generate_queries")   # re-fuse on the rewritten query
-        builder.add_edge("finalize", "generate")
+        builder.add_edge("finalize", "dependencies")
+        builder.add_edge("dependencies", "generate")
         builder.add_edge("generate", END)
 
         return builder.compile()
@@ -277,5 +296,7 @@ if __name__ == "__main__":
     print("\n=== Retrieved endpoints ===")
     for endpoint in state.get("endpoints", []):
         print(" ", endpoint)
+    print("\n=== Call-order dependencies ===")
+    print(state.get("dependencies") or "(none)")
     print("\n=== Generated tests (first pass) ===")
     print(state.get("tests") or "(none)")
