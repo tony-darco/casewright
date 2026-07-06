@@ -2,13 +2,13 @@
   vars:
     question: Write a test that removes a configured scanning API receiver from an organization and confirms
       it no longer appears afterward.
-    expected_endpoints:
-    - GET /organizations
-    - DELETE /organizations/{organizationId}/wireless/location/scanning/receivers/{receiverId}
   metadata:
     cell: multihop_d2_without
     record_id: '001'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - DELETE /organizations/{organizationId}/wireless/location/scanning/receivers/{receiverId}
     target_detail:
     - method: GET
       path: /organizations
@@ -22,13 +22,13 @@
   vars:
     question: I need a test that deletes a zero-touch deployment for a wireless access point and verifies
       it's gone from subsequent listings.
-    expected_endpoints:
-    - GET /organizations
-    - DELETE /organizations/{organizationId}/wireless/devices/provisioning/deployments/{deploymentId}
   metadata:
     cell: multihop_d2_without
     record_id: '002'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - DELETE /organizations/{organizationId}/wireless/devices/provisioning/deployments/{deploymentId}
     target_detail:
     - method: GET
       path: /organizations
@@ -42,13 +42,13 @@
   vars:
     question: Create a test that deletes an existing camera role from an organization and checks that
       role lookups afterward return not-found.
-    expected_endpoints:
-    - GET /organizations
-    - DELETE /organizations/{organizationId}/camera/roles/{roleId}
   metadata:
     cell: multihop_d2_without
     record_id: '003'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - DELETE /organizations/{organizationId}/camera/roles/{roleId}
     target_detail:
     - method: GET
       path: /organizations
@@ -62,13 +62,13 @@
   vars:
     question: Write a test that removes a MAC address entry from the L2 isolation allow list and confirms
       the entry is no longer present.
-    expected_endpoints:
-    - GET /organizations
-    - DELETE /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries/{entryId}
   metadata:
     cell: multihop_d2_without
     record_id: '004'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - DELETE /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries/{entryId}
     target_detail:
     - method: GET
       path: /organizations
@@ -82,13 +82,13 @@
   vars:
     question: Draft a test that fetches the current Air Marshal rogue-AP rules configured for an organization
       and validates the shape of each rule returned.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/airMarshal/rules
   metadata:
     cell: multihop_d2_without
     record_id: '005'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/airMarshal/rules
     target_detail:
     - method: GET
       path: /organizations
@@ -102,13 +102,13 @@
   vars:
     question: I want a test that retrieves the configured area boundaries for cameras across an organization,
       broken down by device.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/boundaries/areas/byDevice
   metadata:
     cell: multihop_d2_without
     record_id: '006'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/boundaries/areas/byDevice
     target_detail:
     - method: GET
       path: /organizations
@@ -122,13 +122,13 @@
   vars:
     question: Write a test pulling a time-series of average channel utilization per band, segmented by
       access point, and check the data points are chronologically ordered.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/history/byDevice/byInterval
   metadata:
     cell: multihop_d2_without
     record_id: '007'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/history/byDevice/byInterval
     target_detail:
     - method: GET
       path: /organizations
@@ -142,13 +142,13 @@
   vars:
     question: Add a test that reads the current access-point client counts across an organization and
       asserts counts are non-negative for every AP.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/clients/overview/byDevice
   metadata:
     cell: multihop_d2_without
     record_id: '008'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/clients/overview/byDevice
     target_detail:
     - method: GET
       path: /organizations
@@ -162,13 +162,13 @@
   vars:
     question: Write a test that lists the custom analytics artifacts registered for an organization's
       cameras.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts
   metadata:
     cell: multihop_d2_without
     record_id: '009'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts
     target_detail:
     - method: GET
       path: /organizations
@@ -182,13 +182,13 @@
   vars:
     question: Create a test retrieving camera analytics detection data for a boundary over a series of
       time intervals.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/detections/history/byBoundary/byInterval
   metadata:
     cell: multihop_d2_without
     record_id: '010'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/detections/history/byBoundary/byInterval
     target_detail:
     - method: GET
       path: /organizations
@@ -202,13 +202,13 @@
   vars:
     question: I'd like a test that checks the most recent Ethernet link speed, duplex, and power-mode
       status for wireless devices across an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/ethernet/statuses
   metadata:
     cell: multihop_d2_without
     record_id: '011'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/ethernet/statuses
     target_detail:
     - method: GET
       path: /organizations
@@ -224,13 +224,13 @@
   vars:
     question: Write a test confirming the scanning API settings are correctly returned for each network
       in an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/location/scanning/byNetwork
   metadata:
     cell: multihop_d2_without
     record_id: '012'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/location/scanning/byNetwork
     target_detail:
     - method: GET
       path: /organizations
@@ -243,13 +243,13 @@
 - description: 013 | multihop_d2_without
   vars:
     question: Draft a test that retrieves the MQTT broker settings configured for networks in an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/mqtt/settings
   metadata:
     cell: multihop_d2_without
     record_id: '013'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/mqtt/settings
     target_detail:
     - method: GET
       path: /organizations
@@ -263,13 +263,13 @@
   vars:
     question: Write a test that checks the onboarding status of cameras across an organization, including
       ones still mid-setup.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/onboarding/statuses
   metadata:
     cell: multihop_d2_without
     record_id: '014'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/onboarding/statuses
     target_detail:
     - method: GET
       path: /organizations
@@ -283,13 +283,13 @@
   vars:
     question: Create a test that pulls average wireless packet loss over a given timespan for every network
       in an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/packetLoss/byNetwork
   metadata:
     cell: multihop_d2_without
     record_id: '015'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/packetLoss/byNetwork
     target_detail:
     - method: GET
       path: /organizations
@@ -302,13 +302,13 @@
 - description: 016 | multihop_d2_without
   vars:
     question: I need a test that lists the available permission scopes defined for an organization's cameras.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/permissions
   metadata:
     cell: multihop_d2_without
     record_id: '016'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/permissions
     target_detail:
     - method: GET
       path: /organizations
@@ -322,13 +322,13 @@
   vars:
     question: Write a test that fetches the history of power-mode changes for wireless devices and confirms
       the events come back ordered by timestamp.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/power/mode/history
   metadata:
     cell: multihop_d2_without
     record_id: '017'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/power/mode/history
     target_detail:
     - method: GET
       path: /organizations
@@ -344,13 +344,13 @@
   vars:
     question: Add a test listing the zero-touch deployments configured for wireless access points in an
       organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/provisioning/deployments
   metadata:
     cell: multihop_d2_without
     record_id: '018'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/provisioning/deployments
     target_detail:
     - method: GET
       path: /organizations
@@ -363,13 +363,13 @@
 - description: 019 | multihop_d2_without
   vars:
     question: Write a test that retrieves the AutoRF settings for every network in an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/radio/rrm/byNetwork
   metadata:
     cell: multihop_d2_without
     record_id: '019'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/radio/rrm/byNetwork
     target_detail:
     - method: GET
       path: /organizations
@@ -383,13 +383,13 @@
   vars:
     question: Draft a test that queries the delta certificate revocation list for an organization's RadSec
       device certificate authority.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities/crls/deltas
   metadata:
     cell: multihop_d2_without
     record_id: '020'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities/crls/deltas
     target_detail:
     - method: GET
       path: /organizations
@@ -405,13 +405,13 @@
   vars:
     question: Write a test that lists RF profile assignments across an organization's wireless devices,
       grouped by device.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/rfProfiles/assignments/byDevice
   metadata:
     cell: multihop_d2_without
     record_id: '021'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/rfProfiles/assignments/byDevice
     target_detail:
     - method: GET
       path: /organizations
@@ -424,13 +424,13 @@
 - description: 022 | multihop_d2_without
   vars:
     question: Create a test that lists every administrative role defined in an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/roles
   metadata:
     cell: multihop_d2_without
     record_id: '022'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/roles
     target_detail:
     - method: GET
       path: /organizations
@@ -444,13 +444,13 @@
   vars:
     question: I want a test verifying the L2 isolation allow-list entries configured for an organization
       come back correctly.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries
   metadata:
     cell: multihop_d2_without
     record_id: '023'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries
     target_detail:
     - method: GET
       path: /organizations
@@ -463,13 +463,13 @@
 - description: 024 | multihop_d2_without
   vars:
     question: Write a test pulling CPU load history for a set of wireless devices in an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/system/cpu/load/history
   metadata:
     cell: multihop_d2_without
     record_id: '024'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/system/cpu/load/history
     target_detail:
     - method: GET
       path: /organizations
@@ -483,13 +483,13 @@
   vars:
     question: Add a test that retrieves information about an organization's Catalyst access points, grouped
       by device.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/wirelessControllers/byDevice
   metadata:
     cell: multihop_d2_without
     record_id: '025'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/wirelessControllers/byDevice
     target_detail:
     - method: GET
       path: /organizations
@@ -502,13 +502,13 @@
 - description: 026 | multihop_d2_without
   vars:
     question: Draft a test that lists the Zigbee-enabled wireless devices registered to an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/zigbee/devices
   metadata:
     cell: multihop_d2_without
     record_id: '026'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/zigbee/devices
     target_detail:
     - method: GET
       path: /organizations
@@ -522,13 +522,13 @@
   vars:
     question: Write a test that creates a new custom analytics artifact for cameras and checks the response
       includes an upload URL with an expiry.
-    expected_endpoints:
-    - GET /organizations
-    - POST /organizations/{organizationId}/camera/customAnalytics/artifacts
   metadata:
     cell: multihop_d2_without
     record_id: '027'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/camera/customAnalytics/artifacts
     target_detail:
     - method: GET
       path: /organizations
@@ -543,13 +543,13 @@
   vars:
     question: Create a test that registers a new scanning API receiver for an organization and confirms
       it's saved with the given settings.
-    expected_endpoints:
-    - GET /organizations
-    - POST /organizations/{organizationId}/wireless/location/scanning/receivers
   metadata:
     cell: multihop_d2_without
     record_id: '028'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/location/scanning/receivers
     target_detail:
     - method: GET
       path: /organizations
@@ -563,13 +563,13 @@
   vars:
     question: Write a test creating a zero-touch deployment for a wireless access point and validating
       the deployment record that comes back.
-    expected_endpoints:
-    - GET /organizations
-    - POST /organizations/{organizationId}/wireless/devices/provisioning/deployments
   metadata:
     cell: multihop_d2_without
     record_id: '029'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/devices/provisioning/deployments
     target_detail:
     - method: GET
       path: /organizations
@@ -583,13 +583,13 @@
   vars:
     question: I need a test that triggers a recalculation of automatically-assigned radio channels across
       a set of networks.
-    expected_endpoints:
-    - GET /organizations
-    - POST /organizations/{organizationId}/wireless/radio/autoRf/channels/recalculate
   metadata:
     cell: multihop_d2_without
     record_id: '030'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/radio/autoRf/channels/recalculate
     target_detail:
     - method: GET
       path: /organizations
@@ -605,13 +605,13 @@
   vars:
     question: Draft a test that kicks off creation of an organization's RadSec device certificate authority
       and checks the request is accepted.
-    expected_endpoints:
-    - GET /organizations
-    - POST /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
   metadata:
     cell: multihop_d2_without
     record_id: '031'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
     target_detail:
     - method: GET
       path: /organizations
@@ -628,13 +628,13 @@
   vars:
     question: Write a test that creates a new administrative role for an organization with a given set
       of permissions.
-    expected_endpoints:
-    - GET /organizations
-    - POST /organizations/{organizationId}/camera/roles
   metadata:
     cell: multihop_d2_without
     record_id: '032'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/camera/roles
     target_detail:
     - method: GET
       path: /organizations
@@ -647,13 +647,13 @@
 - description: 033 | multihop_d2_without
   vars:
     question: Add a test that adds a new MAC address to an organization's L2 isolation allow list.
-    expected_endpoints:
-    - GET /organizations
-    - POST /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries
   metadata:
     cell: multihop_d2_without
     record_id: '033'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries
     target_detail:
     - method: GET
       path: /organizations
@@ -667,13 +667,13 @@
   vars:
     question: Write a test that enqueues a job to disenroll door locks from an organization's Zigbee-configured
       wireless devices.
-    expected_endpoints:
-    - GET /organizations
-    - POST /organizations/{organizationId}/wireless/zigbee/disenrollments
   metadata:
     cell: multihop_d2_without
     record_id: '034'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - POST /organizations/{organizationId}/wireless/zigbee/disenrollments
     target_detail:
     - method: GET
       path: /organizations
@@ -687,13 +687,13 @@
   vars:
     question: Create a test that updates the settings of an existing scanning API receiver and confirms
       the changes stick.
-    expected_endpoints:
-    - GET /organizations
-    - PUT /organizations/{organizationId}/wireless/location/scanning/receivers/{receiverId}
   metadata:
     cell: multihop_d2_without
     record_id: '035'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/wireless/location/scanning/receivers/{receiverId}
     target_detail:
     - method: GET
       path: /organizations
@@ -707,13 +707,13 @@
   vars:
     question: Write a test configuring a new MQTT broker for wireless and verifying the broker config
       is saved.
-    expected_endpoints:
-    - GET /organizations
-    - PUT /organizations/{organizationId}/wireless/mqtt/settings
   metadata:
     cell: multihop_d2_without
     record_id: '036'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/wireless/mqtt/settings
     target_detail:
     - method: GET
       path: /organizations
@@ -727,13 +727,13 @@
   vars:
     question: Draft a test that notifies the system a credential handoff to a camera has completed and
       checks the onboarding status updates accordingly.
-    expected_endpoints:
-    - GET /organizations
-    - PUT /organizations/{organizationId}/camera/onboarding/statuses
   metadata:
     cell: multihop_d2_without
     record_id: '037'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/camera/onboarding/statuses
     target_detail:
     - method: GET
       path: /organizations
@@ -747,13 +747,13 @@
   vars:
     question: Write a test that updates an existing zero-touch deployment for a wireless AP and confirms
       the changes are reflected.
-    expected_endpoints:
-    - GET /organizations
-    - PUT /organizations/{organizationId}/wireless/devices/provisioning/deployments
   metadata:
     cell: multihop_d2_without
     record_id: '038'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/wireless/devices/provisioning/deployments
     target_detail:
     - method: GET
       path: /organizations
@@ -767,13 +767,13 @@
   vars:
     question: I want a test that transitions an organization's RadSec certificate authority to a trusted
       state and verifies the state change.
-    expected_endpoints:
-    - GET /organizations
-    - PUT /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
   metadata:
     cell: multihop_d2_without
     record_id: '039'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
     target_detail:
     - method: GET
       path: /organizations
@@ -791,13 +791,13 @@
   vars:
     question: Create a test that updates the permissions on an existing administrative role and checks
       the update was applied.
-    expected_endpoints:
-    - GET /organizations
-    - PUT /organizations/{organizationId}/camera/roles/{roleId}
   metadata:
     cell: multihop_d2_without
     record_id: '040'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/camera/roles/{roleId}
     target_detail:
     - method: GET
       path: /organizations
@@ -810,13 +810,13 @@
 - description: 041 | multihop_d2_without
   vars:
     question: Write a test updating the details of an existing MAC entry on the L2 isolation allow list.
-    expected_endpoints:
-    - GET /organizations
-    - PUT /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries/{entryId}
   metadata:
     cell: multihop_d2_without
     record_id: '041'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - PUT /organizations/{organizationId}/wireless/ssids/firewall/isolation/allowlist/entries/{entryId}
     target_detail:
     - method: GET
       path: /organizations
@@ -829,13 +829,13 @@
 - description: 042 | multihop_d2_without
   vars:
     question: Draft a test that fetches the current Air Marshal settings across every network in an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/airMarshal/settings/byNetwork
   metadata:
     cell: multihop_d2_without
     record_id: '042'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/airMarshal/settings/byNetwork
     target_detail:
     - method: GET
       path: /organizations
@@ -849,13 +849,13 @@
   vars:
     question: Write a test that retrieves the configured line-crossing boundaries for cameras across an
       organization, grouped by device.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/boundaries/lines/byDevice
   metadata:
     cell: multihop_d2_without
     record_id: '043'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/boundaries/lines/byDevice
     target_detail:
     - method: GET
       path: /organizations
@@ -869,13 +869,13 @@
   vars:
     question: Add a test comparing average channel utilization across bands, broken down per access point,
       for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/byDevice
   metadata:
     cell: multihop_d2_without
     record_id: '044'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/byDevice
     target_detail:
     - method: GET
       path: /organizations
@@ -888,13 +888,13 @@
 - description: 045 | multihop_d2_without
   vars:
     question: Write a test that lists all scanning API receivers registered to an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/location/scanning/receivers
   metadata:
     cell: multihop_d2_without
     record_id: '045'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/location/scanning/receivers
     target_detail:
     - method: GET
       path: /organizations
@@ -908,13 +908,13 @@
   vars:
     question: Create a test pulling average wireless packet loss over a timespan, broken down by client,
       across an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/packetLoss/byClient
   metadata:
     cell: multihop_d2_without
     record_id: '046'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/packetLoss/byClient
     target_detail:
     - method: GET
       path: /organizations
@@ -928,13 +928,13 @@
   vars:
     question: I need a test that looks up a single permission scope by its ID and checks the returned
       details.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/permissions/{permissionScopeId}
   metadata:
     cell: multihop_d2_without
     record_id: '047'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/permissions/{permissionScopeId}
     target_detail:
     - method: GET
       path: /organizations
@@ -948,13 +948,13 @@
   vars:
     question: Write a test querying the certificate revocation list for an organization's RadSec device
       certificate authorities.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities/crls
   metadata:
     cell: multihop_d2_without
     record_id: '048'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities/crls
     target_detail:
     - method: GET
       path: /organizations
@@ -970,13 +970,13 @@
   vars:
     question: Draft a test that fetches a single administrative role by ID and checks its permissions
       are returned correctly.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/roles/{roleId}
   metadata:
     cell: multihop_d2_without
     record_id: '049'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/roles/{roleId}
     target_detail:
     - method: GET
       path: /organizations
@@ -990,13 +990,13 @@
   vars:
     question: Write a test listing the status of every BSSID broadcast across an organization's wireless
       devices.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/ssids/statuses/byDevice
   metadata:
     cell: multihop_d2_without
     record_id: '050'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/ssids/statuses/byDevice
     target_detail:
     - method: GET
       path: /organizations
@@ -1009,13 +1009,13 @@
 - description: 051 | multihop_d2_without
   vars:
     question: Add a test that returns the Zigbee configuration for each network in an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/zigbee/byNetwork
   metadata:
     cell: multihop_d2_without
     record_id: '051'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/zigbee/byNetwork
     target_detail:
     - method: GET
       path: /organizations
@@ -1029,13 +1029,13 @@
   vars:
     question: Write a test pulling a time-series of average channel utilization across bands for every
       network in an organization and checking the interval boundaries.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/history/byNetwork/byInterval
   metadata:
     cell: multihop_d2_without
     record_id: '052'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/history/byNetwork/byInterval
     target_detail:
     - method: GET
       path: /organizations
@@ -1049,13 +1049,13 @@
   vars:
     question: Create a test that fetches average packet loss per device across an organization and confirms
       a device's own traffic isn't counted.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/packetLoss/byDevice
   metadata:
     cell: multihop_d2_without
     record_id: '053'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/packetLoss/byDevice
     target_detail:
     - method: GET
       path: /organizations
@@ -1070,13 +1070,13 @@
   vars:
     question: Write a test that retrieves details on an organization's RadSec device certificate authorities,
       including their signing status.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
   metadata:
     cell: multihop_d2_without
     record_id: '054'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/radsec/certificates/authorities
     target_detail:
     - method: GET
       path: /organizations
@@ -1094,13 +1094,13 @@
 - description: 055 | multihop_d2_without
   vars:
     question: Draft a test that fetches the OpenRoaming SSID configuration for each network in an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/ssids/openRoaming/byNetwork
   metadata:
     cell: multihop_d2_without
     record_id: '055'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/ssids/openRoaming/byNetwork
     target_detail:
     - method: GET
       path: /organizations
@@ -1115,13 +1115,13 @@
 - description: 056 | multihop_d2_without
   vars:
     question: Write a test looking up a specific Zigbee disenrollment job by ID and checking its status.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/zigbee/disenrollments/{disenrollmentId}
   metadata:
     cell: multihop_d2_without
     record_id: '056'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/zigbee/disenrollments/{disenrollmentId}
     target_detail:
     - method: GET
       path: /organizations
@@ -1134,13 +1134,13 @@
 - description: 057 | multihop_d2_without
   vars:
     question: Add a test comparing average wireless channel utilization across every network in an organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/byNetwork
   metadata:
     cell: multihop_d2_without
     record_id: '057'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/devices/channelUtilization/byNetwork
     target_detail:
     - method: GET
       path: /organizations
@@ -1153,13 +1153,13 @@
 - description: 058 | multihop_d2_without
   vars:
     question: Write a test that lists the Zigbee-connected door locks configured for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/zigbee/doorLocks
   metadata:
     cell: multihop_d2_without
     record_id: '058'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/zigbee/doorLocks
     target_detail:
     - method: GET
       path: /organizations
@@ -1173,14 +1173,14 @@
   vars:
     question: Write a test that deletes a specific Air Marshal rule from a network and confirms it's no
       longer enforced.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - DELETE /networks/{networkId}/wireless/airMarshal/rules/{ruleId}
   metadata:
     cell: multihop_d3_without
     record_id: '059'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - DELETE /networks/{networkId}/wireless/airMarshal/rules/{ruleId}
     target_detail:
     - method: GET
       path: /organizations
@@ -1198,14 +1198,14 @@
   vars:
     question: Create a test that removes a specific custom analytics artifact you already have registered
       in your organization's cameras.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts
-    - DELETE /organizations/{organizationId}/camera/customAnalytics/artifacts/{artifactId}
   metadata:
     cell: multihop_d3_without
     record_id: '060'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts
+    - DELETE /organizations/{organizationId}/camera/customAnalytics/artifacts/{artifactId}
     target_detail:
     - method: GET
       path: /organizations
@@ -1223,14 +1223,14 @@
   vars:
     question: Write a test that deletes an RF profile from a network and checks it can no longer be assigned
       to access points.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - DELETE /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
   metadata:
     cell: multihop_d3_without
     record_id: '061'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - DELETE /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
     target_detail:
     - method: GET
       path: /organizations
@@ -1247,14 +1247,14 @@
 - description: 062 | multihop_d3_without
   vars:
     question: Draft a test that pulls the rogue-AP scan results Air Marshal has collected for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/airMarshal
   metadata:
     cell: multihop_d3_without
     record_id: '062'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/airMarshal
     target_detail:
     - method: GET
       path: /organizations
@@ -1272,14 +1272,14 @@
   vars:
     question: Write a test that checks the alternate management interface for a network, including which
       devices currently have IPs assigned on it.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/alternateManagementInterface
   metadata:
     cell: multihop_d3_without
     record_id: '063'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/alternateManagementInterface
     target_detail:
     - method: GET
       path: /organizations
@@ -1296,14 +1296,14 @@
 - description: 064 | multihop_d3_without
   vars:
     question: I need a test that reads back the billing configuration for a wireless network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/billing
   metadata:
     cell: multihop_d3_without
     record_id: '064'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/billing
     target_detail:
     - method: GET
       path: /organizations
@@ -1321,14 +1321,14 @@
   vars:
     question: Create a test verifying the Bluetooth Low Energy settings for a network, assuming BLE has
       already been turned on.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/bluetooth/settings
   metadata:
     cell: multihop_d3_without
     record_id: '065'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/bluetooth/settings
     target_detail:
     - method: GET
       path: /organizations
@@ -1347,14 +1347,14 @@
 - description: 066 | multihop_d3_without
   vars:
     question: Write a test pulling channel utilization history over time for a wireless client on a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/channelUtilizationHistory
   metadata:
     cell: multihop_d3_without
     record_id: '066'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/channelUtilizationHistory
     target_detail:
     - method: GET
       path: /organizations
@@ -1371,14 +1371,14 @@
 - description: 067 | multihop_d3_without
   vars:
     question: Draft a test that tracks wireless client counts over time for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/clientCountHistory
   metadata:
     cell: multihop_d3_without
     record_id: '067'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/clientCountHistory
     target_detail:
     - method: GET
       path: /organizations
@@ -1396,14 +1396,14 @@
   vars:
     question: Write a test that fetches connectivity stats for a network's wireless clients, aggregated
       per client.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/clients/connectionStats
   metadata:
     cell: multihop_d3_without
     record_id: '068'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/clients/connectionStats
     target_detail:
     - method: GET
       path: /organizations
@@ -1421,14 +1421,14 @@
   vars:
     question: I want a test that fetches aggregated connectivity stats for a network's access points,
       grouped by device.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/devices/connectionStats
   metadata:
     cell: multihop_d3_without
     record_id: '069'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/devices/connectionStats
     target_detail:
     - method: GET
       path: /organizations
@@ -1446,14 +1446,14 @@
   vars:
     question: Create a test that fetches the details of a single custom analytics artifact already registered
       for your organization's cameras.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts
-    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts/{artifactId}
   metadata:
     cell: multihop_d3_without
     record_id: '070'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts
+    - GET /organizations/{organizationId}/camera/customAnalytics/artifacts/{artifactId}
     target_detail:
     - method: GET
       path: /organizations
@@ -1470,14 +1470,14 @@
 - description: 071 | multihop_d3_without
   vars:
     question: Write a test that pulls PHY data-rate history over time for a wireless client on a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/dataRateHistory
   metadata:
     cell: multihop_d3_without
     record_id: '071'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/dataRateHistory
     target_detail:
     - method: GET
       path: /organizations
@@ -1494,14 +1494,14 @@
 - description: 072 | multihop_d3_without
   vars:
     question: Draft a test that reads the electronic shelf label settings configured for a wireless network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/electronicShelfLabel
   metadata:
     cell: multihop_d3_without
     record_id: '072'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/electronicShelfLabel
     target_detail:
     - method: GET
       path: /organizations
@@ -1518,14 +1518,14 @@
 - description: 073 | multihop_d3_without
   vars:
     question: Write a test listing the AP port profiles defined for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/ethernet/ports/profiles
   metadata:
     cell: multihop_d3_without
     record_id: '073'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/ethernet/ports/profiles
     target_detail:
     - method: GET
       path: /organizations
@@ -1543,14 +1543,14 @@
   vars:
     question: Add a test that fetches failed wireless connection attempts on a network over a given time
       range.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/failedConnections
   metadata:
     cell: multihop_d3_without
     record_id: '074'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/failedConnections
     target_detail:
     - method: GET
       path: /organizations
@@ -1567,14 +1567,14 @@
 - description: 075 | multihop_d3_without
   vars:
     question: Write a test tracking average wireless latency over time for a client on a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/latencyHistory
   metadata:
     cell: multihop_d3_without
     record_id: '075'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/latencyHistory
     target_detail:
     - method: GET
       path: /organizations
@@ -1591,14 +1591,14 @@
 - description: 076 | multihop_d3_without
   vars:
     question: Create a test that fetches aggregated wireless latency stats for a network as a whole.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/latencyStats
   metadata:
     cell: multihop_d3_without
     record_id: '076'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/latencyStats
     target_detail:
     - method: GET
       path: /organizations
@@ -1615,14 +1615,14 @@
 - description: 077 | multihop_d3_without
   vars:
     question: Draft a test listing the mesh status of wireless repeaters on a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/meshStatuses
   metadata:
     cell: multihop_d3_without
     record_id: '077'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/meshStatuses
     target_detail:
     - method: GET
       path: /organizations
@@ -1639,14 +1639,14 @@
 - description: 078 | multihop_d3_without
   vars:
     question: Write a test listing the camera quality-and-retention profiles configured for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/camera/qualityRetentionProfiles
   metadata:
     cell: multihop_d3_without
     record_id: '078'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/camera/qualityRetentionProfiles
     target_detail:
     - method: GET
       path: /organizations
@@ -1663,14 +1663,14 @@
 - description: 079 | multihop_d3_without
   vars:
     question: I need a test that fetches the details of a specific RF profile configured on a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
   metadata:
     cell: multihop_d3_without
     record_id: '079'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
     target_detail:
     - method: GET
       path: /organizations
@@ -1687,14 +1687,14 @@
 - description: 080 | multihop_d3_without
   vars:
     question: Write a test that lists all the camera recording schedules set up for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/camera/schedules
   metadata:
     cell: multihop_d3_without
     record_id: '080'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/camera/schedules
     target_detail:
     - method: GET
       path: /organizations
@@ -1711,14 +1711,14 @@
 - description: 081 | multihop_d3_without
   vars:
     question: Create a test that reads back the general wireless configuration for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/settings
   metadata:
     cell: multihop_d3_without
     record_id: '081'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/settings
     target_detail:
     - method: GET
       path: /organizations
@@ -1736,14 +1736,14 @@
   vars:
     question: Draft a test pulling signal-quality history (SNR/RSSI) over time for a device on a wireless
       network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/signalQualityHistory
   metadata:
     cell: multihop_d3_without
     record_id: '082'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/signalQualityHistory
     target_detail:
     - method: GET
       path: /organizations
@@ -1760,14 +1760,14 @@
 - description: 083 | multihop_d3_without
   vars:
     question: Write a test that lists every SSID broadcast on a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/ssids
   metadata:
     cell: multihop_d3_without
     record_id: '083'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/ssids
     target_detail:
     - method: GET
       path: /organizations
@@ -1784,14 +1784,14 @@
 - description: 084 | multihop_d3_without
   vars:
     question: Add a test tracking access-point usage over time for a client on a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/usageHistory
   metadata:
     cell: multihop_d3_without
     record_id: '084'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/usageHistory
     target_detail:
     - method: GET
       path: /organizations
@@ -1808,14 +1808,14 @@
 - description: 085 | multihop_d3_without
   vars:
     question: Write a test listing the camera wireless profiles configured for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/camera/wirelessProfiles
   metadata:
     cell: multihop_d3_without
     record_id: '085'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/camera/wirelessProfiles
     target_detail:
     - method: GET
       path: /organizations
@@ -1832,14 +1832,14 @@
 - description: 086 | multihop_d3_without
   vars:
     question: Create a test that adds a new Air Marshal rule to a network and confirms it takes effect.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - POST /networks/{networkId}/wireless/airMarshal/rules
   metadata:
     cell: multihop_d3_without
     record_id: '086'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/wireless/airMarshal/rules
     target_detail:
     - method: GET
       path: /organizations
@@ -1857,14 +1857,14 @@
   vars:
     question: Write a test that creates a new AP port profile for a network and checks the returned profile
       matches what was submitted.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - POST /networks/{networkId}/wireless/ethernet/ports/profiles
   metadata:
     cell: multihop_d3_without
     record_id: '087'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/wireless/ethernet/ports/profiles
     target_detail:
     - method: GET
       path: /organizations
@@ -1881,14 +1881,14 @@
 - description: 088 | multihop_d3_without
   vars:
     question: Draft a test that creates a new camera quality-and-retention profile for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - POST /networks/{networkId}/camera/qualityRetentionProfiles
   metadata:
     cell: multihop_d3_without
     record_id: '088'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/camera/qualityRetentionProfiles
     target_detail:
     - method: GET
       path: /organizations
@@ -1905,14 +1905,14 @@
 - description: 089 | multihop_d3_without
   vars:
     question: Write a test creating a new RF profile for a network and validating its settings persist.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - POST /networks/{networkId}/wireless/rfProfiles
   metadata:
     cell: multihop_d3_without
     record_id: '089'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/wireless/rfProfiles
     target_detail:
     - method: GET
       path: /organizations
@@ -1929,14 +1929,14 @@
 - description: 090 | multihop_d3_without
   vars:
     question: I want a test creating a new camera wireless profile for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - POST /networks/{networkId}/camera/wirelessProfiles
   metadata:
     cell: multihop_d3_without
     record_id: '090'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/camera/wirelessProfiles
     target_detail:
     - method: GET
       path: /organizations
@@ -1954,14 +1954,14 @@
   vars:
     question: Write a test that updates a network's Air Marshal settings and confirms the new configuration
       applies.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/airMarshal/settings
   metadata:
     cell: multihop_d3_without
     record_id: '091'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/airMarshal/settings
     target_detail:
     - method: GET
       path: /organizations
@@ -1979,14 +1979,14 @@
   vars:
     question: Create a test updating a network's alternate management interface, including its device
       static IP configuration.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/alternateManagementInterface
   metadata:
     cell: multihop_d3_without
     record_id: '092'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/alternateManagementInterface
     target_detail:
     - method: GET
       path: /organizations
@@ -2003,14 +2003,14 @@
 - description: 093 | multihop_d3_without
   vars:
     question: Write a test that changes the billing configuration for a wireless network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/billing
   metadata:
     cell: multihop_d3_without
     record_id: '093'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/billing
     target_detail:
     - method: GET
       path: /organizations
@@ -2028,14 +2028,14 @@
   vars:
     question: Draft a test updating a network's Bluetooth Low Energy settings and confirming the change
       persisted.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/bluetooth/settings
   metadata:
     cell: multihop_d3_without
     record_id: '094'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/bluetooth/settings
     target_detail:
     - method: GET
       path: /organizations
@@ -2053,14 +2053,14 @@
 - description: 095 | multihop_d3_without
   vars:
     question: Write a test updating the electronic shelf label settings for a wireless network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/electronicShelfLabel
   metadata:
     cell: multihop_d3_without
     record_id: '095'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/electronicShelfLabel
     target_detail:
     - method: GET
       path: /organizations
@@ -2077,14 +2077,14 @@
 - description: 096 | multihop_d3_without
   vars:
     question: Add a test that changes a network's scanning API configuration.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/location/scanning
   metadata:
     cell: multihop_d3_without
     record_id: '096'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/location/scanning
     target_detail:
     - method: GET
       path: /organizations
@@ -2101,14 +2101,14 @@
 - description: 097 | multihop_d3_without
   vars:
     question: Write a test updating the AutoRF settings for a wireless network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/radio/rrm
   metadata:
     cell: multihop_d3_without
     record_id: '097'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/radio/rrm
     target_detail:
     - method: GET
       path: /organizations
@@ -2126,14 +2126,14 @@
   vars:
     question: Create a test that updates a custom RF profile on a network, and confirms attempting the
       same update on a built-in profile is rejected.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
   metadata:
     cell: multihop_d3_without
     record_id: '098'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/rfProfiles/{rfProfileId}
     target_detail:
     - method: GET
       path: /organizations
@@ -2151,14 +2151,14 @@
 - description: 099 | multihop_d3_without
   vars:
     question: Write a test that updates the general wireless settings for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/settings
   metadata:
     cell: multihop_d3_without
     record_id: '099'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/settings
     target_detail:
     - method: GET
       path: /organizations
@@ -2176,14 +2176,14 @@
   vars:
     question: Draft a test that batch-updates the parameters of Zigbee-connected door locks across your
       organization.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/wireless/zigbee/doorLocks
-    - PUT /organizations/{organizationId}/wireless/zigbee/doorLocks/{doorLockId}
   metadata:
     cell: multihop_d3_without
     record_id: '100'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/wireless/zigbee/doorLocks
+    - PUT /organizations/{organizationId}/wireless/zigbee/doorLocks/{doorLockId}
     target_detail:
     - method: GET
       path: /organizations
@@ -2200,14 +2200,14 @@
 - description: 101 | multihop_d3_without
   vars:
     question: Write a test fetching aggregated wireless latency stats for a network, broken down per client.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/clients/latencyStats
   metadata:
     cell: multihop_d3_without
     record_id: '101'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/clients/latencyStats
     target_detail:
     - method: GET
       path: /organizations
@@ -2224,14 +2224,14 @@
 - description: 102 | multihop_d3_without
   vars:
     question: I need a test that fetches overall aggregated wireless connectivity stats for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/connectionStats
   metadata:
     cell: multihop_d3_without
     record_id: '102'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/connectionStats
     target_detail:
     - method: GET
       path: /organizations
@@ -2248,14 +2248,14 @@
 - description: 103 | multihop_d3_without
   vars:
     question: Create a test listing every device on a network eligible for electronic shelf labels.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/electronicShelfLabel/configuredDevices
   metadata:
     cell: multihop_d3_without
     record_id: '103'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/electronicShelfLabel/configuredDevices
     target_detail:
     - method: GET
       path: /organizations
@@ -2273,14 +2273,14 @@
   vars:
     question: Write a test fetching aggregated wireless latency stats for a network, broken down per access
       point.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/devices/latencyStats
   metadata:
     cell: multihop_d3_without
     record_id: '104'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/devices/latencyStats
     target_detail:
     - method: GET
       path: /organizations
@@ -2297,14 +2297,14 @@
 - description: 105 | multihop_d3_without
   vars:
     question: Draft a test that lists all RF profiles configured for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - GET /networks/{networkId}/wireless/rfProfiles
   metadata:
     cell: multihop_d3_without
     record_id: '105'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - GET /networks/{networkId}/wireless/rfProfiles
     target_detail:
     - method: GET
       path: /organizations
@@ -2321,14 +2321,14 @@
 - description: 106 | multihop_d3_without
   vars:
     question: Write a test that sets a particular AP port profile as the default for a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - POST /networks/{networkId}/wireless/ethernet/ports/profiles/setDefault
   metadata:
     cell: multihop_d3_without
     record_id: '106'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/wireless/ethernet/ports/profiles/setDefault
     target_detail:
     - method: GET
       path: /organizations
@@ -2345,14 +2345,14 @@
 - description: 107 | multihop_d3_without
   vars:
     question: Add a test that updates the details of an existing Air Marshal rule on a network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/airMarshal/rules/{ruleId}
   metadata:
     cell: multihop_d3_without
     record_id: '107'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/airMarshal/rules/{ruleId}
     target_detail:
     - method: GET
       path: /organizations
@@ -2369,14 +2369,14 @@
 - description: 108 | multihop_d3_without
   vars:
     question: Write a test that updates the Zigbee configuration for a specific network.
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - PUT /networks/{networkId}/wireless/zigbee
   metadata:
     cell: multihop_d3_without
     record_id: '108'
     control: false
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - PUT /networks/{networkId}/wireless/zigbee
     target_detail:
     - method: GET
       path: /organizations
@@ -2399,14 +2399,14 @@
       \    params: organizationId\n    returns: array of {enrollmentString, id, isBoundToConfigTemplate,\
       \ name, notes, organizationId, productTypes, tags, timeZone, url}\n- POST /networks/{networkId}/wireless/ethernet/ports/profiles/assign\n\
       \    params: networkId\n    returns: object {profileId, serials}"
-    expected_endpoints:
-    - GET /organizations
-    - GET /organizations/{organizationId}/networks
-    - POST /networks/{networkId}/wireless/ethernet/ports/profiles/assign
   metadata:
     cell: with_endpoint_control
     record_id: '109'
     control: true
+    expected_endpoints:
+    - GET /organizations
+    - GET /organizations/{organizationId}/networks
+    - POST /networks/{networkId}/wireless/ethernet/ports/profiles/assign
     target_detail:
     - method: GET
       path: /organizations
@@ -2468,15 +2468,15 @@
       \ id, maxRetentionDays, motionBasedRetentionEnabled, motionDetectorVersion, name, networkId, restrictedBandwidthModeEnabled,\
       \ scheduleId, smartRetention, videoSettings}\n- DELETE /networks/{networkId}/camera/qualityRetentionProfiles/{qualityRetentionProfileId}\n\
       \    params: networkId, qualityRetentionProfileId\n    returns: no response body"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '110'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/camera/qualityRetentionProfiles
     - DELETE /networks/{networkId}/camera/qualityRetentionProfiles/{qualityRetentionProfileId}
-  metadata:
-    cell: with_endpoint_control
-    record_id: '110'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -2541,15 +2541,15 @@
       \ tags, timeZone, url}\n- GET /networks/{networkId}/camera/wirelessProfiles\n    params: networkId\n\
       \    returns: array of {appliedDeviceCount, id, identity, name, ssid}\n- DELETE /networks/{networkId}/camera/wirelessProfiles/{wirelessProfileId}\n\
       \    params: networkId, wirelessProfileId\n    returns: no response body"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '111'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/camera/wirelessProfiles
     - DELETE /networks/{networkId}/camera/wirelessProfiles/{wirelessProfileId}
-  metadata:
-    cell: with_endpoint_control
-    record_id: '111'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -2607,15 +2607,15 @@
       \    params: networkId\n    returns: array of {isDefault, name, ports, profileId, usbPorts}\n- DELETE\
       \ /networks/{networkId}/wireless/ethernet/ports/profiles/{profileId}\n    params: networkId, profileId\n\
       \    returns: no response body"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '112'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/wireless/ethernet/ports/profiles
     - DELETE /networks/{networkId}/wireless/ethernet/ports/profiles/{profileId}
-  metadata:
-    cell: with_endpoint_control
-    record_id: '112'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -2673,15 +2673,15 @@
       \ array of {address, beaconIdParams, details, firmware, floorPlanId, lanIp, lat, lng, mac, model,\
       \ name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/analytics/recent\n\
       \    params: serial\n    returns: array of {averageCount, endTs, entrances, startTs, zoneId}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '113'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/camera/analytics/recent
-  metadata:
-    cell: with_endpoint_control
-    record_id: '113'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -2753,15 +2753,15 @@
       \ array of {address, beaconIdParams, details, firmware, floorPlanId, lanIp, lat, lng, mac, model,\
       \ name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/clip\n    params: serial\n\
       \    returns: no response body"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '114'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/camera/clip
-  metadata:
-    cell: with_endpoint_control
-    record_id: '114'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -2811,15 +2811,15 @@
       \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/customAnalytics\n\
       \    params: serial\n    returns: object {artifactId, enabled, parameters}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '115'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/camera/customAnalytics
-  metadata:
-    cell: with_endpoint_control
-    record_id: '115'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -2873,15 +2873,15 @@
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/qualityAndRetention\n\
       \    params: serial\n    returns: object {audioRecordingEnabled, motionBasedRetentionEnabled, motionDetectorVersion,\
       \ profileId, quality, resolution, restrictedBandwidthModeEnabled}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '116'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/camera/qualityAndRetention
-  metadata:
-    cell: with_endpoint_control
-    record_id: '116'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -2939,15 +2939,15 @@
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/sense\n\
       \    params: serial\n    returns: object {audioDetection, detectionModelId, mqttBrokerId, mqttTopics,\
       \ senseEnabled}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '117'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/camera/sense
-  metadata:
-    cell: with_endpoint_control
-    record_id: '117'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3002,15 +3002,15 @@
       \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/video/settings\n\
       \    params: serial\n    returns: object {externalRtspEnabled, rtspUrl}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '118'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/camera/video/settings
-  metadata:
-    cell: with_endpoint_control
-    record_id: '118'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3063,15 +3063,15 @@
       \ array of {address, beaconIdParams, details, firmware, floorPlanId, lanIp, lat, lng, mac, model,\
       \ name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/camera/videoLink\n    params:\
       \ serial\n    returns: object {url, visionUrl}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '119'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/camera/videoLink
-  metadata:
-    cell: with_endpoint_control
-    record_id: '119'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3124,15 +3124,15 @@
       \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/bluetooth/settings\n\
       \    params: serial\n    returns: object {major, minor, uuid}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '120'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/wireless/bluetooth/settings
-  metadata:
-    cell: with_endpoint_control
-    record_id: '120'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3185,15 +3185,15 @@
       \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/connectionStats\n\
       \    params: serial\n    returns: object {connectionStats, serial}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '121'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/wireless/connectionStats
-  metadata:
-    cell: with_endpoint_control
-    record_id: '121'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3246,15 +3246,15 @@
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/electronicShelfLabel\n\
       \    params: serial\n    returns: object {apEslId, channel, enabled, hostname, networkId, provider,\
       \ serial}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '122'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/wireless/electronicShelfLabel
-  metadata:
-    cell: with_endpoint_control
-    record_id: '122'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3311,15 +3311,15 @@
       \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/latencyStats\n\
       \    params: serial\n    returns: object {latencyStats, serial}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '123'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/wireless/latencyStats
-  metadata:
-    cell: with_endpoint_control
-    record_id: '123'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3372,15 +3372,15 @@
       \ details, firmware, floorPlanId, lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags,\
       \ url}\n- GET /devices/{serial}/wireless/radio/settings\n    params: serial\n    returns: object\
       \ {fiveGhzSettings, rfProfileId, serial, twoFourGhzSettings}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '124'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/wireless/radio/settings
-  metadata:
-    cell: with_endpoint_control
-    record_id: '124'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3436,15 +3436,15 @@
       \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/status\n\
       \    params: serial\n    returns: object {basicServiceSets}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '125'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/wireless/status
-  metadata:
-    cell: with_endpoint_control
-    record_id: '125'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3497,15 +3497,15 @@
       \ name, networkId, notes, serial, tags, url}\n- GET /devices/{serial}/wireless/zigbee/enrollments/{enrollmentId}\n\
       \    params: serial, enrollmentId\n    returns: object {doorLocks, enrollmentId, enrollmentStartedAt,\
       \ request, status, url}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '126'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - GET /devices/{serial}/wireless/zigbee/enrollments/{enrollmentId}
-  metadata:
-    cell: with_endpoint_control
-    record_id: '126'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3566,15 +3566,15 @@
       \    params: networkId, qualityRetentionProfileId\n    returns: object {audioRecordingEnabled, axisVideoQuality,\
       \ cloudArchiveEnabled, id, maxRetentionDays, motionBasedRetentionEnabled, motionDetectorVersion,\
       \ name, networkId, restrictedBandwidthModeEnabled, scheduleId, smartRetention, videoSettings}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '127'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/camera/qualityRetentionProfiles
     - GET /networks/{networkId}/camera/qualityRetentionProfiles/{qualityRetentionProfileId}
-  metadata:
-    cell: with_endpoint_control
-    record_id: '127'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3639,15 +3639,15 @@
       \    params: networkId\n    returns: array of {appliedDeviceCount, id, identity, name, ssid}\n-\
       \ GET /networks/{networkId}/camera/wirelessProfiles/{wirelessProfileId}\n    params: networkId,\
       \ wirelessProfileId\n    returns: object {appliedDeviceCount, id, identity, name, ssid}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '128'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/camera/wirelessProfiles
     - GET /networks/{networkId}/camera/wirelessProfiles/{wirelessProfileId}
-  metadata:
-    cell: with_endpoint_control
-    record_id: '128'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3706,15 +3706,15 @@
       \ os, pskGroup, recentDeviceConnection, recentDeviceMac, recentDeviceName, recentDeviceSerial, smInstalled,\
       \ ssid, status, switchport, usage, user, vlan, wirelessCapabilities}\n- GET /networks/{networkId}/wireless/clients/{clientId}/connectionStats\n\
       \    params: networkId, clientId\n    returns: object {connectionStats, mac}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '129'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/clients
     - GET /networks/{networkId}/wireless/clients/{clientId}/connectionStats
-  metadata:
-    cell: with_endpoint_control
-    record_id: '129'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3798,15 +3798,15 @@
       \    params: networkId\n    returns: array of {isDefault, name, ports, profileId, usbPorts}\n- GET\
       \ /networks/{networkId}/wireless/ethernet/ports/profiles/{profileId}\n    params: networkId, profileId\n\
       \    returns: object {isDefault, name, ports, profileId, usbPorts}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '130'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/wireless/ethernet/ports/profiles
     - GET /networks/{networkId}/wireless/ethernet/ports/profiles/{profileId}
-  metadata:
-    cell: with_endpoint_control
-    record_id: '130'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3872,15 +3872,15 @@
       \ useVlanTagging, visible, walledGardenEnabled, walledGardenRanges, wifiPersonalNetworkEnabled,\
       \ wpaEncryptionMode}\n- GET /networks/{networkId}/wireless/ssids/{number}/firewall/l7FirewallRules\n\
       \    params: networkId, number\n    returns: object {rules}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '131'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/wireless/ssids
     - GET /networks/{networkId}/wireless/ssids/{number}/firewall/l7FirewallRules
-  metadata:
-    cell: with_endpoint_control
-    record_id: '131'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -3991,15 +3991,15 @@
       \ array of {address, beaconIdParams, details, firmware, floorPlanId, lanIp, lat, lng, mac, model,\
       \ name, networkId, notes, serial, tags, url}\n- POST /devices/{serial}/camera/generateSnapshot\n\
       \    params: serial\n    returns: no response body"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '132'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - POST /devices/{serial}/camera/generateSnapshot
-  metadata:
-    cell: with_endpoint_control
-    record_id: '132'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -4052,15 +4052,15 @@
       \ details, firmware, floorPlanId, lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags,\
       \ url}\n- POST /devices/{serial}/wireless/zigbee/enrollments\n    params: serial\n    returns: object\
       \ {enrollmentId, request, status, url}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '133'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - POST /devices/{serial}/wireless/zigbee/enrollments
-  metadata:
-    cell: with_endpoint_control
-    record_id: '133'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -4124,15 +4124,15 @@
       \ visible, walledGardenEnabled, walledGardenRanges, wifiPersonalNetworkEnabled, wpaEncryptionMode}\n\
       - POST /networks/{networkId}/wireless/ssids/{number}/identityPsks\n    params: networkId, number\n\
       \    returns: object {email, expiresAt, groupPolicyId, id, name, passphrase, wifiPersonalNetworkId}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '134'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/wireless/ssids
     - POST /networks/{networkId}/wireless/ssids/{number}/identityPsks
-  metadata:
-    cell: with_endpoint_control
-    record_id: '134'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -4191,15 +4191,15 @@
       \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- PUT /devices/{serial}/camera/customAnalytics\n\
       \    params: serial\n    returns: object {artifactId, enabled, parameters}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '135'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - PUT /devices/{serial}/camera/customAnalytics
-  metadata:
-    cell: with_endpoint_control
-    record_id: '135'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -4252,15 +4252,15 @@
       \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- PUT /devices/{serial}/wireless/alternateManagementInterface/ipv6\n\
       \    params: serial\n    returns: object {addresses}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '136'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - PUT /devices/{serial}/wireless/alternateManagementInterface/ipv6
-  metadata:
-    cell: with_endpoint_control
-    record_id: '136'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -4311,15 +4311,15 @@
       \    params: networkId\n    returns: array of {address, beaconIdParams, details, firmware, floorPlanId,\
       \ lanIp, lat, lng, mac, model, name, networkId, notes, serial, tags, url}\n- PUT /devices/{serial}/wireless/bluetooth/settings\n\
       \    params: serial\n    returns: object {major, minor, uuid}"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '137'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/devices
     - PUT /devices/{serial}/wireless/bluetooth/settings
-  metadata:
-    cell: with_endpoint_control
-    record_id: '137'
-    control: true
     target_detail:
     - method: GET
       path: /organizations
@@ -4384,16 +4384,16 @@
       \    returns: array of {email, expiresAt, groupPolicyId, id, name, passphrase, wifiPersonalNetworkId}\n\
       - DELETE /networks/{networkId}/wireless/ssids/{number}/identityPsks/{identityPskId}\n    params:\
       \ networkId, number, identityPskId\n    returns: no response body"
+  metadata:
+    cell: with_endpoint_control
+    record_id: '138'
+    control: true
     expected_endpoints:
     - GET /organizations
     - GET /organizations/{organizationId}/networks
     - GET /networks/{networkId}/wireless/ssids
     - GET /networks/{networkId}/wireless/ssids/{number}/identityPsks
     - DELETE /networks/{networkId}/wireless/ssids/{number}/identityPsks/{identityPskId}
-  metadata:
-    cell: with_endpoint_control
-    record_id: '138'
-    control: true
     target_detail:
     - method: GET
       path: /organizations

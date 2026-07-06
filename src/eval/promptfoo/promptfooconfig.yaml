@@ -12,17 +12,5 @@ defaultTest:
     - type: python
       value: file://score_retrieval.py
       metric: retrieval
-      config:
-        recall_threshold_for_pass: 1.0   # override the score_retrieval.py default here
-
-derivedMetrics:
-  # promptfoo derivedMetrics values are JS-style functions over namedScores,
-  # aggregated across the whole suite.
-  - name: precision
-    value: "(namedScores) => namedScores.precision"
-  - name: recall
-    value: "(namedScores) => namedScores.recall"
-  - name: f1_score
-    value: "(namedScores) => (namedScores.precision + namedScores.recall) > 0 ? (2 * namedScores.precision * namedScores.recall) / (namedScores.precision + namedScores.recall) : 0"
 
 tests: file://tests.yaml

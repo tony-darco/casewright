@@ -210,12 +210,15 @@ def make_record(record_id, cell, closure_ids, nodes, control):
         "description": f"{record_id} | {cell}",
         "vars": {
             "question": "",
-            "expected_endpoints": list(closure_ids),
         },
+        # expected_endpoints lives in metadata (NOT vars): promptfoo expands a
+        # list-valued var into one test case per element, which would split a
+        # single multi-endpoint record into many single-endpoint tests.
         "metadata": {
             "cell": cell,
             "record_id": record_id,
             "control": control,
+            "expected_endpoints": list(closure_ids),
             "target_detail": build_target_detail(closure_ids, nodes, with_schema_excerpt=control),
         },
     }
@@ -319,7 +322,7 @@ def self_check(records, nodes, target_tags):
 
     seen_target_sets = set()
     for r in records:
-        expected = r["vars"]["expected_endpoints"]
+        expected = r["metadata"]["expected_endpoints"]
         for ep in expected:
             if ep not in nodes:
                 problems.append(f"record {r['metadata']['record_id']}: '{ep}' not a node in graph.json")
@@ -334,7 +337,7 @@ def self_check(records, nodes, target_tags):
         seen_target_sets.add(tset)
         if r["vars"]["question"] != "":
             problems.append(f"record {r['metadata']['record_id']}: vars.question not empty")
-        if set(r["vars"].keys()) != {"question", "expected_endpoints"}:
+        if set(r["vars"].keys()) != {"question"}:
             problems.append(f"record {r['metadata']['record_id']}: unexpected keys in vars: {r['vars'].keys()}")
 
     return problems
@@ -389,18 +392,16 @@ expected endpoints. Read-only, deterministic. Entry point: get_assert.
 
 Contract (promptfoo python assertion):
     get_assert(output, context) -> dict (GradingResult-shaped)
-  context["vars"]["expected_endpoints"] : list[str]  ground truth, "METHOD path"
-  context["test"]["metadata"]["control"]: bool        True for with_endpoint_control cell
-  context["config"]                     : dict        assertion config (e.g. threshold override)
+  context["test"]["metadata"]["expected_endpoints"] : list[str]  ground truth, "METHOD path"
+    (kept in metadata, not vars: a list-valued var would be expanded by promptfoo
+     into one test case per element.)
+
+Scores-only: always passes; retrieval quality is judged by the precision/recall/f1
+metrics, not a pass rate.
 """
 
 import json
 import re
-
-# Default pass/fail rule for non-control (multi-hop/one-hop) cells: every
-# expected endpoint must be retrieved. Override per-run via the assertion's
-# `config: {recall_threshold_for_pass: <float>}` in promptfooconfig.yaml.
-DEFAULT_RECALL_THRESHOLD_FOR_PASS = 1.0
 
 _METHOD_PATH_RE = re.compile(r"\\b(GET|POST|PUT|DELETE|PATCH)\\s+(/\\S+)", re.IGNORECASE)
 
@@ -469,43 +470,27 @@ def _normalize(endpoint_str):
 
 
 def get_assert(output, context):
-    expected = set(context["vars"]["expected_endpoints"])
-    retrieved = parse_retrieved(output)
     metadata = context.get("test", {}).get("metadata", {}) or {}
-    is_control = bool(metadata.get("control", False))
+    expected = set(metadata.get("expected_endpoints", []))
+    retrieved = parse_retrieved(output)
 
     true_positives = retrieved & expected
-
     precision = (len(true_positives) / len(retrieved)) if retrieved else 0.0
     recall = (len(true_positives) / len(expected)) if expected else 0.0
     f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
 
-    config = context.get("config", {}) or {}
+    reason = (f"precision={precision:.3f} recall={recall:.3f} f1={f1:.3f} "
+              f"(expected {len(expected)}, retrieved {len(retrieved)}, "
+              f"matched {len(true_positives)})")
 
-    if is_control:
-        score = precision
-        passed = precision == 1.0
-        reason = (f"control cell: precision={precision:.3f} "
-                  f"(retrieved {len(retrieved)}, {len(retrieved - expected)} extraneous); "
-                  f"pass iff precision == 1.0")
-    else:
-        threshold = config.get("recall_threshold_for_pass", DEFAULT_RECALL_THRESHOLD_FOR_PASS)
-        score = f1
-        passed = recall >= threshold
-        reason = (f"precision={precision:.3f} recall={recall:.3f} f1={f1:.3f} "
-                  f"(expected {len(expected)}, retrieved {len(retrieved)}, "
-                  f"matched {len(true_positives)}); pass iff recall >= {threshold}")
-
+    # Scores-only: no binary pass/fail. Always "pass" so retrieval quality is read
+    # from the aggregated precision/recall/f1 metrics, not a pass rate. Partial
+    # retrieval is reflected proportionally (e.g. 1 of 2 expected -> recall 0.5).
     return {
-        "pass": passed,
-        "score": score,
+        "pass": True,
+        "score": f1,
         "reason": reason,
         "namedScores": {"precision": precision, "recall": recall, "f1": f1},
-        "componentResults": [
-            {"pass": True, "score": precision, "reason": f"precision={precision:.3f}"},
-            {"pass": True, "score": recall, "reason": f"recall={recall:.3f}"},
-            {"pass": True, "score": f1, "reason": f"f1={f1:.3f}"},
-        ],
     }
 '''
 
@@ -525,18 +510,6 @@ defaultTest:
     - type: python
       value: file://score_retrieval.py
       metric: retrieval
-      config:
-        recall_threshold_for_pass: 1.0   # override the score_retrieval.py default here
-
-derivedMetrics:
-  # promptfoo derivedMetrics values are JS-style functions over namedScores,
-  # aggregated across the whole suite.
-  - name: precision
-    value: "(namedScores) => namedScores.precision"
-  - name: recall
-    value: "(namedScores) => namedScores.recall"
-  - name: f1_score
-    value: "(namedScores) => (namedScores.precision + namedScores.recall) > 0 ? (2 * namedScores.precision * namedScores.recall) / (namedScores.precision + namedScores.recall) : 0"
 
 tests: file://tests.yaml
 """

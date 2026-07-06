@@ -35,8 +35,10 @@ REWRITE_SYSTEM = (
 GENERATE_SYSTEM = (
     "You write API tests. Given a user request and the relevant OpenAPI endpoints "
     "(with methods, paths, summaries, and parameters), write a pytest module using "
-    "the requests library that exercises those endpoints. Call endpoints that "
-    "produce ids before the endpoints that consume them. Use placeholder base "
+    "the requests library that exercises those endpoints. If call-order "
+    "dependencies are provided, honor them exactly: call each listed producer "
+    "endpoint first to obtain the path parameters it supplies (treat them as setup "
+    "steps/fixtures), and only then call the target endpoint. Use placeholder base "
     "URLs/credentials via variables. Output only Python code."
 )
 
@@ -49,5 +51,8 @@ def user_candidates(query: str, rendered_candidates: str) -> str:
     return f"Query: {query}\n\nCandidates:\n{rendered_candidates}"
 
 
-def user_generate(query: str, context: str) -> str:
-    return f"Request: {query}\n\nRelevant endpoints:\n{context}"
+def user_generate(query: str, context: str, dependencies: str = "") -> str:
+    parts = [f"Request: {query}", "", "Relevant endpoints:", context]
+    if dependencies:
+        parts += ["", "Call-order dependencies (call producers before consumers):", dependencies]
+    return "\n".join(parts)

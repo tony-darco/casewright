@@ -22,4 +22,5 @@ class PipelineState(TypedDict, total=False):
     confidence: str                              # "high" | "low" (drives the correction loop)
     attempts: int                                # correction-loop counter
     endpoints: list[str]                         # "METHOD path" ids -> eval-facing output
+    dependencies: str                            # rendered call-order deps for the endpoints
     tests: str                                   # first-pass generated test code
