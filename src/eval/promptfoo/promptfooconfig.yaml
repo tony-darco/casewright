@@ -4,10 +4,8 @@ prompts:
   - "{{question}}"   # only the question reaches the pipeline -- expected_endpoints never leak
 
 providers:
-  # TODO(user): point this at your RAG pipeline's promptfoo provider.
-  # e.g. a python provider: file://your_rag_provider.py
-  # or an http provider hitting your retrieval endpoint.
-  - id: "REPLACE_ME_WITH_YOUR_RAG_PROVIDER"
+  # AutoTestLLM retrieval pipeline (src/rag/pipeline.py), wrapped for promptfoo.
+  - id: "file://rag_provider.py"
 
 defaultTest:
   assert:
