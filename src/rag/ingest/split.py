@@ -1,20 +1,22 @@
 import json
 from pathlib import Path
 import requests
+import os
 from concurrent.futures import ThreadPoolExecutor
 
 from langchain_core.documents import Document
 
 HTTP_METHODS = ("get", "put", "post", "delete", "patch", "options", "head", "trace")
 
-OUT_DIR = Path("data/specs/path_docs")
+OUT_DIR = Path(os.getenv("AUTOTEST_SPECS_OUT_DIR", "data/specs/path_docs"))
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 try:
-    json_data: dict = requests.get("https://raw.githubusercontent.com/meraki/openapi/refs/heads/master/oenapi/spec3.json").json()
+    json_data: dict = requests.get("https://raw.githubusercontent.com/meraki/openapi/refs/heads/master/openapi/spec3.json").json()
 except Exception:
-    with open(Path("data/specs/reduced_open_api_spec.json"), 'r+') as api_spe_file:
+    specs_dir = os.getenv("AUTOTEST_SPECS_DIR", "data/specs")
+    with open(Path(specs_dir) / "meraki_open_api_spec.json", 'r+') as api_spe_file:
         json_data = json.load(api_spe_file)
 
 paths_data: dict = json_data.get("paths", {})

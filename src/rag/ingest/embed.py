@@ -1,5 +1,6 @@
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+import os
 
 from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
@@ -12,7 +13,7 @@ ollama_emb = OllamaEmbeddings(
 )
 
 vector_collective_name = "meraki_openapi"
-PERSIST_DIR = Path("data/chroma")
+PERSIST_DIR = os.getenv("AUTOTEST_DATA_DIR", "data/chroma")
 
 vector_store = Chroma(
     collection_name=vector_collective_name,
