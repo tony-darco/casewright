@@ -17,6 +17,7 @@ added later without reshaping the pipeline.
 """
 
 import json
+import os
 import sys
 from typing import Literal, Optional
 
@@ -34,6 +35,10 @@ from rag.provider import (
     build_embeddings,
     build_vector_store,
 )
+
+def _env_true(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in ("1", "true", "yes", "on")
+
 
 N_QUERY_VARIANTS = 3     # extra RAG-Fusion queries beyond the original
 RETRIEVE_K = 8           # docs pulled per sub-query before fusion
@@ -56,11 +61,14 @@ class RelevanceGrades(BaseModel):
 
 
 class AutoTestLLM:
-    def __init__(self, config: Optional[ProviderConfig] = None):
+    def __init__(self, config: Optional[ProviderConfig] = None, eval_mode: Optional[bool] = None):
         self.config = config or ProviderConfig()
+        # eval_mode stops the graph after retrieval (skips dependencies + generation),
+        # since the eval only scores retrieved endpoints. Param overrides the env flag.
+        self.eval_mode = _env_true("AUTOTEST_EVAL_MODE") if eval_mode is None else eval_mode
         self.chat = build_chat_model(self.config)
         self.embeddings = build_embeddings(self.config)
-        self.vector_store = build_vector_store(self.embeddings)
+        self.vector_store = build_vector_store(self.config, self.embeddings)
         try:
             self.depgraph = get_default_graph()   # API dependency graph; optional
         except Exception:
@@ -263,8 +271,9 @@ class AutoTestLLM:
         builder.add_node("grade", grade_node)
         builder.add_node("rewrite", rewrite_node)
         builder.add_node("finalize", finalize_node)
-        builder.add_node("dependencies", dependencies_node)
-        builder.add_node("generate", generate_node)
+        if not self.eval_mode:
+            builder.add_node("dependencies", dependencies_node)
+            builder.add_node("generate", generate_node)
 
         builder.add_edge(START, "generate_queries")
         builder.add_edge("generate_queries", "retrieve")
@@ -273,9 +282,12 @@ class AutoTestLLM:
         builder.add_conditional_edges("grade", decide,
                                       {"rewrite": "rewrite", "finalize": "finalize"})
         builder.add_edge("rewrite", "generate_queries")   # re-fuse on the rewritten query
-        builder.add_edge("finalize", "dependencies")
-        builder.add_edge("dependencies", "generate")
-        builder.add_edge("generate", END)
+        if self.eval_mode:
+            builder.add_edge("finalize", END)             # eval: stop at retrieved endpoints
+        else:
+            builder.add_edge("finalize", "dependencies")
+            builder.add_edge("dependencies", "generate")
+            builder.add_edge("generate", END)
 
         return builder.compile()
 

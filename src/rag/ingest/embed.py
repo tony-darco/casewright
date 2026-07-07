@@ -1,31 +1,21 @@
-from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-import os
 
-from langchain_ollama import OllamaEmbeddings
-from langchain_chroma import Chroma
+from rag.provider import ProviderConfig, build_vector_store
 
-from rag.ingest.split import paths_data, write_one
-
-ollama_emb = OllamaEmbeddings(
-    base_url = "http://192.168.1.17:11434",
-    model= "nomic-embed-text:latest"
-)
-
-vector_collective_name = "meraki_openapi"
-PERSIST_DIR = os.getenv("AUTOTEST_DATA_DIR", "data/chroma")
-
-vector_store = Chroma(
-    collection_name=vector_collective_name,
-    embedding_function=ollama_emb,
-    persist_directory=str(PERSIST_DIR),
-)
+# Same ProviderConfig the pipeline uses -> ingest writes exactly the store
+# (dir, collection, embedding model) that retrieval reads back.
+vector_store = build_vector_store(ProviderConfig())
 
 if __name__ == "__main__":
+    from rag.ingest.split import paths_data, write_one
+
     with ThreadPoolExecutor(max_workers=8) as pool:
         results = pool.map(write_one, paths_data.items())
 
     documents = [doc for docs in results for doc in docs]
     if documents:
-        vector_store.add_documents(documents)
+        # Stable ids keyed on endpoint_id so re-ingest upserts (replaces) each
+        # endpoint instead of appending a duplicate copy of the whole corpus.
+        ids = [doc.metadata["endpoint_id"] for doc in documents]
+        vector_store.add_documents(documents, ids=ids)
 
