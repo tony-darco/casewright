@@ -6,4 +6,6 @@ data/graph/warnings.log
 data/chroma
 .claude
 .venv
+.env
 __pycache__
+*.egg-info

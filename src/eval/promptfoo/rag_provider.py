@@ -5,9 +5,10 @@ rendered question (expected_endpoints never reach here). We run the pipeline and
 return the retrieved endpoint ids as a list of "METHOD path" strings — exactly
 what score_retrieval.parse_retrieved consumes, so no scorer changes are needed.
 
-The pipeline reads the Chroma store at the repo-relative path ``data/chroma``, so
-we resolve and chdir to the repo root before building it (promptfoo runs this
-file from wherever promptfooconfig.yaml lives).
+Only ``src/`` is put on sys.path so ``rag`` imports; the pipeline resolves the
+Chroma store and dependency-graph paths from their own module locations (not the
+process CWD), so no chdir is needed even though promptfoo runs this file from
+wherever promptfooconfig.yaml lives.
 """
 
 import os
@@ -24,7 +25,7 @@ _pipeline = None
 def _get_pipeline():
     global _pipeline
     if _pipeline is None:
-        os.chdir(_REPO_ROOT)  # make data/chroma resolve regardless of promptfoo's CWD
+        os.environ.setdefault("AUTOTEST_EVAL_MODE", "1")  # skip generation; eval only scores retrieval
         from rag.pipeline import AutoTestLLM
         _pipeline = AutoTestLLM()
     return _pipeline

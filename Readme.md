@@ -27,6 +27,16 @@ application directly to Jira and other feature-tracking tools, so that test code
 automatically as features are defined, targeting frameworks like Selenium and TypeScript-based
 suites for real end-to-end coverage.
 
+## Future concern: prompt injection in generated test code
+
+As the system grows, one important safety issue is that generated test code may be influenced by
+untrusted specification text, such as summaries or descriptions pulled from the retrieved corpus.
+A compromised or poisoned source could attempt to steer the model into producing harmful or
+unexpected test code, such as shell commands or other side effects. Because generated code is
+effectively untrusted output, it should be treated as something that requires human review before
+execution, and ideally should be run in a sandboxed environment rather than directly in a
+developer or CI workflow.
+
 ## Status
 
 Early development. The MVP is being built from the ground up, starting with the retrieval
