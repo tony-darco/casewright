@@ -5,19 +5,19 @@ rendered question (expected_endpoints never reach here). We run the pipeline and
 return the retrieved endpoint ids as a list of "METHOD path" strings — exactly
 what score_retrieval.parse_retrieved consumes, so no scorer changes are needed.
 
-Only ``src/`` is put on sys.path so ``rag`` imports; the pipeline resolves the
-Chroma store and dependency-graph paths from their own module locations (not the
-process CWD), so no chdir is needed even though promptfoo runs this file from
-wherever promptfooconfig.yaml lives.
+Bootstraps ``src/`` onto sys.path so ``rag`` imports; the pipeline then resolves
+the Chroma store and dependency-graph paths via rag/__init__.py (anchored on the
+package location, not the process CWD), so no chdir is needed even though promptfoo
+runs this file from wherever promptfooconfig.yaml lives.
 """
 
 import os
 import sys
+from pathlib import Path
 
-_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-_SRC = os.path.join(_REPO_ROOT, "src")
-if _SRC not in sys.path:
-    sys.path.insert(0, _SRC)
+_SRC = Path(__file__).resolve().parents[2]  # src/eval/promptfoo/rag_provider.py -> src
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 
 _pipeline = None
 

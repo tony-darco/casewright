@@ -18,9 +18,11 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-# repo_root/data/graph/graph.json, resolved from this file (src/rag/depgraph.py)
-# so lookups work regardless of the process CWD.
-DEFAULT_GRAPH_PATH = Path(__file__).resolve().parents[2] / "data" / "graph" / "graph.json"
+from rag import GRAPH_JSON
+
+# Path to the dependency graph, anchored on the package (see rag/__init__.py) so
+# lookups work regardless of the process CWD.
+DEFAULT_GRAPH_PATH = GRAPH_JSON
 
 DOWNSTREAM_RENDER_CAP = 10  # dependents can fan out widely; keep prompts bounded
 

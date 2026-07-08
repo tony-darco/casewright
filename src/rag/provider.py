@@ -28,6 +28,8 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 
+from rag import REPO_ROOT
+
 
 DEFAULT_CHAT_MODEL = "qwen3.5:latest"   # tool-capable, non-thinking -> reliable structured output
 DEFAULT_EMBED_MODEL = "nomic-embed-text:latest"
@@ -56,12 +58,12 @@ class ProviderConfig:
                 "(e.g. add it to .env, then `set -a; source .env; set +a`), or pass "
                 "ProviderConfig(persist_dir=...)."
             )
-        # Resolve a relative persist_dir against the repo root (this file is
-        # src/rag/provider.py -> parents[2]), so the store location never depends
-        # on the process CWD -- promptfoo runs providers from another directory.
+        # Resolve a relative persist_dir against the repo root (see rag/__init__.py)
+        # so the store location never depends on the process CWD -- promptfoo runs
+        # providers from another directory.
         persist = Path(self.persist_dir)
         if not persist.is_absolute():
-            persist = Path(__file__).resolve().parents[2] / persist
+            persist = REPO_ROOT / persist
         self.persist_dir = str(persist)
 
 
