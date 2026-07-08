@@ -1,7 +1,5 @@
 from rag.ingest.embed import vector_store
 
-from langchain_ollama import OllamaEmbeddings
-
 
 retriever = vector_store.as_retriever()
 

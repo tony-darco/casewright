@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import requests
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor
 
 from langchain_core.documents import Document
@@ -20,16 +21,21 @@ SPEC_SOURCE = os.getenv("AUTOTEST_SPEC_SOURCE", "local").strip().lower()
 LOCAL_SPEC = Path(os.getenv("AUTOTEST_SPECS_DIR", "data/specs")) / "meraki_open_api_spec.json"
 
 
-def _load_spec() -> dict:
+def _load_spec():
+    """Return (spec_dict, source_str). source_str is the URL or local path the
+    spec actually came from, so Document provenance reflects reality."""
     if SPEC_SOURCE == "live":
         try:
-            return requests.get(SPEC_URL, timeout=30).json()
-        except Exception:
-            pass  # fall back to the pinned snapshot
-    return json.loads(LOCAL_SPEC.read_text())
+            resp = requests.get(SPEC_URL, timeout=30)
+            resp.raise_for_status()
+            return resp.json(), SPEC_URL
+        except Exception as e:
+            print(f"WARNING: live spec fetch failed ({e}); using pinned snapshot "
+                  f"{LOCAL_SPEC}", file=sys.stderr)
+    return json.loads(LOCAL_SPEC.read_text()), str(LOCAL_SPEC)
 
 
-json_data: dict = _load_spec()
+json_data, SPEC_ACTUAL_SOURCE = _load_spec()
 paths_data: dict = json_data.get("paths", {})
 
 def write_one(item):
@@ -46,7 +52,7 @@ def write_one(item):
         input_texts.append(Document(
             page_content=json.dumps(operation, indent=2),
             metadata={
-                "source": "https://raw.githubusercontent.com/meraki/openapi/refs/heads/master/oenapi/spec3.json",
+                "source": SPEC_ACTUAL_SOURCE,
                 "method": method.upper(),
                 "path": path_name,
                 "endpoint_id": f"{method.upper()} {path_name}",
