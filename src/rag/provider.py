@@ -50,6 +50,13 @@ class ProviderConfig:
     persist_dir: str = field(default_factory=lambda: os.environ.get("AUTOTEST_DATA_DIR"))
     collection_name: str = DEFAULT_COLLECTION
     temperature: float = 0.0
+    # Disable model "thinking" by default. Hybrid reasoning models (e.g. GLM-4.7)
+    # emit a long reasoning trace before every answer -- on structured-output calls
+    # (rerank/grade over N candidates) that adds ~10s+ each, and the pipeline makes
+    # 3-9 sequential calls per query, which blows past promptfoo's 300s Python-provider
+    # timeout. Constrained structured output doesn't need the trace. Set
+    # AUTOTEST_CHAT_REASONING=1 to re-enable (e.g. for the generation node or A/B).
+    reasoning: bool = field(default_factory=lambda: os.environ.get("AUTOTEST_CHAT_REASONING", "").strip().lower() in ("1", "true", "yes", "on"))
 
     def __post_init__(self):
         if not self.persist_dir:
@@ -69,7 +76,7 @@ class ProviderConfig:
 
 def build_chat_model(cfg: ProviderConfig) -> BaseChatModel:
     if cfg.provider == "ollama":
-        return ChatOllama(base_url=cfg.base_url, model=cfg.chat_model, temperature=cfg.temperature)
+        return ChatOllama(base_url=cfg.base_url, model=cfg.chat_model, temperature=cfg.temperature, reasoning=cfg.reasoning)
     raise ValueError(f"Unsupported provider: {cfg.provider!r}")
 
 
