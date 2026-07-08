@@ -11,11 +11,14 @@ Asserts the four behaviors called out in the spec:
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).parent
-SPEC = HERE / "fixtures" / "fixture_spec.json"
-OUT = HERE / "fixtures" / "fixture_graph.json"
+REPO_ROOT = HERE.parent
+EXTRACTOR = REPO_ROOT / "src" / "eval" / "graph" / "extract_graph.py"
+SPEC = REPO_ROOT / "fixtures" / "fixture_spec.json"
+OUT = Path(tempfile.gettempdir()) / "fixture_graph.json"
 
 ORGS = "GET /organizations"
 ORG_NETWORKS = "GET /organizations/{organizationId}/networks"
@@ -31,7 +34,7 @@ def edge_set(graph):
 
 def main():
     result = subprocess.run(
-        [sys.executable, str(HERE / "extract_graph.py"),
+        [sys.executable, str(EXTRACTOR),
          "--spec", str(SPEC), "--out", str(OUT), "--print-edges"],
         capture_output=True, text=True,
     )
