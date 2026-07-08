@@ -12,6 +12,9 @@ different local models can be popped in without editing code:
     AUTOTEST_PROVIDER, AUTOTEST_CHAT_MODEL, AUTOTEST_EMBED_MODEL, AUTOTEST_OLLAMA_URL,
     AUTOTEST_DATA_DIR
 
+AUTOTEST_DATA_DIR (the Chroma store directory) is required and has no default; the
+rest fall back to sensible defaults.
+
 Both ingest (rag.ingest.embed) and retrieval (rag.pipeline) build their vector store
 from one ProviderConfig, so they can never diverge on store location or embedding
 space (a divergence would silently return garbage with no error).
@@ -19,7 +22,6 @@ space (a divergence would silently return garbage with no error).
 
 import os
 from dataclasses import dataclass
-from pathlib import Path
 
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
@@ -30,12 +32,6 @@ DEFAULT_CHAT_MODEL = "qwen3.5:latest"   # tool-capable, non-thinking -> reliable
 DEFAULT_EMBED_MODEL = "nomic-embed-text:latest"
 DEFAULT_COLLECTION = "meraki_openapi"
 
-# Resolve the store path from this file (like depgraph.py), not the process CWD, so
-# ingest and retrieval hit the same on-disk store no matter where they're invoked
-# from (e.g. promptfoo runs providers from the config dir).
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_PERSIST_DIR = str(_REPO_ROOT / "data" / "chroma")
-
 
 @dataclass
 class ProviderConfig:
@@ -43,10 +39,19 @@ class ProviderConfig:
     chat_model: str = os.environ.get("AUTOTEST_CHAT_MODEL", DEFAULT_CHAT_MODEL)
     embed_model: str = os.environ.get("AUTOTEST_EMBED_MODEL", DEFAULT_EMBED_MODEL)
     base_url: str = os.environ.get("AUTOTEST_OLLAMA_URL")
-    # store identity -- shared by ingest and retrieval so they never diverge
-    persist_dir: str = os.environ.get("AUTOTEST_DATA_DIR") or DEFAULT_PERSIST_DIR
+    # store identity -- shared by ingest and retrieval so they never diverge.
+    # AUTOTEST_DATA_DIR is the single source of truth; no default (fail fast).
+    persist_dir: str = os.environ.get("AUTOTEST_DATA_DIR")
     collection_name: str = DEFAULT_COLLECTION
     temperature: float = 0.0
+
+    def __post_init__(self):
+        if not self.persist_dir:
+            raise ValueError(
+                "AUTOTEST_DATA_DIR is not set. Point it at the Chroma store directory "
+                "(e.g. add it to .env, then `set -a; source .env; set +a`), or pass "
+                "ProviderConfig(persist_dir=...)."
+            )
 
 
 def build_chat_model(cfg: ProviderConfig) -> BaseChatModel:
