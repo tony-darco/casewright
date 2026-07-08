@@ -21,7 +21,7 @@ space (a divergence would silently return garbage with no error).
 """
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from langchain_core.embeddings import Embeddings
@@ -36,13 +36,16 @@ DEFAULT_COLLECTION = "meraki_openapi"
 
 @dataclass
 class ProviderConfig:
-    provider: str = os.environ.get("AUTOTEST_PROVIDER", "ollama")
-    chat_model: str = os.environ.get("AUTOTEST_CHAT_MODEL", DEFAULT_CHAT_MODEL)
-    embed_model: str = os.environ.get("AUTOTEST_EMBED_MODEL", DEFAULT_EMBED_MODEL)
-    base_url: str = os.environ.get("AUTOTEST_OLLAMA_URL")
+    # default_factory so the env is read when ProviderConfig() is instantiated,
+    # not once at import time -- otherwise load_dotenv()/monkeypatched env set
+    # after this module is imported would be silently ignored.
+    provider: str = field(default_factory=lambda: os.environ.get("AUTOTEST_PROVIDER", "ollama"))
+    chat_model: str = field(default_factory=lambda: os.environ.get("AUTOTEST_CHAT_MODEL", DEFAULT_CHAT_MODEL))
+    embed_model: str = field(default_factory=lambda: os.environ.get("AUTOTEST_EMBED_MODEL", DEFAULT_EMBED_MODEL))
+    base_url: str = field(default_factory=lambda: os.environ.get("AUTOTEST_OLLAMA_URL"))
     # store identity -- shared by ingest and retrieval so they never diverge.
     # AUTOTEST_DATA_DIR is the single source of truth; no default (fail fast).
-    persist_dir: str = os.environ.get("AUTOTEST_DATA_DIR")
+    persist_dir: str = field(default_factory=lambda: os.environ.get("AUTOTEST_DATA_DIR"))
     collection_name: str = DEFAULT_COLLECTION
     temperature: float = 0.0
 
