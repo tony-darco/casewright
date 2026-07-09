@@ -66,7 +66,9 @@ honestly in the UI (it's a differentiator, not fine print).
 
 **In scope (go):** the three-page site; the product app UI (composer → workspace, code
 panel, tabs, inert Run button); the test **library**; the **Export (copy + download)**
-affordance; the **Runs dashboard** shell; the **spec-coverage** view; **failure-triage**
+affordance; a **Settings** area (two-panel + mobile drawer) covering **Meraki integration**
+(organization / network / device management) and preferences; **@device mentions** in the
+composer; the **Runs dashboard** shell; the **spec-coverage** view; **failure-triage**
 UI shell; placeholder/empty states everywhere real data isn't wired yet.
 
 **Out of scope (do not build):** the sandbox / test execution; **git / PR integration**
@@ -127,16 +129,24 @@ three ordered steps; a "hybrid agentic RAG" explainer with a mono retrieval diag
 framework-targets row; and the safety/sandbox model. Content provided.
 
 **5.3 Product app** — the working UI. Interaction model:
-- **Empty state:** one composer input **centered horizontally and vertically**, wide with
-  side margins, under "What do you want to test?" + a few example-prompt chips.
+- **Empty state:** one composer input **left-aligned** and **vertically centered**, wide with
+  side margins, under a left-aligned "What do you want to test?" + a few example-prompt chips.
 - **On submit:** the composer **docks to the bottom** (smaller); the main area becomes the
   **test-code workspace**. A brief "Generating…" beat, then the generated code appears.
   The prompt becomes the active item in the sidebar library.
 - **Workspace panel:** top bar with **tabs (Code · Output)** and a **▶ Run button that is
   inert** (Rule 0.2). Code tab shows the generated test with a line-number gutter. The
   **Output tab is a placeholder** ("Test execution isn't available yet") — no live output.
-- **Sidebar:** the test **library** (see 6.3), a "New test" button, workspace footer.
+- **App topbar:** the current test title, a **device-context selector** ("Devices: <network> ▾",
+  see G11), a **⚙ Settings** link (opens 5.4), and placeholder Share / account controls.
+- **Sidebar:** the test **library** (see G3), a "New test" button, a "← Back to site" link.
 - Responsive: sidebar collapses to an off-canvas menu under ~820px.
+
+**5.4 Settings** — a two-panel view (reachable from the app's ⚙ and a footer link). A **narrow**
+left nav (sized to its labels, ~190px) lists categories; the wide right panel shows the selected
+one (active = sunken fill + ink left-rail). On ≤760px the nav becomes a **left drawer** opened by a
+**top-left hamburger**, over a dimmed backdrop, closing on backdrop tap or selection. Categories:
+**Meraki integration** (G10), **Output language** and **General** (G12). Details in Section 6.
 
 ---
 
@@ -193,7 +203,47 @@ Each goal has a **Definition of Done (DoD)** you can check yourself. "**Data**" 
 - DoD: surface flaky tests and allow **quarantine**; a flake indicator in the library and
   dashboard. UI + states now; data later.
 
-**G9 — Roadmap stubs only (P3)** — **Jira "generate on ticket", CI integration, run
+**G9 — Settings shell: two-panel + mobile drawer (P1)**
+- DoD: a Settings view (5.4) with a **narrow** left category nav (~190px, sized to labels) and
+  a wide right content panel; active category marked (sunken fill + ink left-rail); clicking a
+  category swaps the right panel. On ≤760px the nav is a **left drawer** toggled by a **top-left
+  hamburger** with a dimmed backdrop, closing on backdrop tap or category select. Categories:
+  Meraki integration, Output language, General.
+
+**G10 — Meraki integration: organizations / networks / devices (P1)**
+- DoD (inside the Meraki settings category):
+  - **Add organization** — entry box + Save → validate the org ID, then show **id, name (name
+    links out to the org's dashboard URL), region, hostname, and API status**; invalid IDs show
+    an inline error.
+  - **Add network** (per org, gated on the org being verified) — a **"+" next to the org name**
+    reveals a network entry box + Save; validate, then list the network as a **nested sub-child**
+    of its org with **id and name (name links out)**. Networks read as children of the org.
+  - **Devices** — once a network verifies, fetch and list its devices in a table: **serial, name,
+    model, mac** (clientId available per row). Devices are the org's devices assigned to that
+    network. Show per-org network counts and empty hints.
+- **Known Meraki Dashboard endpoints the backend will proxy:** org `GET /organizations/{organizationId}`;
+  network `GET /networks/{networkId}`; devices `GET /organizations/{organizationId}/devices`
+  filtered by `networkIds`, returning objects with `serial, name, model, mac, networkId, …`.
+- Data: those Meraki endpoints are known, but **the shape the FastAPI backend exposes to this
+  frontend (proxy responses, field names, error format) is co-decided with the human** (Rule 0.1).
+  The mockup uses deterministic **fake** data — do not treat it as the contract.
+
+**G11 — @device mentions in the composer (P1)**
+- DoD: an **active-network selector** in the app topbar ("Devices: <network> ▾") picks which
+  verified network's devices are referenceable. Typing **`@`** opens a filtered autocomplete of
+  that network's devices (keyboard nav ↑/↓/Enter/Tab/Esc). Selecting one inserts an inline **chip**
+  (e.g. `@Access_Backup-3`) carrying the device's **serial, mac, model, name, clientId**; backspace
+  removes a chip cleanly. When no devices exist, the menu links to Settings.
+- Data: **how a mentioned device is serialized into the generate request** (which identifiers,
+  what format) — **TBD with human.** The chip must retain the identifiers so the backend resolves them.
+
+**G12 — Output language & general preferences (P2)**
+- DoD: **Output language** category — select the default language/framework for generated tests
+  (single-select; per-test override later). **General** — light workspace preferences (e.g. display
+  name). Both are UI + selection state now; persistence follows the backend contract.
+- Data: preference storage shape — **TBD with human.**
+
+**G13 — Roadmap stubs only (P3)** — **Jira "generate on ticket", CI integration, run
 scheduling.** Do not build; leave clearly-labeled placeholders/links if they aid navigation.
 
 ---

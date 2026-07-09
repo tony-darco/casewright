@@ -45,7 +45,9 @@
   #site[data-route="home"] .view-home { display: block; }
   #site[data-route="how"] .view-how { display: block; }
   #site[data-route="app"] .view-app { display: block; }
+  #site[data-route="settings"] .view-settings { display: block; }
   #site[data-route="app"] .mnav { display: none; }
+  #site[data-route="settings"] .mnav { display: none; }
 
   /* ---------- marketing nav ---------- */
   .mnav { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--paper) 85%, transparent);
@@ -192,8 +194,8 @@
   .topbar .ph-av { width: 26px; height: 26px; border-radius: var(--radius); border: 1px solid var(--line-2); }
 
   .stage { flex: 1; position: relative; min-height: 0; display: flex; }
-  .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: var(--s6) clamp(20px, 6vw, 80px); gap: var(--s5); text-align: center; transition: opacity .2s ease, transform .2s ease; }
+  .empty { flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+    padding: var(--s6) clamp(20px, 6vw, 80px); gap: var(--s5); text-align: left; transition: opacity .2s ease, transform .2s ease; }
   .empty.leaving { opacity: 0; transform: translateY(28px); }
   .empty h1 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 400; letter-spacing: -0.02em; }
   .empty h1 em { font-style: normal; color: var(--ink-3); }
@@ -207,7 +209,7 @@
     display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: var(--font-mono); transition: background .15s, opacity .15s; }
   .send:disabled { opacity: 0.35; cursor: default; }
   .send:not(:disabled):hover { background: #33342f; }
-  .examples { display: flex; gap: var(--s2); flex-wrap: wrap; justify-content: center; max-width: 760px; }
+  .examples { display: flex; gap: var(--s2); flex-wrap: wrap; justify-content: flex-start; max-width: 760px; }
   .ex { font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-2); border: 1px solid var(--line-2);
     border-radius: var(--radius); padding: 6px 11px; transition: border-color .15s, color .15s; }
   .ex:hover { border-color: var(--ink); color: var(--ink); }
@@ -276,6 +278,163 @@
     .app[data-nav="open"] .backdrop { display: block; }
   }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
+
+  /* =================== SETTINGS =================== */
+  .set-shell { min-height: 100dvh; display: flex; flex-direction: column; }
+  .set-top { height: 60px; flex-shrink: 0; position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 clamp(20px, 5vw, 48px);
+    border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 85%, transparent); backdrop-filter: saturate(1.2) blur(8px); }
+  .back2 { font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-2); letter-spacing: .03em; }
+  .back2:hover { color: var(--ink); }
+
+  /* settings — two-panel (nav 1/3 · content 2/3) */
+  .set-body { flex: 1; min-height: 0; max-width: 1080px; width: 100%; margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 48px); display: grid; grid-template-columns: 190px minmax(0, 1fr); }
+  .set-nav { padding: var(--s8) var(--s5) var(--s8) 0; border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 2px; }
+  .set-top-left { display: flex; align-items: center; gap: var(--s3); }
+  .set-burger { display: none; font-family: var(--font-mono); font-size: 16px; color: var(--ink-2);
+    width: 32px; height: 30px; align-items: center; justify-content: center;
+    border: 1px solid var(--line-2); border-radius: var(--radius); }
+  .set-burger:hover { color: var(--ink); border-color: var(--ink); }
+  .set-backdrop { display: none; }
+  .set-nav-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: .10em; text-transform: uppercase;
+    color: var(--ink-3); padding: 0 12px; margin-bottom: var(--s3); }
+  .set-nav-item { text-align: left; width: 100%; padding: 9px 12px; border-radius: var(--radius);
+    font-size: var(--t-micro); color: var(--ink-2); border-left: 2px solid transparent;
+    transition: background .12s, color .12s, border-color .12s; }
+  .set-nav-item:hover { background: var(--surface); color: var(--ink); }
+  .set-nav-item.active { background: var(--sunken); color: var(--ink); font-weight: 500; border-left-color: var(--ink); }
+  .set-content { padding: var(--s8) 0 var(--s9) var(--s7); min-width: 0; }
+  .set-cat { display: none; }
+  #setBody[data-cat="meraki"] .cat-meraki,
+  #setBody[data-cat="language"] .cat-language,
+  #setBody[data-cat="general"] .cat-general { display: block; }
+  @media (max-width: 760px) {
+    .set-body { grid-template-columns: 1fr; padding-left: 0; padding-right: 0; }
+    .set-content { padding: var(--s6) clamp(20px, 5vw, 32px) var(--s8); }
+    .set-burger { display: inline-flex; }
+    .set-nav {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 240px; z-index: 46;
+      background: var(--paper); border-right: 1px solid var(--line);
+      transform: translateX(-100%); transition: transform .2s ease;
+      padding: var(--s6) var(--s5); overflow-y: auto;
+    }
+    #setShell[data-nav-open="true"] .set-nav { transform: none; }
+    #setShell[data-nav-open="true"] .set-backdrop { display: block; position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.18); z-index: 45; }
+  }
+
+  .addnet-btn { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line-2); border-radius: var(--radius); color: var(--ink-2); font-family: var(--font-mono);
+    font-size: 15px; line-height: 1; transition: border-color .12s, color .12s, background .12s; }
+  .addnet-btn:hover { border-color: var(--ink); color: var(--ink); background: var(--surface); }
+  .net-empty { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); padding: var(--s2) 0; }
+  .net-empty b { color: var(--ink-2); }
+
+  .lang-list { display: flex; flex-direction: column; gap: var(--s3); max-width: 480px; margin-top: var(--s5); }
+  .lang-opt { display: flex; align-items: center; gap: var(--s4); text-align: left; padding: 12px 14px;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); transition: border-color .12s; }
+  .lang-opt:hover { border-color: var(--line-2); }
+  .lang-opt.active { border-color: var(--ink); }
+  .lang-opt .lcol { display: flex; flex-direction: column; gap: 2px; }
+  .lang-opt .ln { font-size: var(--t-micro); font-weight: 500; color: var(--ink); }
+  .lang-opt .lf { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  .lang-opt .chk { margin-left: auto; font-family: var(--font-mono); color: var(--ink); opacity: 0; }
+  .lang-opt.active .chk { opacity: 1; }
+
+  .gen-field { max-width: 420px; margin-top: var(--s5); }
+  .gen-field label { display: block; font-size: var(--t-micro); font-weight: 500; margin-bottom: var(--s2); }
+  .gen-note { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: var(--s3); }
+  .set-wrap { max-width: 860px; margin: 0 auto; width: 100%; padding: var(--s8) clamp(20px, 5vw, 48px) var(--s9); }
+  .set-head h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 400; letter-spacing: -0.02em; margin: var(--s3) 0; }
+  .set-head p { color: var(--ink-2); font-size: var(--t-body); line-height: 1.6; max-width: 58ch; }
+  .set-head .mono { border: 1px solid var(--line-2); border-radius: var(--radius); padding: 1px 6px; font-size: 12px; }
+
+  .set-section { padding: var(--s7) 0; border-top: 1px solid var(--line); }
+  .set-section:first-of-type { border-top: 0; padding-top: 0; }
+  .set-section-head h2 { font-size: var(--t-h2); font-weight: 500; letter-spacing: -0.015em; }
+  .set-section-head p { color: var(--ink-2); font-size: var(--t-micro); margin-top: 6px; max-width: 56ch; }
+
+  .set-form { display: flex; gap: var(--s3); margin-top: var(--s5); }
+  .set-form.small { margin-top: var(--s4); max-width: 420px; }
+  .set-input { flex: 1; font-family: var(--font-sans); font-size: var(--t-micro); color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 10px 12px; }
+  .set-input:focus-visible { outline: 2px solid var(--ink-solid); outline-offset: 1px; border-color: transparent; }
+  .set-form button[disabled] { opacity: .45; cursor: default; }
+  .set-hint { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: var(--s2); letter-spacing: .02em; }
+  .set-hint b { color: var(--ink-2); font-weight: 500; }
+  .set-error { font-family: var(--font-mono); font-size: 11px; color: var(--ink); margin-top: var(--s2); }
+  .set-error b { font-weight: 500; margin-right: 5px; }
+
+  .org-list, .net-list { display: flex; flex-direction: column; gap: var(--s4); margin-top: var(--s5); }
+  .org-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: var(--s5); animation: pfade .25s ease both; }
+  .org-row { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+  .org-id { color: var(--ink-3); font-family: var(--font-mono); font-size: 12px; }
+  .org-name { font-weight: 500; font-size: var(--t-body); border-bottom: 1px solid var(--line-2); }
+  .org-name:hover { border-color: var(--ink); }
+  .stat-pill { margin-left: auto; display: inline-flex; align-items: baseline; gap: 7px; font-family: var(--font-mono);
+    font-size: 11px; color: var(--ink-2); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 3px 9px; }
+  .stat-pill .g { font-weight: 500; color: var(--ink); }
+  .org-meta { display: flex; gap: var(--s5); margin-top: var(--s3); font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  .org-meta b { color: var(--ink-2); font-weight: 500; }
+
+  .nested { margin-top: var(--s5); padding-top: var(--s4); padding-left: var(--s5);
+    border-top: 1px solid var(--line); border-left: 2px solid var(--line); margin-left: 2px; }
+  .nested-head { display: flex; align-items: baseline; gap: var(--s3); margin-bottom: var(--s2); }
+  .nested-head h3 { font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  .dev-count { color: var(--ink-3); font-family: var(--font-mono); font-size: 11px; }
+
+  .net-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--sunken); padding: var(--s4); }
+
+  .dev-table { margin-top: var(--s3); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+  .dev-head-row, .dev-row { display: grid; grid-template-columns: 1.3fr 1fr 1.3fr 1.5fr; gap: var(--s3); padding: 8px var(--s4); align-items: center; }
+  .dev-head-row { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); border-bottom: 1px solid var(--line); }
+  .dev-row { font-size: 12px; border-top: 1px solid var(--line); }
+  .dev-row:first-of-type { border-top: 0; }
+  .dev-row .dn { color: var(--ink); font-weight: 500; }
+  .dev-row .mono { color: var(--ink-2); font-size: 11px; }
+  @media (max-width: 620px) {
+    .dev-head-row, .dev-row { grid-template-columns: 1.2fr 1fr 1.3fr; }
+    .dev-head-row span:nth-child(4), .dev-row span:nth-child(4) { display: none; }
+  }
+
+  .set-loading { display: flex; align-items: center; gap: 9px; padding: var(--s4); color: var(--ink-2); font-family: var(--font-mono); font-size: 12px; }
+  .set-loading .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-2); animation: pulse 1s infinite ease-in-out; }
+
+  /* device context selector (topbar) */
+  .ctxbtn { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: var(--t-eyebrow);
+    color: var(--ink-2); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 5px 10px; }
+  .ctxbtn:hover { color: var(--ink); border-color: var(--ink); }
+  .ctxbtn b { color: var(--ink); font-weight: 500; }
+  .ctxbtn .car { color: var(--ink-3); }
+  .ctxmenu { position: fixed; z-index: 55; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius);
+    min-width: 220px; max-width: 280px; padding: 6px; display: none; }
+  .ctxmenu.open { display: block; }
+  .ctxmenu .item { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 8px 10px; border-radius: var(--radius); }
+  .ctxmenu .item:hover { background: var(--sunken); }
+  .ctxmenu .item.active .n { text-decoration: underline; text-underline-offset: 2px; }
+  .ctxmenu .item .n { font-size: var(--t-micro); color: var(--ink); font-weight: 500; }
+  .ctxmenu .item .o { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); }
+  .ctxmenu .empty { padding: 10px; font-size: 12px; color: var(--ink-3); line-height: 1.4; }
+  .ctxmenu .empty a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+
+  /* mention-enabled composer */
+  .composer .cetext { flex: 1; outline: 0; color: var(--ink); font-family: var(--font-sans); font-size: var(--t-body);
+    line-height: 1.5; max-height: 200px; overflow-y: auto; padding: 6px; min-height: 24px; }
+  .composer .cetext:empty::before { content: attr(data-placeholder); color: var(--ink-3); }
+  .mention-chip { display: inline-block; font-family: var(--font-mono); font-size: 0.9em; color: var(--ink);
+    background: var(--sunken); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 0 5px; }
+  .mentionmenu { position: fixed; z-index: 60; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius);
+    width: 280px; max-height: 220px; overflow-y: auto; padding: 4px; display: none; }
+  .mentionmenu.open { display: block; }
+  .mentionmenu .mopt { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 7px 10px; border-radius: var(--radius); }
+  .mentionmenu .mopt:hover, .mentionmenu .mopt.sel { background: var(--sunken); }
+  .mentionmenu .mopt .n { font-size: var(--t-micro); color: var(--ink); font-weight: 500; }
+  .mentionmenu .mopt .d { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); }
+  .mentionmenu .mempty { padding: 10px 12px; font-size: 12px; color: var(--ink-3); line-height: 1.4; }
+  .mentionmenu .mempty a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
 </style>
 
 <div id="site" data-route="home">
@@ -375,7 +534,7 @@ And the discount line
           <a class="brand" href="#home"><svg class="mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2"></rect><path d="M6 11.4 L9.4 14.8 L16 7.4" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>casewright</a>
           <p>Turns specifications into working test code. Early development — building the retrieval pipeline first.</p>
         </div>
-        <div class="fcol"><h4>Product</h4><a href="#home">Home</a><a href="#how">How it works</a><a href="#app">Open app</a></div>
+        <div class="fcol"><h4>Product</h4><a href="#home">Home</a><a href="#how">How it works</a><a href="#app">Open app</a><a href="#settings">Settings</a></div>
         <div class="fcol"><h4>Company</h4><a href="#home">About</a><a href="#home">Blog</a><a href="#home">Careers</a></div>
         <div class="fcol"><h4>Legal</h4><a href="#home">Privacy</a><a href="#home">Terms</a><a href="#home">Security</a></div>
       </div>
@@ -484,12 +643,91 @@ And the discount line
           <a class="brand" href="#home"><svg class="mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2"></rect><path d="M6 11.4 L9.4 14.8 L16 7.4" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>casewright</a>
           <p>Turns specifications into working test code. Early development — building the retrieval pipeline first.</p>
         </div>
-        <div class="fcol"><h4>Product</h4><a href="#home">Home</a><a href="#how">How it works</a><a href="#app">Open app</a></div>
+        <div class="fcol"><h4>Product</h4><a href="#home">Home</a><a href="#how">How it works</a><a href="#app">Open app</a><a href="#settings">Settings</a></div>
         <div class="fcol"><h4>Company</h4><a href="#home">About</a><a href="#home">Blog</a><a href="#home">Careers</a></div>
         <div class="fcol"><h4>Legal</h4><a href="#home">Privacy</a><a href="#home">Terms</a><a href="#home">Security</a></div>
       </div>
       <div class="foot-base"><span>© 2026 casewright · placeholder name</span><span>grayscale · SF Pro + SF Mono</span></div>
     </div></footer>
+  </main>
+
+  <!-- ===== SETTINGS ===== -->
+  <main class="view view-settings">
+    <div class="set-shell" id="setShell">
+      <div class="set-top">
+        <div class="set-top-left">
+          <button class="set-burger" id="setBurger" aria-label="Open settings menu">&#9776;</button>
+          <a class="brand" href="#app">
+            <svg class="mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2"></rect><path d="M6 11.4 L9.4 14.8 L16 7.4" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            casewright<span class="ph">wip</span>
+          </a>
+        </div>
+        <a class="back2" href="#app">&#8592; Back to app</a>
+      </div>
+      <div class="set-body" id="setBody" data-cat="meraki">
+        <nav class="set-nav">
+          <div class="set-nav-title">Settings</div>
+          <button class="set-nav-item active" data-cat="meraki">Meraki integration</button>
+          <button class="set-nav-item" data-cat="language">Output language</button>
+          <button class="set-nav-item" data-cat="general">General</button>
+        </nav>
+
+        <div class="set-content">
+          <!-- Meraki integration -->
+          <section class="set-cat cat-meraki">
+            <div class="set-head">
+              <span class="eyebrow">Meraki integration</span>
+              <h1>Organizations &amp; networks</h1>
+              <p>Connect Meraki organizations and networks. Once a network is verified, its devices become
+                available to reference in a test with <span class="mono">@device-name</span>.</p>
+            </div>
+            <div class="set-section-head">
+              <h2>Organizations</h2>
+              <p>Add an organization ID to verify it against the Meraki Dashboard API.</p>
+            </div>
+            <form class="set-form" id="orgForm">
+              <input class="set-input mono" id="orgInput" placeholder="Organization ID — e.g. 549236" aria-label="Organization ID" autocomplete="off">
+              <button class="btn btn-primary" id="orgSaveBtn" type="submit" disabled>Save</button>
+            </form>
+            <div class="set-hint" id="orgHint">validates via <b>GET /organizations/{organizationId}</b> · demo: an ID containing “bad” previews an error</div>
+            <div class="set-error" id="orgError" hidden></div>
+            <div class="org-list" id="orgList"></div>
+          </section>
+
+          <!-- Output language -->
+          <section class="set-cat cat-language">
+            <div class="set-head">
+              <span class="eyebrow">Output language</span>
+              <h1>Preferred test language</h1>
+              <p>New tests are generated in this language and framework by default. You can still override it
+                on any individual test.</p>
+            </div>
+            <div class="lang-list" id="langList">
+              <button class="lang-opt active" data-lang="ts"><span class="lcol"><span class="ln">TypeScript</span><span class="lf">Vitest / Jest</span></span><span class="chk">&#10003;</span></button>
+              <button class="lang-opt" data-lang="py"><span class="lcol"><span class="ln">Python</span><span class="lf">pytest</span></span><span class="chk">&#10003;</span></button>
+              <button class="lang-opt" data-lang="java"><span class="lcol"><span class="ln">Java</span><span class="lf">JUnit 5</span></span><span class="chk">&#10003;</span></button>
+              <button class="lang-opt" data-lang="go"><span class="lcol"><span class="ln">Go</span><span class="lf">testing</span></span><span class="chk">&#10003;</span></button>
+              <button class="lang-opt" data-lang="csharp"><span class="lcol"><span class="ln">C#</span><span class="lf">xUnit</span></span><span class="chk">&#10003;</span></button>
+            </div>
+          </section>
+
+          <!-- General -->
+          <section class="set-cat cat-general">
+            <div class="set-head">
+              <span class="eyebrow">General</span>
+              <h1>Workspace</h1>
+              <p>Basic preferences for this workspace.</p>
+            </div>
+            <div class="gen-field">
+              <label for="wsName">Display name</label>
+              <input class="set-input" id="wsName" value="Your workspace" aria-label="Workspace display name">
+            </div>
+            <div class="gen-note">More options will land here as the product grows.</div>
+          </section>
+        </div>
+      </div>
+      <div class="set-backdrop" id="setBackdrop"></div>
+    </div>
   </main>
 
   <!-- ===== PRODUCT (app) ===== -->
@@ -521,14 +759,19 @@ And the discount line
         <div class="topbar">
           <button class="menu" id="menuBtn" aria-label="Toggle sidebar">&#9776;</button>
           <div class="title" id="topTitle">New test</div>
+          <button class="ctxbtn" id="ctxBtn" aria-haspopup="true" aria-expanded="false">Devices: <b id="ctxLabel">none</b> <span class="car">&#9662;</span></button>
+          <a class="icobtn" href="#settings" title="Settings" aria-label="Settings">&#9881;</a>
           <button class="ph-btn" title="Placeholder">Share</button>
           <div class="ph-av" title="Placeholder account"></div>
         </div>
+        <div class="ctxmenu" id="ctxMenu"></div>
+        <div class="mentionmenu" id="mentionMenu"></div>
         <div class="stage">
           <div class="empty" id="emptyView">
             <h1>What do you want to <em>test?</em></h1>
             <div class="composer">
-              <textarea id="heroInput" rows="1" placeholder="Describe a test — an endpoint, a feature, an edge case…" aria-label="Describe a test"></textarea>
+              <div class="cetext" id="heroInput" contenteditable="true" role="textbox" aria-multiline="true"
+                data-placeholder="Describe a test — an endpoint, a feature, an edge case… (type @ to reference a device)" aria-label="Describe a test"></div>
               <button class="send" id="heroSend" disabled aria-label="Generate test">&#8593;</button>
             </div>
             <div class="hint">enter to generate · shift + enter for a new line</div>
@@ -563,7 +806,8 @@ And the discount line
             </div>
             <div class="dock">
               <div class="composer">
-                <textarea id="dockInput" rows="1" placeholder="Refine this test, or describe another…" aria-label="Refine or add a test"></textarea>
+                <div class="cetext" id="dockInput" contenteditable="true" role="textbox" aria-multiline="true"
+                  data-placeholder="Refine this test, or describe another… (type @ to reference a device)" aria-label="Refine or add a test"></div>
                 <button class="send" id="dockSend" disabled aria-label="Generate test">&#8593;</button>
               </div>
               <div class="hint2">casewright can be wrong — generated tests are for review, run in a sandbox</div>
@@ -581,14 +825,16 @@ And the discount line
 (function () {
   /* ---------------- routing ---------------- */
   var site = document.getElementById('site');
-  var ROUTES = { home: 1, how: 1, app: 1 };
+  var ROUTES = { home: 1, how: 1, app: 1, settings: 1 };
   function go(route) {
     if (!ROUTES[route]) route = 'home';
     site.dataset.route = route;
     document.body.classList.toggle('route-app', route === 'app');
     document.querySelectorAll('.mnav-links a').forEach(function (a) { a.classList.toggle('active', a.dataset.nav === route); });
-    if (route === 'app') { setTimeout(function () { var h = document.getElementById('heroInput'); if (h && appView() === 'empty') h.focus(); }, 60); }
-    else { window.scrollTo(0, 0); }
+    if (route === 'app') {
+      refreshCtx();
+      setTimeout(function () { var h = document.getElementById('heroInput'); if (h && appView() === 'empty') h.focus(); }, 60);
+    } else { window.scrollTo(0, 0); }
   }
   window.addEventListener('hashchange', function () { go(location.hash.slice(1)); });
 
@@ -641,13 +887,9 @@ And the discount line
   var tabOutput = document.getElementById('tabOutput'), outBadge = document.getElementById('outBadge');
   var outEmpty = document.getElementById('outEmpty'), outWrap = document.getElementById('outWrap');
 
-  function wire(input, send, submit) {
-    function sync() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 200) + 'px'; send.disabled = input.value.trim() === ''; }
-    input.addEventListener('input', sync);
-    input.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (input.value.trim()) submit(input.value.trim()); } });
-    send.addEventListener('click', function () { if (input.value.trim()) submit(input.value.trim()); });
-  }
   function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  function textOf(el) { return el.textContent.replace(/ /g, ' ').trim(); }
+  function clearComposer(el) { el.innerHTML = ''; }
   function addRecent(title) {
     document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
     var recents = document.getElementById('recents');
@@ -682,10 +924,10 @@ And the discount line
     emptyView.classList.add('leaving');
     setTimeout(function () {
       addRecent(text); generate(text); emptyView.classList.remove('leaving');
-      heroInput.value = ''; heroSend.disabled = true; heroInput.style.height = 'auto'; dockInput.focus();
+      clearComposer(heroInput); heroSend.disabled = true; dockInput.focus();
     }, 200);
   }
-  function fromDock(text) { addRecent(text); generate(text); dockInput.value = ''; dockSend.disabled = true; dockInput.style.height = 'auto'; }
+  function fromDock(text) { addRecent(text); generate(text); clearComposer(dockInput); dockSend.disabled = true; }
   function loadTest(title) { document.querySelectorAll('.ritem').forEach(function (r) { r.classList.toggle('active', r.dataset.title === title); }); generate(title); }
 
   runBtn.addEventListener('click', function () {
@@ -705,16 +947,328 @@ And the discount line
   document.getElementById('newBtn').addEventListener('click', function () {
     app.dataset.view = 'empty'; app.dataset.nav = 'closed';
     document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
-    topTitle.textContent = 'New test'; heroInput.value = ''; heroSend.disabled = true; heroInput.focus();
+    topTitle.textContent = 'New test'; clearComposer(heroInput); heroSend.disabled = true; heroInput.focus();
   });
   document.getElementById('examples').addEventListener('click', function (e) { if (e.target.classList.contains('ex')) fromHero(e.target.textContent.trim()); });
   document.querySelectorAll('#recents .ritem').forEach(function (r) { r.addEventListener('click', function () { loadTest(r.dataset.title); }); });
   document.getElementById('menuBtn').addEventListener('click', function () { app.dataset.nav = app.dataset.nav === 'open' ? 'closed' : 'open'; });
   document.getElementById('backdrop').addEventListener('click', function () { app.dataset.nav = 'closed'; });
 
-  wire(heroInput, heroSend, fromHero);
-  wire(dockInput, dockSend, fromDock);
+  /* ---------------- mock Meraki data (deterministic, demo only — real shape TBD with backend) ---------------- */
+  function hashStr(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function mulberry32(seed) { return function () { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; var t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function pick(rng, arr) { return arr[Math.floor(rng() * arr.length) % arr.length]; }
+  function grp(rng, n) { var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = ''; for (var i = 0; i < n; i++) s += chars[Math.floor(rng() * chars.length)]; return s; }
+  function serialFor(rng) { return 'Q2' + grp(rng, 2) + '-' + grp(rng, 4) + '-' + grp(rng, 4); }
+  function macFor(rng) { var b = []; for (var i = 0; i < 6; i++) b.push(Math.floor(rng() * 256).toString(16).padStart(2, '0')); return b.join(':'); }
 
+  var ORG_NAMES = ['Northwind Retail', 'Blue Harbor Logistics', 'Fenwick Health Systems', 'Arcadia Robotics', 'Union Square Media', 'Cedarline Manufacturing'];
+  var REGIONS = ['North America', 'Europe', 'APAC'];
+  var HOSTS = ['n149.meraki.com', 'n42.meraki.com', 'n7.meraki.com', 'n201.meraki.com'];
+  var NET_NAMES = ['NY — Flagship', 'SF — HQ', 'Chicago — Warehouse', 'Austin — Branch', 'Remote — VPN Concentrator', 'Denver — Distribution'];
+  var DEV_MODELS = ['MR46', 'MR36', 'MS120-8FP', 'MS225-48FP', 'MX67', 'MX68', 'MV12', 'Z3'];
+  var DEV_KINDS  = ['Access', 'Access', 'Switch', 'Switch', 'Security', 'Camera', 'Uplink'];
+  var DEV_PLACES = ['Lobby', 'Floor2', 'Warehouse', 'Core', 'Reception', 'ServerRoom', 'Roof', 'Backup'];
+
+  function isBadId(id) { return id.toLowerCase().indexOf('bad') !== -1; }
+
+  function mockOrg(id) {
+    var rng = mulberry32(hashStr('org:' + id));
+    return { id: id, name: pick(rng, ORG_NAMES), url: 'https://dashboard.meraki.com/o/' + encodeURIComponent(id),
+      region: pick(rng, REGIONS), hostname: pick(rng, HOSTS), ok: true, networks: [] };
+  }
+  function mockDevice(networkId, rng, i) {
+    var kind = pick(rng, DEV_KINDS), place = pick(rng, DEV_PLACES);
+    return { name: kind + '_' + place + (i > 0 ? ('-' + (i + 1)) : ''), model: pick(rng, DEV_MODELS),
+      serial: serialFor(rng), mac: macFor(rng), networkId: networkId, clientId: 'c_' + (1000 + Math.floor(rng() * 9000)) };
+  }
+  function mockNetwork(id, orgId) {
+    var rng = mulberry32(hashStr('net:' + id));
+    var count = 3 + Math.floor(rng() * 4);
+    var devices = []; for (var i = 0; i < count; i++) devices.push(mockDevice(id, rng, i));
+    return { id: id, orgId: orgId, name: pick(rng, NET_NAMES), url: 'https://dashboard.meraki.com/n/' + encodeURIComponent(id),
+      ok: true, devicesLoading: true, devices: devices };
+  }
+
+  /* ---------------- settings: organizations / networks / devices ---------------- */
+  var ORGS = [];
+  var orgForm = document.getElementById('orgForm'), orgInput = document.getElementById('orgInput'),
+      orgSaveBtn = document.getElementById('orgSaveBtn'), orgError = document.getElementById('orgError'),
+      orgList = document.getElementById('orgList');
+
+  function renderDevTable(net) {
+    if (net.devicesLoading) return '<div class="set-loading"><span class="dot"></span> loading devices…</div>';
+    var rows = net.devices.map(function (d) {
+      return '<div class="dev-row" title="' + esc(d.serial + ' · ' + d.model + ' · ' + d.mac) + '">' +
+        '<span class="dn">' + esc(d.name) + '</span><span class="mono">' + esc(d.model) + '</span>' +
+        '<span class="mono">' + esc(d.serial) + '</span><span class="mono">' + esc(d.mac) + '</span></div>';
+    }).join('');
+    return '<div class="dev-table"><div class="dev-head-row"><span>Name</span><span>Model</span><span>Serial</span><span>MAC</span></div>' + rows + '</div>';
+  }
+  function renderNet(net) {
+    return '<div class="net-card" data-net-id="' + esc(net.id) + '">' +
+      '<div class="org-row"><span class="org-id">#' + esc(net.id) + '</span>' +
+      '<a class="org-name" href="' + esc(net.url) + '" target="_blank" rel="noopener">' + esc(net.name) + '</a></div>' +
+      '<div class="nested"><div class="nested-head"><h3>Devices</h3>' +
+      '<span class="dev-count">' + (net.devicesLoading ? '' : net.devices.length + ' found') + '</span></div>' +
+      renderDevTable(net) + '</div></div>';
+  }
+  function renderOrg(org) {
+    var statusPill = org.ok
+      ? '<span class="stat-pill"><span class="g">&#10003;</span>operational</span>'
+      : '<span class="stat-pill"><span class="g">&#10007;</span>unreachable</span>';
+    var nets = org.networks.map(renderNet).join('');
+    var netBody = nets || '<div class="net-empty">No networks yet — add one with <b>+</b>.</div>';
+    var netCount = org.networks.length ? org.networks.length + ' network' + (org.networks.length > 1 ? 's' : '') : '';
+    return '<div class="org-card" data-org-id="' + esc(org.id) + '">' +
+      '<div class="org-row"><span class="org-id">#' + esc(org.id) + '</span>' +
+      '<a class="org-name" href="' + esc(org.url) + '" target="_blank" rel="noopener">' + esc(org.name) + '</a>' +
+      '<button class="addnet-btn" title="Add network" aria-label="Add network to ' + esc(org.name) + '">+</button>' +
+      statusPill + '</div>' +
+      '<div class="org-meta"><span>region <b>' + esc(org.region) + '</b></span><span>host <b>' + esc(org.hostname) + '</b></span></div>' +
+      '<div class="nested"><div class="nested-head"><h3>Networks</h3><span class="dev-count">' + netCount + '</span></div>' +
+      '<form class="set-form small net-form" data-org-id="' + esc(org.id) + '" hidden>' +
+      '<input class="set-input mono net-input" placeholder="Network ID — e.g. L_549236_1" aria-label="Network ID" autocomplete="off">' +
+      '<button class="btn btn-primary" type="submit" disabled>Save</button>' +
+      '<button class="btn btn-ghost netcancel" type="button">Cancel</button></form>' +
+      '<div class="set-error net-error" hidden></div>' +
+      '<div class="net-list">' + netBody + '</div></div></div>';
+  }
+  function renderOrgs() { orgList.innerHTML = ORGS.map(renderOrg).join(''); refreshCtx(); }
+  function findOrg(id) { for (var i = 0; i < ORGS.length; i++) if (ORGS[i].id === id) return ORGS[i]; return null; }
+
+  orgInput.addEventListener('input', function () { orgSaveBtn.disabled = orgInput.value.trim() === ''; });
+  orgForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var id = orgInput.value.trim(); if (!id) return;
+    orgError.hidden = true; orgInput.disabled = true; orgSaveBtn.disabled = true;
+    var prevLabel = orgSaveBtn.innerHTML;
+    orgSaveBtn.innerHTML = '<span class="running"><span class="dot"></span></span> Verifying…';
+    setTimeout(function () {
+      orgInput.disabled = false; orgSaveBtn.innerHTML = prevLabel;
+      if (isBadId(id)) {
+        orgError.hidden = false; orgError.innerHTML = '<b>&#10007;</b> Could not verify — check the organization ID and try again.';
+        orgSaveBtn.disabled = false;
+      } else {
+        ORGS.push(mockOrg(id)); renderOrgs();
+        orgInput.value = ''; orgSaveBtn.disabled = true;
+      }
+    }, 750);
+  });
+
+  // event delegation: the per-org "add network" forms are re-rendered on every org/network change
+  orgList.addEventListener('input', function (e) {
+    if (e.target.classList.contains('net-input')) {
+      var btn = e.target.closest('form').querySelector('button');
+      btn.disabled = e.target.value.trim() === '';
+    }
+  });
+  orgList.addEventListener('submit', function (e) {
+    var form = e.target.closest('.net-form'); if (!form) return;
+    e.preventDefault();
+    var orgId = form.dataset.orgId, org = findOrg(orgId); if (!org) return;
+    var input = form.querySelector('.net-input'), btn = form.querySelector('button'), errBox = form.parentElement.querySelector('.net-error');
+    var id = input.value.trim(); if (!id) return;
+    errBox.hidden = true; input.disabled = true; btn.disabled = true;
+    var prevLabel = btn.innerHTML;
+    btn.innerHTML = '<span class="running"><span class="dot"></span></span> Verifying…';
+    setTimeout(function () {
+      if (isBadId(id)) {
+        input.disabled = false; btn.innerHTML = prevLabel; btn.disabled = false;
+        errBox.hidden = false; errBox.innerHTML = '<b>&#10007;</b> Could not verify — check the network ID and try again.';
+        return;
+      }
+      var net = mockNetwork(id, orgId);
+      org.networks.push(net);
+      renderOrgs(); // devices render as "loading…" immediately
+      setTimeout(function () { net.devicesLoading = false; renderOrgs(); }, 700);
+    }, 750);
+  });
+
+  // reveal / cancel the per-org "add network" form (toggled by the + next to the org name)
+  orgList.addEventListener('click', function (e) {
+    var add = e.target.closest('.addnet-btn');
+    if (add) {
+      var form = add.closest('.org-card').querySelector('.net-form');
+      if (form) { form.hidden = false; var inp = form.querySelector('.net-input'); if (inp) inp.focus(); }
+      return;
+    }
+    var cancel = e.target.closest('.netcancel');
+    if (cancel) {
+      var f = cancel.closest('.net-form');
+      if (f) { f.hidden = true; f.querySelector('.net-input').value = ''; f.querySelector('button[type="submit"]').disabled = true; }
+      var err = cancel.closest('.nested').querySelector('.net-error'); if (err) err.hidden = true;
+    }
+  });
+
+  /* ---------------- settings: category nav + drawer + language picker ---------------- */
+  var setBody = document.getElementById('setBody');
+  var setShell = document.getElementById('setShell');
+  var setBurger = document.getElementById('setBurger');
+  var setBackdrop = document.getElementById('setBackdrop');
+  function closeSetNav() { if (setShell) setShell.dataset.navOpen = 'false'; }
+  if (setBurger) setBurger.addEventListener('click', function () {
+    setShell.dataset.navOpen = setShell.dataset.navOpen === 'true' ? 'false' : 'true';
+  });
+  if (setBackdrop) setBackdrop.addEventListener('click', closeSetNav);
+  document.querySelectorAll('.set-nav-item').forEach(function (b) {
+    b.addEventListener('click', function () {
+      setBody.dataset.cat = b.dataset.cat;
+      document.querySelectorAll('.set-nav-item').forEach(function (x) { x.classList.toggle('active', x === b); });
+      closeSetNav();
+    });
+  });
+  var langList = document.getElementById('langList');
+  if (langList) langList.addEventListener('click', function (e) {
+    var opt = e.target.closest('.lang-opt'); if (!opt) return;
+    langList.querySelectorAll('.lang-opt').forEach(function (o) { o.classList.toggle('active', o === opt); });
+  });
+
+  /* ---------------- device context selector (topbar) ---------------- */
+  var ctxBtn = document.getElementById('ctxBtn'), ctxMenu = document.getElementById('ctxMenu'), ctxLabel = document.getElementById('ctxLabel');
+  var activeNetworkId = null;
+
+  function allNetworks() {
+    var out = [];
+    ORGS.forEach(function (org) { org.networks.forEach(function (net) { if (!net.devicesLoading) out.push({ net: net, org: org }); }); });
+    return out;
+  }
+  function activeNetwork() {
+    var found = null;
+    allNetworks().forEach(function (x) { if (x.net.id === activeNetworkId) found = x.net; });
+    return found;
+  }
+  function refreshCtx() {
+    var nets = allNetworks();
+    if (!activeNetworkId && nets.length) activeNetworkId = nets[0].net.id;
+    var current = activeNetwork();
+    ctxLabel.textContent = current ? current.name : 'none';
+    if (!nets.length) {
+      ctxMenu.innerHTML = '<div class="empty">No verified networks yet.<br><a href="#settings">Add one in Settings &#8594;</a></div>';
+      return;
+    }
+    ctxMenu.innerHTML = nets.map(function (x) {
+      return '<button type="button" class="item' + (x.net.id === activeNetworkId ? ' active' : '') + '" data-net-id="' + esc(x.net.id) + '">' +
+        '<span class="n">' + esc(x.net.name) + '</span><span class="o">' + esc(x.org.name) + ' · ' + x.net.devices.length + ' devices</span></button>';
+    }).join('');
+  }
+  function positionMenu(menu, anchor) {
+    var r = anchor.getBoundingClientRect();
+    menu.style.top = (r.bottom + 6) + 'px';
+    menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+  }
+  ctxBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var open = ctxMenu.classList.toggle('open');
+    ctxBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) positionMenu(ctxMenu, ctxBtn);
+  });
+  ctxMenu.addEventListener('click', function (e) {
+    var item = e.target.closest('.item'); if (!item) return;
+    activeNetworkId = item.dataset.netId; refreshCtx(); ctxMenu.classList.remove('open');
+  });
+  document.addEventListener('click', function (e) {
+    if (!ctxMenu.contains(e.target) && e.target !== ctxBtn && !ctxBtn.contains(e.target)) ctxMenu.classList.remove('open');
+  });
+
+  /* ---------------- @mention-enabled composer ---------------- */
+  var mentionMenu = document.getElementById('mentionMenu');
+  var mentionState = null;
+
+  function closeMention() { mentionMenu.classList.remove('open'); mentionState = null; }
+  function currentDevices() { var net = activeNetwork(); return net ? net.devices : []; }
+
+  function renderMentionMenu() {
+    var devices = currentDevices();
+    var q = mentionState.query.toLowerCase();
+    var filtered = devices.filter(function (d) { return d.name.toLowerCase().indexOf(q) !== -1; });
+    mentionState.filtered = filtered; mentionState.sel = 0;
+    if (!devices.length) {
+      mentionMenu.innerHTML = '<div class="mempty">No devices available. <a href="#settings">Add a network in Settings &#8594;</a></div>';
+    } else if (!filtered.length) {
+      mentionMenu.innerHTML = '<div class="mempty">No device matches “' + esc(mentionState.query) + '”.</div>';
+    } else {
+      mentionMenu.innerHTML = filtered.map(function (d, i) {
+        return '<button type="button" class="mopt' + (i === 0 ? ' sel' : '') + '" data-i="' + i + '">' +
+          '<span class="n">' + esc(d.name) + '</span><span class="d">' + esc(d.model) + ' · ' + esc(d.serial) + '</span></button>';
+      }).join('');
+    }
+    mentionMenu.classList.add('open');
+    positionMenu(mentionMenu, mentionState.input);
+  }
+  function updateSel(delta) {
+    if (!mentionState || !mentionState.filtered.length) return;
+    var n = mentionState.filtered.length;
+    mentionState.sel = (mentionState.sel + delta + n) % n;
+    Array.prototype.forEach.call(mentionMenu.querySelectorAll('.mopt'), function (el, i) { el.classList.toggle('sel', i === mentionState.sel); });
+  }
+  function insertMention(device) {
+    var st = mentionState; if (!st) return;
+    var node = st.node, text = node.textContent;
+    var before = text.slice(0, st.start), after = text.slice(st.end);
+    var beforeNode = document.createTextNode(before), afterNode = document.createTextNode(' ' + after);
+    var chip = document.createElement('span');
+    chip.className = 'mention-chip'; chip.contentEditable = 'false'; chip.textContent = '@' + device.name;
+    chip.title = device.serial + ' · ' + device.model + ' · ' + device.mac;
+    chip.dataset.serial = device.serial; chip.dataset.mac = device.mac; chip.dataset.model = device.model; chip.dataset.clientId = device.clientId;
+    var parent = node.parentNode;
+    parent.replaceChild(afterNode, node);
+    parent.insertBefore(chip, afterNode);
+    parent.insertBefore(beforeNode, chip);
+    var range = document.createRange(), sel = window.getSelection();
+    range.setStart(afterNode, 1); range.collapse(true);
+    sel.removeAllRanges(); sel.addRange(range);
+    st.input.dispatchEvent(new Event('input', { bubbles: true }));
+    closeMention();
+  }
+  mentionMenu.addEventListener('mousedown', function (e) {
+    var opt = e.target.closest('.mopt'); if (!opt || !mentionState) return;
+    e.preventDefault(); insertMention(mentionState.filtered[Number(opt.dataset.i)]);
+  });
+
+  function detectMention(input) {
+    var sel = window.getSelection();
+    if (!sel.rangeCount || !input.contains(sel.anchorNode)) { closeMention(); return; }
+    var node = sel.anchorNode, offset = sel.anchorOffset;
+    if (node.nodeType !== 3) { closeMention(); return; }
+    var before = node.textContent.slice(0, offset);
+    var m = /(^|[\s ])@([\w-]*)$/.exec(before);
+    if (!m) { closeMention(); return; }
+    mentionState = { input: input, node: node, start: m.index + m[1].length, end: offset, query: m[2] };
+    renderMentionMenu();
+  }
+
+  function wireComposer(input, send, submit) {
+    input.addEventListener('input', function () {
+      send.disabled = textOf(input) === '';
+      detectMention(input);
+    });
+    input.addEventListener('keydown', function (e) {
+      if (mentionState) {
+        if (e.key === 'ArrowDown') { e.preventDefault(); updateSel(1); return; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); updateSel(-1); return; }
+        if ((e.key === 'Enter' || e.key === 'Tab') && mentionState.filtered.length) { e.preventDefault(); insertMention(mentionState.filtered[mentionState.sel]); return; }
+        if (e.key === 'Escape') { e.preventDefault(); closeMention(); return; }
+      }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); var t = textOf(input); if (t) submit(t); return; }
+      if (e.key === 'Backspace') {
+        var sel = window.getSelection();
+        if (sel.isCollapsed) {
+          var node = sel.anchorNode, off = sel.anchorOffset, chip = null;
+          if (node.nodeType === 3 && off === 0) chip = node.previousSibling;
+          else if (node.nodeType === 1 && off > 0) { var child = node.childNodes[off - 1]; if (child && child.classList && child.classList.contains('mention-chip')) chip = child; }
+          if (chip && chip.classList && chip.classList.contains('mention-chip')) { e.preventDefault(); chip.remove(); send.disabled = textOf(input) === ''; }
+        }
+      }
+    });
+    send.addEventListener('click', function () { var t = textOf(input); if (t) submit(t); });
+  }
+  document.addEventListener('click', function (e) { if (!mentionMenu.contains(e.target)) closeMention(); }, true);
+
+  wireComposer(heroInput, heroSend, fromHero);
+  wireComposer(dockInput, dockSend, fromDock);
+
+  refreshCtx();
   go(location.hash.slice(1) || 'home');
 })();
 </script>
