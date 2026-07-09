@@ -19,10 +19,15 @@ RERANK_SYSTEM = (
 )
 
 GRADE_SYSTEM = (
-    "You judge whether each retrieved API endpoint is relevant to the user query "
-    "— i.e. whether it would plausibly be needed to fulfil the request (including "
-    "endpoints that supply required path parameters). For each candidate return "
-    "true if relevant, false otherwise, in the same order as given."
+    "You decide, strictly, whether each candidate API endpoint is one the user "
+    "actually needs to perform the requested action — its HTTP method and resource "
+    "must directly match the operation the request describes. Mark true ONLY for "
+    "such a direct match. Mark false for endpoints that are merely topically "
+    "related — a different resource, a different action, or the same HTTP method on "
+    "an unrelated path — even if they look similar. When in doubt, mark false. Do "
+    "not include prerequisite/parameter-supplying endpoints here; those are added "
+    "separately from the dependency graph. Return one boolean per candidate, in the "
+    "same order as given."
 )
 
 REWRITE_SYSTEM = (
