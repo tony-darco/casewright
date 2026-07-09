@@ -38,24 +38,20 @@ DEFAULT_COLLECTION = "meraki_openapi"
 
 @dataclass
 class ProviderConfig:
-    # default_factory so the env is read when ProviderConfig() is instantiated,
-    # not once at import time -- otherwise load_dotenv()/monkeypatched env set
-    # after this module is imported would be silently ignored.
+    # default_factory so the env is read when ProviderConfig() is instantiated
     provider: str = field(default_factory=lambda: os.environ.get("AUTOTEST_PROVIDER", "ollama"))
     chat_model: str = field(default_factory=lambda: os.environ.get("AUTOTEST_CHAT_MODEL", DEFAULT_CHAT_MODEL))
     embed_model: str = field(default_factory=lambda: os.environ.get("AUTOTEST_EMBED_MODEL", DEFAULT_EMBED_MODEL))
     base_url: str = field(default_factory=lambda: os.environ.get("AUTOTEST_OLLAMA_URL"))
-    # store identity -- shared by ingest and retrieval so they never diverge.
+
+
     # AUTOTEST_DATA_DIR is the single source of truth; no default (fail fast).
     persist_dir: str = field(default_factory=lambda: os.environ.get("AUTOTEST_DATA_DIR"))
     collection_name: str = DEFAULT_COLLECTION
     temperature: float = 0.0
-    # Disable model "thinking" by default. Hybrid reasoning models (e.g. GLM-4.7)
-    # emit a long reasoning trace before every answer -- on structured-output calls
-    # (rerank/grade over N candidates) that adds ~10s+ each, and the pipeline makes
-    # 3-9 sequential calls per query, which blows past promptfoo's 300s Python-provider
-    # timeout. Constrained structured output doesn't need the trace. Set
-    # AUTOTEST_CHAT_REASONING=1 to re-enable (e.g. for the generation node or A/B).
+
+    # Disable model "thinking" by default. 
+    # AUTOTEST_CHAT_REASONING=1 to re-enable
     reasoning: bool = field(default_factory=lambda: os.environ.get("AUTOTEST_CHAT_REASONING", "").strip().lower() in ("1", "true", "yes", "on"))
 
     def __post_init__(self):

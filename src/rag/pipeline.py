@@ -92,11 +92,14 @@ class AutoTestLLM:
             SystemMessage(prompts.QUERY_GEN_SYSTEM.format(n=n)),
             HumanMessage(prompts.user_query(query)),
         ]
+
         try:
             variants = [q.strip() for q in structured.invoke(msgs).queries if q.strip()]
         except Exception:
             variants = []
+
         out = [query]
+
         for q in variants:
             if q not in out:
                 out.append(q)
@@ -113,6 +116,7 @@ class AutoTestLLM:
 
     def rerank(self, query: str, docs, top_n: int = RERANK_TOP_N):
         pool = docs[:top_n]
+
         if len(pool) <= 1:
             return list(docs)
         rendered = "\n".join(f"[{i}] {self._render(d)}" for i, d in enumerate(pool))
@@ -121,18 +125,23 @@ class AutoTestLLM:
             SystemMessage(prompts.RERANK_SYSTEM),
             HumanMessage(prompts.user_candidates(query, rendered)),
         ]
+
         try:
             order = structured.invoke(msgs).order
         except Exception:
             return list(docs)
+        
         reranked, seen = [], set()
+
         for i in order:
             if isinstance(i, int) and 0 <= i < len(pool) and i not in seen:
                 reranked.append(pool[i])
                 seen.add(i)
+
         for i, d in enumerate(pool):        # append any indices the model dropped
             if i not in seen:
                 reranked.append(d)
+
         return reranked + list(docs[top_n:])
 
     # -- CRAG grader + correction -------------------------------------------
@@ -140,18 +149,22 @@ class AutoTestLLM:
     def grade(self, query: str, docs, top_n: int = RERANK_TOP_N):
         """Return (kept_relevant_docs, confidence)."""
         pool = docs[:top_n]
+
         if not pool:
             return [], "low"
+        
         rendered = "\n".join(f"[{i}] {self._render(d)}" for i, d in enumerate(pool))
         structured = self.chat.with_structured_output(RelevanceGrades)
         msgs = [
             SystemMessage(prompts.GRADE_SYSTEM),
             HumanMessage(prompts.user_candidates(query, rendered)),
         ]
+
         try:
             grades = structured.invoke(msgs).grades
         except Exception:
-            return pool[:5], "high"          # grader failed -> keep top few, don't loop forever
+            return pool[:5], "high"
+        
         kept = [d for d, ok in zip(pool, grades) if ok]
         return kept, ("high" if kept else "low")
 
@@ -160,13 +173,12 @@ class AutoTestLLM:
             SystemMessage(prompts.REWRITE_SYSTEM),
             HumanMessage(prompts.user_query(original_query)),
         ]
+
         try:
             text = (self.chat.invoke(msgs).content or "").strip()
             return text or original_query
         except Exception:
             return original_query
-
-    # -- generation (first pass) --------------------------------------------
 
     def generate_tests(self, query: str, docs, dependencies: str = ""):
         if not docs:
@@ -181,8 +193,6 @@ class AutoTestLLM:
         except Exception:
             return ""
 
-    # -- API dependency graph ------------------------------------------------
-
     def endpoint_dependencies(self, endpoints, direction: str = "both"):
         """Rendered call-order dependencies for the given endpoint ids, or "" if
         the dependency graph is unavailable."""
@@ -190,7 +200,6 @@ class AutoTestLLM:
             return ""
         return self.depgraph.render(endpoints, direction=direction)
 
-    # -- rendering / mapping helpers ----------------------------------------
 
     @staticmethod
     def _operation(doc):
