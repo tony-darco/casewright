@@ -2,12 +2,11 @@
 
 promptfoo calls ``call_api(prompt, options, context)``; ``prompt`` is the
 rendered question (expected_endpoints never reach here). We run the pipeline and
-return, as a list of "METHOD path" strings, the union of the retrieved target
-endpoints and the upstream prerequisites the dependency graph adds — because the
-ground truth is target + closure, and the whole context (targets + call-order
-producers) is what reaches the generation LLM. The two stay separate in pipeline
-state; we combine them only here, at the eval boundary. This is exactly what
-score_retrieval.parse_retrieved consumes, so no scorer changes are needed.
+return the split as a structured object — ``{"endpoints": [...], "dependency_endpoints":
+[...]}`` — where ``endpoints`` are the retrieved targets (from the grader) and
+``dependency_endpoints`` are the upstream prerequisites the dependency graph adds.
+score_retrieval scores their union (the ground truth is target + closure) but keeps
+them apart to label each endpoint's provenance ([grader] vs [dep]) in its reason.
 
 Bootstraps ``src/`` onto sys.path so ``rag`` imports; the pipeline then resolves
 the Chroma store and dependency-graph paths via rag/__init__.py (anchored on the
@@ -38,11 +37,11 @@ def _get_pipeline():
 def call_api(prompt, options, context):
     question = prompt if isinstance(prompt, str) else str(prompt)
     state = _get_pipeline().run(question)
-    endpoints = state.get("endpoints", []) or []
-    deps = state.get("dependency_endpoints", []) or []
-    # Retrieved targets first, then prerequisite producers the graph adds (deduped).
-    combined = endpoints + [d for d in deps if d not in endpoints]
-    return {"output": combined}
+    # Structured split so the scorer can score the union AND label provenance.
+    return {"output": {
+        "endpoints": state.get("endpoints", []) or [],
+        "dependency_endpoints": state.get("dependency_endpoints", []) or [],
+    }}
 
 
 if __name__ == "__main__":

@@ -88,10 +88,32 @@ def _normalize(endpoint_str):
     return f"{method.upper()} {path.strip()}"
 
 
+def _split(output):
+    """Return (targets, deps) as sets of normalized 'METHOD path' ids.
+
+    The pipeline provider returns a structured split
+    {"endpoints": [...targets...], "dependency_endpoints": [...graph prereqs...]},
+    which lets us label each endpoint's provenance. Any other shape (flat list, JSON
+    string, free text) carries no split, so everything parsed is treated as a target.
+    """
+    obj = output
+    if isinstance(obj, str):
+        try:
+            obj = json.loads(obj)
+        except (ValueError, TypeError):
+            obj = output
+    if isinstance(obj, dict) and ("endpoints" in obj or "dependency_endpoints" in obj):
+        targets = {_normalize(x) for x in (obj.get("endpoints") or []) if isinstance(x, str)}
+        deps = {_normalize(x) for x in (obj.get("dependency_endpoints") or []) if isinstance(x, str)}
+        return targets, deps
+    return parse_retrieved(output), set()
+
+
 def get_assert(output, context):
     metadata = context.get("test", {}).get("metadata", {}) or {}
     expected = set(metadata.get("expected_endpoints", []))
-    retrieved = parse_retrieved(output)
+    targets, deps = _split(output)
+    retrieved = targets | deps
 
     true_positives = retrieved & expected
     precision = (len(true_positives) / len(retrieved)) if retrieved else 0.0
@@ -100,9 +122,14 @@ def get_assert(output, context):
 
     passed = recall >= RECALL_MIN
 
-    # Surface the expected set and the diff in the reason so it's visible in the
-    # promptfoo results (expected_endpoints lives in metadata, which the output table
-    # doesn't show). missing -> why it failed (recall gap); extra -> precision noise.
+    # Surface expected + diff in the reason (expected_endpoints is in metadata, which
+    # the promptfoo table hides). missing -> recall gap; extra -> precision noise, each
+    # tagged with provenance: [grader] retrieved target vs [dep] graph prerequisite.
+    def _tag(e):
+        if e in targets and e in deps:
+            return f"{e} [grader+dep]"
+        return f"{e} [dep]" if e in deps else f"{e} [grader]"
+
     missing = sorted(expected - retrieved)
     extra = sorted(retrieved - expected)
     reason = (
@@ -110,7 +137,7 @@ def get_assert(output, context):
         f"precision={precision:.2f}  f1={f1:.2f}\n"
         f"  expected ({len(expected)}): {', '.join(sorted(expected)) or '-'}\n"
         f"  missing ({len(missing)}): {', '.join(missing) or '-'}\n"
-        f"  extra ({len(extra)}): {', '.join(extra) or '-'}"
+        f"  extra ({len(extra)}): {', '.join(_tag(e) for e in extra) or '-'}"
     )
     return {
         "pass": passed,
