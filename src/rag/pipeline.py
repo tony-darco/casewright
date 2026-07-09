@@ -44,6 +44,7 @@ N_QUERY_VARIANTS = 3     # extra RAG-Fusion queries beyond the original
 RETRIEVE_K = 8           # docs pulled per sub-query before fusion
 RERANK_TOP_N = 12        # fused candidates handed to the LLM rerank/grade nodes
 MAX_ATTEMPTS = 2         # CRAG correction (rewrite+re-retrieve) budget
+FALLBACK_TOP_N = 1       # if the grader keeps nothing, fall back to the top reranked pick (not the whole pool)
 
 
 # --- structured-output schemas for the LLM nodes ---------------------------
@@ -267,7 +268,10 @@ class AutoTestLLM:
             return {"query": new_query, "attempts": state.get("attempts", 0) + 1}
 
         def finalize_node(state):
-            docs = state.get("graded") or state.get("ranked") or []
+            # When the grader kept nothing (even after the correction loop), fall back
+            # to the reranker's top pick -- its best available guess -- not the whole
+            # candidate pool, which would tank precision (dumping 13-24 endpoints).
+            docs = state.get("graded") or state.get("ranked", [])[:FALLBACK_TOP_N]
             return {"endpoints": self._endpoint_ids(docs)}
 
         def dependencies_node(state):
