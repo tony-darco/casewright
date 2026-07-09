@@ -1,0 +1,720 @@
+<style>
+  :root {
+    --ink-base: 27, 28, 25;
+    --paper: #f6f5f3; --surface: #ffffff; --sunken: #eeece7; --ink-solid: #1b1c19;
+    --ink: rgba(var(--ink-base), 0.90); --ink-2: rgba(var(--ink-base), 0.60); --ink-3: rgba(var(--ink-base), 0.42);
+    --line: rgba(var(--ink-base), 0.12); --line-2: rgba(var(--ink-base), 0.22);
+    --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Code", Consolas, "Liberation Mono", monospace;
+    --t-eyebrow: 12px; --t-micro: 13px; --t-body: 15px; --t-lead: 19px; --t-h3: 21px; --t-h2: 28px;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px; --s9: 96px;
+    --radius: 2px; --sidebar-w: 264px; --maxw: 1080px;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--font-sans); font-size: var(--t-body); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  body.route-app { overflow: hidden; height: 100dvh; }
+  button { font: inherit; color: inherit; background: transparent; border: 0; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
+  ::placeholder { color: var(--ink-3); }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--t-eyebrow); font-weight: 500;
+    letter-spacing: 0.10em; text-transform: uppercase; color: var(--ink-3); }
+
+  /* shared brand + buttons */
+  .brand { display: inline-flex; align-items: center; gap: 9px; font-size: var(--t-body); font-weight: 500; letter-spacing: -0.01em; color: var(--ink); }
+  .brand .mark rect { fill: var(--ink-solid); }
+  .brand .mark path { stroke: var(--paper); }
+  .brand .ph { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--ink-3);
+    border: 1px solid var(--line-2); border-radius: var(--radius); padding: 1px 5px; text-transform: uppercase; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-sans);
+    font-size: var(--t-micro); font-weight: 500; padding: 10px 18px; border-radius: var(--radius); cursor: pointer;
+    border: 1px solid transparent; transition: background .15s, border-color .15s, color .15s; }
+  .btn-primary { background: var(--ink-solid); color: var(--paper); }
+  .btn-primary:hover { background: #33342f; }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line-2); }
+  .btn-ghost:hover { border-color: var(--ink); }
+  .btn:focus-visible, a:focus-visible, button:focus-visible { outline: 2px solid var(--ink-solid); outline-offset: 2px; }
+  .btn .ar { font-family: var(--font-mono); }
+
+  /* ---------- routing ---------- */
+  .view { display: none; }
+  #site[data-route="home"] .view-home { display: block; }
+  #site[data-route="how"] .view-how { display: block; }
+  #site[data-route="app"] .view-app { display: block; }
+  #site[data-route="app"] .mnav { display: none; }
+
+  /* ---------- marketing nav ---------- */
+  .mnav { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--paper) 85%, transparent);
+    backdrop-filter: saturate(1.2) blur(8px); border-bottom: 1px solid var(--line); }
+  .mwrap { max-width: var(--maxw); margin: 0 auto; padding: 0 clamp(20px, 5vw, 48px); }
+  .mnav-in { display: flex; align-items: center; gap: var(--s6); height: 60px; }
+  .mnav-links { display: flex; gap: var(--s5); margin-left: var(--s4); }
+  .mnav-links a { font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.03em; color: var(--ink-2); transition: color .15s; }
+  .mnav-links a:hover { color: var(--ink); }
+  .mnav-links a.active { color: var(--ink); }
+  .mnav-right { margin-left: auto; display: flex; align-items: center; gap: var(--s4); }
+  @media (max-width: 620px) { .mnav-links { margin-left: 0; gap: var(--s4); } .brand .ph { display: none; } }
+
+  /* ---------- marketing shared ---------- */
+  .m-section { padding: var(--s9) 0; }
+  .m-band { border-top: 1px solid var(--line); }
+  .m-kicker { display: flex; flex-direction: column; gap: var(--s3); margin-bottom: var(--s7); max-width: 62ch; }
+  .m-kicker h2 { font-size: var(--t-h2); font-weight: 500; letter-spacing: -0.015em; text-wrap: balance; }
+  .m-kicker p { color: var(--ink-2); font-size: var(--t-lead); line-height: 1.5; }
+
+  /* hero */
+  .m-hero { padding: clamp(56px, 11vw, 128px) 0 var(--s8); }
+  .m-hero .eyebrow { margin-bottom: var(--s5); }
+  .m-hero h1 { font-size: clamp(42px, 8vw, 84px); font-weight: 400; line-height: 1.0; letter-spacing: -0.035em; text-wrap: balance; max-width: 16ch; }
+  .m-hero h1 em { font-style: normal; color: var(--ink-3); }
+  .m-hero .sub { margin-top: var(--s6); font-size: var(--t-lead); line-height: 1.55; color: var(--ink-2); max-width: 58ch; }
+  .m-hero .sub b { color: var(--ink); font-weight: 500; }
+  .m-hero .cta { margin-top: var(--s7); display: flex; gap: var(--s3); flex-wrap: wrap; }
+  .m-hero .note { margin-top: var(--s4); font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3); letter-spacing: 0.03em; }
+
+  /* demo panel */
+  .m-panel { border: 1px solid var(--line-2); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .m-panelbar { display: flex; align-items: center; gap: 10px; padding: 11px var(--s4); border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3); letter-spacing: 0.04em; }
+  .m-panelbar .flag { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-2); }
+  .m-panelbar .rt { margin-left: auto; }
+  .m-split { display: grid; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 720px) { .m-split { grid-template-columns: 1fr; } }
+  .m-split > div { padding: var(--s5); overflow-x: auto; }
+  .m-split .col-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: var(--s3); }
+  .m-split > div:first-child { border-right: 1px solid var(--line); background: var(--sunken); }
+  @media (max-width: 720px) { .m-split > div:first-child { border-right: 0; border-bottom: 1px solid var(--line); } }
+  .m-panel pre { margin: 0; font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.7; color: var(--ink); white-space: pre; }
+  .m-panel .cmt { color: var(--ink-3); } .m-panel .kw { color: var(--ink); font-weight: 500; } .m-panel .str { color: var(--ink-2); }
+  .m-results { display: flex; align-items: center; gap: var(--s5); flex-wrap: wrap; padding: var(--s4);
+    border-top: 1px solid var(--line); font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-2); letter-spacing: 0.02em; }
+  .m-results .m { display: inline-flex; align-items: baseline; gap: 7px; }
+  .m-results .g { font-size: 13px; font-weight: 500; color: var(--ink); }
+  .m-results .num { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .m-results .sep { color: var(--line-2); }
+
+  /* feature grid */
+  .m-feat { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s5); }
+  @media (max-width: 760px) { .m-feat { grid-template-columns: 1fr; } }
+  .m-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: var(--s6);
+    display: flex; flex-direction: column; gap: var(--s3); }
+  .m-card .k { font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+  .m-card h3 { font-size: var(--t-h3); font-weight: 500; letter-spacing: -0.01em; }
+  .m-card p { color: var(--ink-2); font-size: var(--t-micro); line-height: 1.55; }
+
+  /* steps (how it works) */
+  .m-steps { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .m-step { display: grid; grid-template-columns: 220px 1fr; gap: var(--s6); padding: var(--s7) var(--s6);
+    background: var(--surface); border-top: 1px solid var(--line); }
+  .m-step:first-child { border-top: 0; }
+  @media (max-width: 760px) { .m-step { grid-template-columns: 1fr; gap: var(--s3); padding: var(--s6); } }
+  .m-step .idx { font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3); letter-spacing: 0.08em; }
+  .m-step .idx b { display: block; color: var(--ink); font-weight: 500; font-size: var(--t-h3); letter-spacing: -0.01em; margin-top: 8px; }
+  .m-step p { color: var(--ink-2); font-size: var(--t-body); line-height: 1.6; max-width: 60ch; }
+  .m-step .io { margin-top: var(--s4); display: flex; gap: var(--s3); flex-wrap: wrap; font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3); }
+  .m-step .io span { border: 1px solid var(--line-2); border-radius: var(--radius); padding: 4px 10px; }
+
+  /* two-col explainer */
+  .m-two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s7); align-items: start; }
+  @media (max-width: 820px) { .m-two { grid-template-columns: 1fr; gap: var(--s6); } }
+  .m-two p { color: var(--ink-2); font-size: var(--t-body); line-height: 1.65; max-width: 54ch; }
+  .m-two p + p { margin-top: var(--s4); }
+  .m-diagram { border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--sunken); padding: var(--s6);
+    font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.9; color: var(--ink-2); white-space: pre; overflow-x: auto; }
+  .m-diagram b { color: var(--ink); font-weight: 500; }
+
+  /* targets */
+  .targets { display: flex; flex-wrap: wrap; gap: var(--s3); }
+  .tchip { font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.03em; color: var(--ink-2);
+    border: 1px solid var(--line-2); border-radius: var(--radius); padding: 6px 12px; }
+  .tchip .soon { color: var(--ink-3); }
+
+  /* trust */
+  .m-trust { border: 1px solid var(--ink); border-radius: var(--radius); background: var(--surface);
+    padding: clamp(28px, 5vw, 56px); display: grid; grid-template-columns: 200px 1fr; gap: var(--s7); }
+  @media (max-width: 760px) { .m-trust { grid-template-columns: 1fr; gap: var(--s4); } }
+  .m-trust .lab { font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+  .m-trust h2 { font-size: var(--t-h2); font-weight: 500; letter-spacing: -0.015em; margin-bottom: var(--s4); }
+  .m-trust p { color: var(--ink-2); font-size: var(--t-body); line-height: 1.6; max-width: 60ch; }
+  .m-trust .chk { display: flex; gap: var(--s5); flex-wrap: wrap; margin-top: var(--s5); font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-2); }
+  .m-trust .chk span { display: inline-flex; align-items: baseline; gap: 8px; }
+  .m-trust .chk b { color: var(--ink); font-weight: 500; }
+
+  /* closing + footer */
+  .m-close { text-align: center; padding: clamp(80px, 14vw, 148px) 0; }
+  .m-close h2 { font-size: clamp(32px, 6vw, 56px); font-weight: 400; letter-spacing: -0.03em; text-wrap: balance; max-width: 18ch; margin: 0 auto; }
+  .m-close .cta { margin-top: var(--s7); display: flex; gap: var(--s3); justify-content: center; flex-wrap: wrap; }
+  .m-foot { border-top: 1px solid var(--line); padding: var(--s8) 0 var(--s9); }
+  .foot-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: var(--s6); }
+  @media (max-width: 760px) { .foot-grid { grid-template-columns: 1fr 1fr; } }
+  .foot-brand p { color: var(--ink-3); font-size: var(--t-micro); line-height: 1.5; margin-top: var(--s3); max-width: 30ch; }
+  .fcol h4 { font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin-bottom: var(--s4); }
+  .fcol a { display: block; font-size: var(--t-micro); color: var(--ink-2); padding: 4px 0; transition: color .15s; }
+  .fcol a:hover { color: var(--ink); }
+  .foot-base { display: flex; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-top: var(--s8);
+    padding-top: var(--s5); border-top: 1px solid var(--line); font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3); letter-spacing: 0.03em; }
+
+  .fade { opacity: 0; transform: translateY(8px); animation: rise .6s cubic-bezier(.2,.7,.2,1) forwards; }
+  .fade.d1 { animation-delay: .05s; } .fade.d2 { animation-delay: .1s; } .fade.d3 { animation-delay: .15s; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  /* =================== APP (product) =================== */
+  .app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; height: 100dvh; }
+  .sidebar { background: var(--paper); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; z-index: 40; }
+  .side-head { padding: var(--s4) var(--s4) var(--s3); display: flex; align-items: center; gap: 9px; }
+  .newbtn { margin: 0 var(--s3) var(--s4); padding: 10px 12px; display: flex; align-items: center; gap: 9px;
+    border: 1px solid var(--line-2); border-radius: var(--radius); font-size: var(--t-micro); font-weight: 500; color: var(--ink); transition: border-color .15s, background .15s; }
+  .newbtn:hover { border-color: var(--ink); background: var(--surface); }
+  .newbtn .plus { font-family: var(--font-mono); color: var(--ink-2); }
+  .recents { flex: 1; overflow-y: auto; padding: 0 var(--s3) var(--s4); }
+  .rgroup { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--ink-3); padding: var(--s4) var(--s2) var(--s2); }
+  .ritem { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; padding: 8px var(--s2); border-radius: var(--radius);
+    color: var(--ink-2); font-size: var(--t-micro); transition: background .12s, color .12s; }
+  .ritem:hover { background: var(--surface); color: var(--ink); }
+  .ritem.active { background: var(--sunken); color: var(--ink); }
+  .ritem .st { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); flex-shrink: 0; width: 12px; text-align: center; }
+  .ritem .tt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .side-foot { border-top: 1px solid var(--line); padding: var(--s3); display: flex; align-items: center; gap: 9px; }
+  .side-foot .back { font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-2); flex: 1; }
+  .side-foot .back:hover { color: var(--ink); }
+
+  .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .topbar { height: 52px; flex-shrink: 0; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: var(--s3); padding: 0 var(--s5); }
+  .topbar .menu { display: none; font-family: var(--font-mono); color: var(--ink-2); padding: 4px 8px; border: 1px solid var(--line-2); border-radius: var(--radius); }
+  .topbar .title { font-size: var(--t-micro); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .topbar .title b { color: var(--ink); font-weight: 500; }
+  .topbar .ph-btn { font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 5px 10px; }
+  .topbar .ph-btn:hover { color: var(--ink-2); }
+  .topbar .ph-av { width: 26px; height: 26px; border-radius: var(--radius); border: 1px solid var(--line-2); }
+
+  .stage { flex: 1; position: relative; min-height: 0; display: flex; }
+  .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: var(--s6) clamp(20px, 6vw, 80px); gap: var(--s5); text-align: center; transition: opacity .2s ease, transform .2s ease; }
+  .empty.leaving { opacity: 0; transform: translateY(28px); }
+  .empty h1 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 400; letter-spacing: -0.02em; }
+  .empty h1 em { font-style: normal; color: var(--ink-3); }
+  .empty .hint { font-size: var(--t-micro); color: var(--ink-3); font-family: var(--font-mono); letter-spacing: 0.02em; margin-top: -8px; }
+  .composer { width: min(760px, 100%); background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius);
+    padding: var(--s3); display: flex; align-items: flex-end; gap: var(--s3); transition: border-color .15s; }
+  .composer:focus-within { border-color: var(--ink); }
+  .composer textarea { flex: 1; border: 0; outline: 0; resize: none; background: transparent; color: var(--ink);
+    font-family: var(--font-sans); font-size: var(--t-body); line-height: 1.5; max-height: 200px; padding: 6px; min-height: 24px; }
+  .send { width: 34px; height: 34px; border-radius: var(--radius); background: var(--ink-solid); color: var(--paper);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: var(--font-mono); transition: background .15s, opacity .15s; }
+  .send:disabled { opacity: 0.35; cursor: default; }
+  .send:not(:disabled):hover { background: #33342f; }
+  .examples { display: flex; gap: var(--s2); flex-wrap: wrap; justify-content: center; max-width: 760px; }
+  .ex { font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-2); border: 1px solid var(--line-2);
+    border-radius: var(--radius); padding: 6px 11px; transition: border-color .15s, color .15s; }
+  .ex:hover { border-color: var(--ink); color: var(--ink); }
+
+  .work { position: absolute; inset: 0; display: none; flex-direction: column; min-height: 0; }
+  .app[data-view="work"] .empty { display: none; }
+  .app[data-view="work"] .work { display: flex; }
+  .work-body { flex: 1; min-height: 0; padding: var(--s5) clamp(16px, 4vw, 40px) 0; display: flex; }
+  .panel { flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius); overflow: hidden; }
+  .panel.enter { animation: pfade .25s ease both; }
+  @keyframes pfade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .panel-head { display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s3); height: 44px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+  .tabs { display: flex; align-items: stretch; height: 100%; }
+  .tab { display: inline-flex; align-items: center; gap: 7px; padding: 0 var(--s4); height: 100%; font-size: var(--t-micro);
+    color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .12s, border-color .12s; }
+  .tab[hidden] { display: none; }
+  .tab:hover { color: var(--ink-2); }
+  .tab.active { color: var(--ink); border-bottom-color: var(--ink-solid); }
+  .tab .badge { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  .tab.active .badge { color: var(--ink-2); }
+  .ph-file { margin-left: var(--s3); font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3); }
+  .head-right { margin-left: auto; display: flex; align-items: center; gap: var(--s2); }
+  .icobtn { width: 32px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius);
+    color: var(--ink-2); font-family: var(--font-mono); font-size: 13px; border: 1px solid transparent; transition: background .12s, border-color .12s, color .12s; }
+  .icobtn:hover { background: var(--sunken); color: var(--ink); }
+  .runbtn { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 14px; border-radius: var(--radius);
+    background: var(--ink-solid); color: var(--paper); font-size: var(--t-micro); font-weight: 500; transition: background .15s, opacity .15s; }
+  .runbtn:hover { background: #33342f; }
+  .runbtn:disabled { opacity: 0.55; cursor: default; }
+  .runbtn .tri { font-size: 10px; }
+  .panel-body { flex: 1; min-height: 0; position: relative; }
+  .pane { position: absolute; inset: 0; display: none; overflow: auto; }
+  .pane.show { display: block; }
+  .codearea { display: flex; min-height: 100%; background: var(--sunken); font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.7; }
+  .gutter { flex-shrink: 0; text-align: right; color: var(--ink-3); padding: var(--s4) 12px var(--s4) var(--s4); white-space: pre; user-select: none; border-right: 1px solid var(--line); }
+  .code { margin: 0; padding: var(--s4) var(--s5); white-space: pre; color: var(--ink); flex: 1; }
+  .code .cmt { color: var(--ink-3); } .code .kw { color: var(--ink); font-weight: 500; } .code .str { color: var(--ink-2); }
+  .outwrap { padding: var(--s5); font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.8; }
+  .out-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s3);
+    color: var(--ink-3); font-family: var(--font-mono); font-size: var(--t-micro); }
+  .out-empty .big { font-size: 20px; color: var(--ink-2); }
+  .outline { white-space: pre-wrap; color: var(--ink-2); }
+  .outline .ok, .outline .no, .outline .head { color: var(--ink); font-weight: 500; }
+  .outline .muted { color: var(--ink-3); }
+  .runmeta { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--line); color: var(--ink); }
+  .runmeta .sep { color: var(--line-2); padding: 0 6px; }
+  .running { display: inline-flex; align-items: center; gap: 9px; color: var(--ink-2); }
+  .running .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-2); animation: pulse 1s infinite ease-in-out; }
+  @keyframes pulse { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+  .genning { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px;
+    color: var(--ink-2); font-family: var(--font-mono); font-size: var(--t-micro); background: var(--surface); z-index: 5; }
+  .genning[hidden] { display: none; }
+  .genning .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-2); animation: pulse 1s infinite ease-in-out; }
+  .dock { flex-shrink: 0; padding: var(--s4) clamp(16px, 4vw, 40px) var(--s5); }
+  .dock .composer { width: 100%; animation: slideup .25s ease both; }
+  @keyframes slideup { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  .dock .hint2 { text-align: center; font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.03em; margin-top: 8px; }
+
+  .backdrop { display: none; }
+  @media (max-width: 820px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-w); transform: translateX(-100%); transition: transform .2s ease; }
+    .app[data-nav="open"] .sidebar { transform: none; }
+    .topbar .menu { display: inline-flex; }
+    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.18); z-index: 35; }
+    .app[data-nav="open"] .backdrop { display: block; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
+</style>
+
+<div id="site" data-route="home">
+
+  <!-- ===== marketing nav ===== -->
+  <nav class="mnav">
+    <div class="mwrap mnav-in">
+      <a class="brand" href="#home">
+        <svg class="mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2"></rect><path d="M6 11.4 L9.4 14.8 L16 7.4" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        casewright<span class="ph">wip name</span>
+      </a>
+      <div class="mnav-links">
+        <a href="#home" data-nav="home">Home</a>
+        <a href="#how" data-nav="how">How it works</a>
+      </div>
+      <div class="mnav-right">
+        <a class="btn btn-primary" href="#app">Open app <span class="ar">&#8594;</span></a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HOME ===== -->
+  <main class="view view-home">
+    <header class="m-hero"><div class="mwrap">
+      <div class="eyebrow fade">AI test generation&#160;·&#160;unit / integration / e2e</div>
+      <h1 class="fade d1">Specifications in.<br><em>Working tests out.</em></h1>
+      <p class="sub fade d2">Casewright turns application and feature specs into real test code. Describe what a
+        feature should do; it writes the <b>unit, integration, and end-to-end tests</b> that prove it — closing the
+        coverage gap without the manual grind.</p>
+      <div class="cta fade d2">
+        <a class="btn btn-primary" href="#app">Open app <span class="ar">&#8594;</span></a>
+        <a class="btn btn-ghost" href="#how">How it works</a>
+      </div>
+      <div class="note fade d3">Early access · the MVP generates tests from specifications</div>
+    </div></header>
+
+    <section class="m-section" style="padding-top:0"><div class="mwrap">
+      <div class="m-panel fade">
+        <div class="m-panelbar"><span class="flag"></span>SPEC&#160;&#8594;&#160;TEST<span class="rt">checkout.spec &#8594; checkout.test.ts</span></div>
+        <div class="m-split">
+          <div>
+            <div class="col-label">Specification · in</div>
+<pre><span class="cmt"># feature: cart discount</span>
+Given an empty cart
+When the user adds a $40 item
+  and applies code <span class="str">"SAVE10"</span>
+Then the order total is <span class="str">$36.00</span>
+And the discount line
+  reads <span class="str">"-$4.00"</span></pre>
+          </div>
+          <div>
+            <div class="col-label">Generated test · out</div>
+<pre><span class="kw">test</span>(<span class="str">"applies SAVE10 to a $40 cart"</span>, <span class="kw">async</span> () =&gt; {
+  <span class="kw">const</span> cart = <span class="kw">await</span> newCart();
+  <span class="kw">await</span> cart.add(item({ price: <span class="str">40</span> }));
+  <span class="kw">await</span> cart.apply(<span class="str">"SAVE10"</span>);
+
+  expect(cart.discount).toBe(<span class="str">-4.00</span>);
+  expect(cart.total).toBe(<span class="str">36.00</span>);
+});</pre>
+          </div>
+        </div>
+        <div class="m-results">
+          <span class="m"><span class="num">248</span> cases</span><span class="sep">·</span>
+          <span class="m"><span class="g">&#10003;</span><span class="num">241</span> passing</span>
+          <span class="m"><span class="g">&#10007;</span><span class="num">7</span> failing</span><span class="sep">·</span>
+          <span class="m"><span class="num">94.3%</span> coverage</span><span class="sep">·</span>
+          <span class="m"><span class="num">12.408s</span></span>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="m-section m-band"><div class="mwrap">
+      <div class="m-kicker">
+        <span class="eyebrow">What it does</span>
+        <h2>The tests you'd write if you had the time — and the ones you'd miss</h2>
+      </div>
+      <div class="m-feat">
+        <div class="m-card"><span class="k">Decompose</span><h3>Specs become cases</h3><p>Each specification is split into simple, comprehensive test cases — happy paths, edge cases, and failure modes.</p></div>
+        <div class="m-card"><span class="k">Ground</span><h3>Context-aware, not guessed</h3><p>Hybrid agentic retrieval pulls real context from your codebase, so tests match your actual interfaces and behavior.</p></div>
+        <div class="m-card"><span class="k">Generate</span><h3>Unit → integration → e2e</h3><p>Accurate test code across levels, in the frameworks you already run — ready for review and your suite.</p></div>
+        <div class="m-card"><span class="k">Coverage</span><h3>Toward 100%, faster</h3><p>Coverage gaps pile up faster than teams can close them. Casewright closes them at the pace features are defined.</p></div>
+      </div>
+    </div></section>
+
+    <section class="m-close m-band"><div class="mwrap">
+      <h2>Stop writing tests by hand. Start from the spec.</h2>
+      <div class="cta">
+        <a class="btn btn-primary" href="#app">Open app <span class="ar">&#8594;</span></a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+    </div></section>
+
+    <footer class="m-foot"><div class="mwrap">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <a class="brand" href="#home"><svg class="mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2"></rect><path d="M6 11.4 L9.4 14.8 L16 7.4" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>casewright</a>
+          <p>Turns specifications into working test code. Early development — building the retrieval pipeline first.</p>
+        </div>
+        <div class="fcol"><h4>Product</h4><a href="#home">Home</a><a href="#how">How it works</a><a href="#app">Open app</a></div>
+        <div class="fcol"><h4>Company</h4><a href="#home">About</a><a href="#home">Blog</a><a href="#home">Careers</a></div>
+        <div class="fcol"><h4>Legal</h4><a href="#home">Privacy</a><a href="#home">Terms</a><a href="#home">Security</a></div>
+      </div>
+      <div class="foot-base"><span>© 2026 casewright · placeholder name</span><span>grayscale · SF Pro + SF Mono</span></div>
+    </div></footer>
+  </main>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <main class="view view-how">
+    <header class="m-hero" style="padding-bottom:var(--s7)"><div class="mwrap">
+      <div class="eyebrow">How it works</div>
+      <h1 style="font-size:clamp(36px,6vw,64px);max-width:20ch">A retrieval pipeline that reads before it writes.</h1>
+      <p class="sub">Casewright doesn't guess at your code. It decomposes each specification, retrieves the exact
+        context every case needs, and only then generates the test — so the output reflects how your system
+        actually behaves.</p>
+    </div></header>
+
+    <section class="m-section" style="padding-top:0"><div class="mwrap">
+      <div class="m-steps">
+        <div class="m-step">
+          <div class="idx">STEP 01<b>Decompose</b></div>
+          <div>
+            <p>A specification rarely maps to a single test. Casewright breaks each one into simple, comprehensive
+              cases — the happy path, the boundaries, and the failure modes — so nothing quietly goes uncovered.</p>
+            <div class="io"><span>in: specification</span><span>out: case list</span></div>
+          </div>
+        </div>
+        <div class="m-step">
+          <div class="idx">STEP 02<b>Retrieve</b></div>
+          <div>
+            <p>For every case, a hybrid agentic RAG step gathers the exact code, types, and fixtures it needs.
+              This retrieval pipeline is the core of the system — it's what keeps generated tests grounded in your
+              real interfaces instead of plausible-looking fiction.</p>
+            <div class="io"><span>per case</span><span>&#8594; grounded context</span></div>
+          </div>
+        </div>
+        <div class="m-step">
+          <div class="idx">STEP 03<b>Generate</b></div>
+          <div>
+            <p>From that grounded context, Casewright writes accurate unit, integration, and end-to-end tests in
+              the frameworks you already use — ready for a human to review and drop into the suite.</p>
+            <div class="io"><span>out: unit</span><span>integration</span><span>e2e</span></div>
+          </div>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="m-section m-band"><div class="mwrap">
+      <div class="m-kicker"><span class="eyebrow">Hybrid agentic RAG</span><h2>Why retrieval, not just a prompt</h2></div>
+      <div class="m-two">
+        <div>
+          <p>A model asked to "write a test" with no context invents interfaces, guesses payloads, and asserts
+            against behavior that doesn't exist. The tests look right and fail on contact.</p>
+          <p>Casewright inverts that. Each case drives an agentic retrieval loop that pulls the relevant source,
+            type definitions, existing fixtures, and prior tests — combining semantic and keyword search — then
+            generates against what it found. Grounded in, grounded out.</p>
+        </div>
+        <div class="m-diagram">spec
+ └─ <b>decompose</b>
+     ├─ case: happy path
+     ├─ case: edge / boundary
+     └─ case: failure mode
+          │
+          ▼
+     <b>retrieve</b>  (hybrid: semantic + keyword)
+          ├─ source under test
+          ├─ types &amp; interfaces
+          ├─ fixtures / factories
+          └─ neighboring tests
+          │
+          ▼
+     <b>generate</b> → unit · integration · e2e</div>
+      </div>
+    </div></section>
+
+    <section class="m-section m-band"><div class="mwrap">
+      <div class="m-kicker"><span class="eyebrow">Targets</span><h2>Generates for the tools you already run</h2></div>
+      <div class="targets">
+        <span class="tchip">TypeScript</span><span class="tchip">Selenium</span>
+        <span class="tchip">Playwright <span class="soon">· soon</span></span><span class="tchip">Vitest <span class="soon">· soon</span></span>
+        <span class="tchip">Jira <span class="soon">· soon</span></span><span class="tchip">GitHub <span class="soon">· soon</span></span>
+      </div>
+    </div></section>
+
+    <section class="m-section m-band"><div class="mwrap">
+      <div class="m-trust">
+        <div class="lab">Safety by default</div>
+        <div>
+          <h2>Generated code is untrusted — we treat it that way</h2>
+          <p>Test code generated from specifications can be shaped by untrusted text pulled from a retrieved
+            corpus. Casewright never runs it for you behind the scenes: every generated test is meant for human
+            review and executes in a sandbox, never straight into a developer machine or CI pipeline.</p>
+          <div class="chk"><span><b>&#10003;</b> Human review in the loop</span><span><b>&#10003;</b> Sandboxed execution</span><span><b>&#10003;</b> No silent side effects</span></div>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="m-close m-band"><div class="mwrap">
+      <h2>See it turn a spec into tests.</h2>
+      <div class="cta"><a class="btn btn-primary" href="#app">Open app <span class="ar">&#8594;</span></a><a class="btn btn-ghost" href="#home">Back to overview</a></div>
+    </div></section>
+
+    <footer class="m-foot"><div class="mwrap">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <a class="brand" href="#home"><svg class="mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2"></rect><path d="M6 11.4 L9.4 14.8 L16 7.4" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>casewright</a>
+          <p>Turns specifications into working test code. Early development — building the retrieval pipeline first.</p>
+        </div>
+        <div class="fcol"><h4>Product</h4><a href="#home">Home</a><a href="#how">How it works</a><a href="#app">Open app</a></div>
+        <div class="fcol"><h4>Company</h4><a href="#home">About</a><a href="#home">Blog</a><a href="#home">Careers</a></div>
+        <div class="fcol"><h4>Legal</h4><a href="#home">Privacy</a><a href="#home">Terms</a><a href="#home">Security</a></div>
+      </div>
+      <div class="foot-base"><span>© 2026 casewright · placeholder name</span><span>grayscale · SF Pro + SF Mono</span></div>
+    </div></footer>
+  </main>
+
+  <!-- ===== PRODUCT (app) ===== -->
+  <div class="view view-app">
+    <div class="app" data-view="empty" data-nav="closed" id="appRoot">
+      <aside class="sidebar">
+        <div class="side-head">
+          <a class="brand" href="#home">
+            <svg class="mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2"></rect><path d="M6 11.4 L9.4 14.8 L16 7.4" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            casewright<span class="ph">wip</span>
+          </a>
+        </div>
+        <button class="newbtn" id="newBtn"><span class="plus">+</span> New test</button>
+        <nav class="recents" id="recents">
+          <div class="rgroup">Today</div>
+          <button class="ritem" data-title="GET /v1/clones/:id returns job status"><span class="st">&#10003;</span><span class="tt">GET /v1/clones/:id returns job status</span></button>
+          <button class="ritem" data-title="Auth rejects a missing bearer token"><span class="st">&#10007;</span><span class="tt">Auth rejects a missing bearer token</span></button>
+          <button class="ritem" data-title="Checkout applies SAVE10 discount"><span class="st">&#10003;</span><span class="tt">Checkout applies SAVE10 discount</span></button>
+          <div class="rgroup">Earlier</div>
+          <button class="ritem" data-title="Rate limit returns 429 after 60 req/min"><span class="st">&#10003;</span><span class="tt">Rate limit returns 429 after 60 req/min</span></button>
+          <button class="ritem" data-title="Signup sends a verification email"><span class="st">&#10003;</span><span class="tt">Signup sends a verification email</span></button>
+        </nav>
+        <div class="side-foot">
+          <a class="back" href="#home">&#8592; Back to site</a>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <button class="menu" id="menuBtn" aria-label="Toggle sidebar">&#9776;</button>
+          <div class="title" id="topTitle">New test</div>
+          <button class="ph-btn" title="Placeholder">Share</button>
+          <div class="ph-av" title="Placeholder account"></div>
+        </div>
+        <div class="stage">
+          <div class="empty" id="emptyView">
+            <h1>What do you want to <em>test?</em></h1>
+            <div class="composer">
+              <textarea id="heroInput" rows="1" placeholder="Describe a test — an endpoint, a feature, an edge case…" aria-label="Describe a test"></textarea>
+              <button class="send" id="heroSend" disabled aria-label="Generate test">&#8593;</button>
+            </div>
+            <div class="hint">enter to generate · shift + enter for a new line</div>
+            <div class="examples" id="examples">
+              <button class="ex">POST /v1/clones creates a clone job</button>
+              <button class="ex">Reject a request with no url</button>
+              <button class="ex">Cover an expired-token auth path</button>
+            </div>
+          </div>
+          <div class="work" id="workView">
+            <div class="work-body">
+              <div class="panel" id="panel">
+                <div class="panel-head">
+                  <div class="tabs">
+                    <button class="tab active" data-tab="code" id="tabCode">Code <span class="ph-file mono" id="fileName">clones.test.ts</span></button>
+                    <button class="tab" data-tab="output" id="tabOutput" hidden>Output <span class="badge" id="outBadge"></span></button>
+                  </div>
+                  <div class="head-right">
+                    <button class="icobtn" id="copyBtn" title="Copy code">&#8853;</button>
+                    <button class="runbtn" id="runBtn"><span class="tri">&#9654;</span> Run</button>
+                  </div>
+                </div>
+                <div class="panel-body">
+                  <div class="genning" id="genning" hidden><span class="dot"></span> Generating tests…</div>
+                  <div class="pane show" id="paneCode"><div class="codearea"><div class="gutter" id="gutter" aria-hidden="true"></div><pre class="code" id="codeEl"></pre></div></div>
+                  <div class="pane" id="paneOutput">
+                    <div class="out-empty" id="outEmpty"><span class="big">&#9654;</span> Run the test to see output here.</div>
+                    <div class="outwrap" id="outWrap" style="display:none"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="dock">
+              <div class="composer">
+                <textarea id="dockInput" rows="1" placeholder="Refine this test, or describe another…" aria-label="Refine or add a test"></textarea>
+                <button class="send" id="dockSend" disabled aria-label="Generate test">&#8593;</button>
+              </div>
+              <div class="hint2">casewright can be wrong — generated tests are for review, run in a sandbox</div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <div class="backdrop" id="backdrop"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  /* ---------------- routing ---------------- */
+  var site = document.getElementById('site');
+  var ROUTES = { home: 1, how: 1, app: 1 };
+  function go(route) {
+    if (!ROUTES[route]) route = 'home';
+    site.dataset.route = route;
+    document.body.classList.toggle('route-app', route === 'app');
+    document.querySelectorAll('.mnav-links a').forEach(function (a) { a.classList.toggle('active', a.dataset.nav === route); });
+    if (route === 'app') { setTimeout(function () { var h = document.getElementById('heroInput'); if (h && appView() === 'empty') h.focus(); }, 60); }
+    else { window.scrollTo(0, 0); }
+  }
+  window.addEventListener('hashchange', function () { go(location.hash.slice(1)); });
+
+  /* ---------------- app logic ---------------- */
+  var app = document.getElementById('appRoot');
+  function appView() { return app.dataset.view; }
+
+  var CODE = [
+    ['cmt', '// generated from: "{PROMPT}"\n'],
+    ['kw','import'],['',' { test, expect } '],['kw','from'],['str',' "casewright/runtime"'],['',';\n'],
+    ['kw','import'],['',' { client } '],['kw','from'],['str',' "./support/api"'],['',';\n\n'],
+    ['kw','test'],['','('],['str','"POST /v1/clones creates a clone job"'],['',', '],['kw','async'],['',' () => {\n'],
+    ['','  '],['kw','const'],['',' res = '],['kw','await'],['',' client.post('],['str','"/v1/clones"'],['',', {\n'],
+    ['','    url: '],['str','"https://example.com/"'],['',',\n'],
+    ['','    options: { mode: '],['str','"single"'],['',', styling: '],['str','"tailwind"'],['',', framework: '],['str','"next"'],['',' },\n'],
+    ['','  });\n\n'],
+    ['','  expect(res.status).toBe('],['str','201'],['',');\n'],
+    ['','  expect(res.body.jobId).toEqual(expect.any(String));\n'],
+    ['','  expect(res.body.status).toBe('],['str','"queued"'],['',');\n'],
+    ['','});\n\n'],
+    ['kw','test'],['','('],['str','"rejects a request with no url"'],['',', '],['kw','async'],['',' () => {\n'],
+    ['','  '],['kw','const'],['',' res = '],['kw','await'],['',' client.post('],['str','"/v1/clones"'],['',', {});\n'],
+    ['','  expect(res.status).toBe('],['str','400'],['',');\n'],
+    ['','});\n']
+  ];
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function renderCode(prompt) {
+    var html = '', plain = '';
+    CODE.forEach(function (t) { var txt = t[1].replace('{PROMPT}', prompt || 'a specific test'); plain += txt;
+      html += t[0] ? '<span class="'+t[0]+'">'+esc(txt)+'</span>' : esc(txt); });
+    document.getElementById('codeEl').innerHTML = html;
+    var lines = plain.replace(/\n$/, '').split('\n').length, g = '';
+    for (var i = 1; i <= lines; i++) g += i + '\n';
+    document.getElementById('gutter').textContent = g;
+  }
+  var OUTPUT =
+    '<div class="outline"><span class="head">$ casewright run clones.test.ts</span>\n\n' +
+    '<span class="ok">&#10003;</span>  POST /v1/clones creates a clone job        <span class="muted">312 ms</span>\n' +
+    '<span class="ok">&#10003;</span>  returns a queued status                    <span class="muted">88 ms</span>\n' +
+    '<span class="no">&#10007;</span>  rejects a request with no url              <span class="muted">4 ms</span>\n' +
+    '   <span class="muted">AssertionError: expected 400, received 500</span>\n' +
+    '     <span class="muted">at clones.test.ts:18:22</span>\n</div>' +
+    '<div class="runmeta"><span>2 passed</span><span class="sep">·</span><span>1 failed</span><span class="sep">·</span><span class="muted">1.204 s</span></div>';
+
+  var emptyView = document.getElementById('emptyView');
+  var heroInput = document.getElementById('heroInput'), heroSend = document.getElementById('heroSend');
+  var dockInput = document.getElementById('dockInput'), dockSend = document.getElementById('dockSend');
+  var panel = document.getElementById('panel'), genning = document.getElementById('genning');
+  var topTitle = document.getElementById('topTitle'), runBtn = document.getElementById('runBtn');
+  var tabOutput = document.getElementById('tabOutput'), outBadge = document.getElementById('outBadge');
+  var outEmpty = document.getElementById('outEmpty'), outWrap = document.getElementById('outWrap');
+
+  function wire(input, send, submit) {
+    function sync() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 200) + 'px'; send.disabled = input.value.trim() === ''; }
+    input.addEventListener('input', sync);
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (input.value.trim()) submit(input.value.trim()); } });
+    send.addEventListener('click', function () { if (input.value.trim()) submit(input.value.trim()); });
+  }
+  function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  function addRecent(title) {
+    document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
+    var recents = document.getElementById('recents');
+    var btn = document.createElement('button');
+    btn.className = 'ritem active'; btn.dataset.title = title;
+    btn.innerHTML = '<span class="st">&#183;</span><span class="tt">' + esc(trunc(title, 40)) + '</span>';
+    btn.addEventListener('click', function () { loadTest(title); });
+    var firstGroup = recents.querySelector('.rgroup');
+    recents.insertBefore(btn, firstGroup.nextSibling);
+  }
+  function codeOnly() {
+    document.getElementById('tabCode').classList.add('active');
+    tabOutput.classList.remove('active'); tabOutput.hidden = true; outBadge.textContent = '';
+    document.getElementById('paneCode').classList.add('show'); document.getElementById('paneOutput').classList.remove('show');
+    outEmpty.style.display = 'flex'; outWrap.style.display = 'none'; outWrap.innerHTML = '';
+  }
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('active', t.dataset.tab === name); });
+    document.getElementById('paneCode').classList.toggle('show', name === 'code');
+    document.getElementById('paneOutput').classList.toggle('show', name === 'output');
+  }
+  function generate(prompt) {
+    app.dataset.view = 'work';
+    topTitle.innerHTML = '<b>' + esc(trunc(prompt, 60)) + '</b>';
+    document.getElementById('fileName').textContent = 'clones.test.ts';
+    codeOnly();
+    genning.hidden = false;
+    panel.classList.remove('enter'); void panel.offsetWidth; panel.classList.add('enter');
+    setTimeout(function () { renderCode(prompt); genning.hidden = true; }, 650);
+  }
+  function fromHero(text) {
+    emptyView.classList.add('leaving');
+    setTimeout(function () {
+      addRecent(text); generate(text); emptyView.classList.remove('leaving');
+      heroInput.value = ''; heroSend.disabled = true; heroInput.style.height = 'auto'; dockInput.focus();
+    }, 200);
+  }
+  function fromDock(text) { addRecent(text); generate(text); dockInput.value = ''; dockSend.disabled = true; dockInput.style.height = 'auto'; }
+  function loadTest(title) { document.querySelectorAll('.ritem').forEach(function (r) { r.classList.toggle('active', r.dataset.title === title); }); generate(title); }
+
+  runBtn.addEventListener('click', function () {
+    runBtn.disabled = true; var prev = runBtn.innerHTML;
+    runBtn.innerHTML = '<span class="running"><span class="dot"></span></span> Running…';
+    tabOutput.hidden = false; switchTab('output');
+    outEmpty.style.display = 'none'; outWrap.style.display = 'block';
+    outWrap.innerHTML = '<div class="running"><span class="dot"></span> running clones.test.ts…</div>';
+    setTimeout(function () { outWrap.innerHTML = OUTPUT; outBadge.textContent = '2/3'; runBtn.disabled = false; runBtn.innerHTML = prev; }, 1100);
+  });
+  document.getElementById('tabCode').addEventListener('click', function () { switchTab('code'); });
+  tabOutput.addEventListener('click', function () { if (!tabOutput.hidden) switchTab('output'); });
+  document.getElementById('copyBtn').addEventListener('click', function () {
+    if (navigator.clipboard) navigator.clipboard.writeText(document.getElementById('codeEl').textContent);
+    var b = this, o = b.innerHTML; b.innerHTML = '&#10003;'; setTimeout(function () { b.innerHTML = o; }, 1200);
+  });
+  document.getElementById('newBtn').addEventListener('click', function () {
+    app.dataset.view = 'empty'; app.dataset.nav = 'closed';
+    document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
+    topTitle.textContent = 'New test'; heroInput.value = ''; heroSend.disabled = true; heroInput.focus();
+  });
+  document.getElementById('examples').addEventListener('click', function (e) { if (e.target.classList.contains('ex')) fromHero(e.target.textContent.trim()); });
+  document.querySelectorAll('#recents .ritem').forEach(function (r) { r.addEventListener('click', function () { loadTest(r.dataset.title); }); });
+  document.getElementById('menuBtn').addEventListener('click', function () { app.dataset.nav = app.dataset.nav === 'open' ? 'closed' : 'open'; });
+  document.getElementById('backdrop').addEventListener('click', function () { app.dataset.nav = 'closed'; });
+
+  wire(heroInput, heroSend, fromHero);
+  wire(dockInput, dockSend, fromDock);
+
+  go(location.hash.slice(1) || 'home');
+})();
+</script>

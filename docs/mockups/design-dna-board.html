@@ -1,0 +1,483 @@
+<style>
+  :root {
+    /* warm near-black, laddered by opacity (Lightfield's move) — no hue, no accent */
+    --ink-base: 27, 28, 25;
+    --paper: #f6f5f3;       /* warm off-white ground */
+    --surface: #ffffff;     /* cards, panels */
+    --sunken: #eeece7;      /* code wells, insets */
+    --ink-solid: #1b1c19;   /* full-strength ink — solid fills, buttons */
+    --ink: rgba(var(--ink-base), 0.90);
+    --ink-2: rgba(var(--ink-base), 0.60);
+    --ink-3: rgba(var(--ink-base), 0.42);
+    --line: rgba(var(--ink-base), 0.12);
+    --line-2: rgba(var(--ink-base), 0.22);
+
+    --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Code", Consolas, "Liberation Mono", monospace;
+
+    --t-eyebrow: 12px;
+    --t-micro: 13px;
+    --t-body: 15px;
+    --t-lead: 19px;
+    --t-h3: 21px;
+    --t-h2: 28px;
+    --t-display: 40px;
+
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
+    --s6: 32px; --s7: 48px; --s8: 64px; --s9: 96px; --s10: 128px;
+
+    --radius: 2px;   /* one radius, everywhere */
+
+    --maxw: 1080px;
+    color-scheme: light;   /* single theme, committed */
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--t-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv01";
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 clamp(20px, 5vw, 48px); }
+
+  /* ---- shared type utilities ---- */
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: var(--t-eyebrow); font-weight: 500;
+    letter-spacing: 0.10em; text-transform: uppercase; color: var(--ink-3);
+  }
+
+  h1, h2, h3, p { margin: 0; text-wrap: pretty; }
+  h2 { font-size: var(--t-h2); font-weight: 500; letter-spacing: -0.015em; text-wrap: balance; }
+  h3 { font-size: var(--t-h3); font-weight: 500; letter-spacing: -0.01em; }
+
+  /* ---- top ruler bar ---- */
+  .rail {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: var(--s4);
+    padding: 10px clamp(20px, 5vw, 48px);
+    background: color-mix(in srgb, var(--paper) 86%, transparent);
+    backdrop-filter: saturate(1.2) blur(8px);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono); font-size: var(--t-eyebrow);
+    color: var(--ink-3); letter-spacing: 0.04em;
+  }
+  .rail b { color: var(--ink); font-weight: 500; }
+  .rail .spacer { flex: 1; }
+
+  /* ---- masthead ---- */
+  .masthead { padding: clamp(56px, 11vw, 128px) 0 var(--s9); position: relative; }
+  .coords {
+    display: flex; gap: var(--s5); flex-wrap: wrap;
+    font-family: var(--font-mono); font-size: var(--t-eyebrow);
+    color: var(--ink-3); letter-spacing: 0.06em; margin-bottom: var(--s6);
+  }
+  .coords span { display: inline-flex; gap: 8px; }
+  .coords span::before { content: ""; width: 7px; height: 7px; margin-top: 4px;
+    border: 1px solid var(--line-2); border-radius: 50%; }
+  .display {
+    font-size: clamp(40px, 7.5vw, 76px); font-weight: 400; line-height: 1.02;
+    letter-spacing: -0.03em; text-wrap: balance; max-width: 15ch;
+  }
+  .display em { font-style: normal; color: var(--ink-3); }
+  .lede { margin-top: var(--s6); font-size: var(--t-lead); line-height: 1.55; color: var(--ink-2); max-width: 60ch; }
+  .lede b { color: var(--ink); font-weight: 500; }
+
+  .measure {
+    margin-top: var(--s8); height: 26px; border-top: 1px solid var(--line-2);
+    background-image: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 40px);
+    position: relative;
+  }
+  .measure::after {
+    content: "0 —————————————————————————————————————— 1080";
+    position: absolute; top: 6px; left: 0;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em;
+    color: var(--ink-3); white-space: nowrap; overflow: hidden; max-width: 100%;
+  }
+
+  /* ---- section scaffold ---- */
+  section { padding: var(--s9) 0; border-top: 1px solid var(--line); }
+  .sec-head {
+    display: grid; grid-template-columns: 180px 1fr; gap: var(--s6);
+    align-items: baseline; margin-bottom: var(--s7);
+  }
+  .sec-head .label { display: flex; flex-direction: column; gap: 6px; }
+  .sec-head .count { font-family: var(--font-mono); font-size: var(--t-eyebrow);
+    color: var(--ink-3); letter-spacing: 0.06em; }
+  .sec-head p { color: var(--ink-2); max-width: 54ch; }
+  @media (max-width: 720px) { .sec-head { grid-template-columns: 1fr; gap: var(--s3); } }
+
+  /* ---- swatches ---- */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1px;
+    background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .sw { background: var(--surface); padding: var(--s4); display: flex; flex-direction: column; gap: var(--s5); }
+  .sw .chip { height: 64px; border-radius: var(--radius); border: 1px solid var(--line); }
+  .sw .meta { display: flex; flex-direction: column; gap: 3px; }
+  .sw .role { font-size: var(--t-micro); font-weight: 500; }
+  .sw .hex { font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.04em; }
+  .sw .use { font-size: 12px; color: var(--ink-3); line-height: 1.35; }
+
+  /* ---- type specimens ---- */
+  .type-list { display: flex; flex-direction: column; }
+  .spec-row {
+    display: grid; grid-template-columns: 200px 1fr; gap: var(--s6);
+    padding: var(--s5) 0; border-top: 1px solid var(--line); align-items: baseline;
+  }
+  .spec-row:first-child { border-top: 0; }
+  .spec-row .ann { font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3);
+    letter-spacing: 0.03em; line-height: 1.6; }
+  .spec-row .ann b { color: var(--ink-2); font-weight: 500; }
+  @media (max-width: 720px) { .spec-row { grid-template-columns: 1fr; gap: var(--s2); } }
+  .para-specimen { max-width: 65ch; color: var(--ink-2); font-size: var(--t-body); line-height: 1.6; }
+  .para-specimen b { color: var(--ink); font-weight: 500; }
+
+  /* ---- primitives ---- */
+  .prims { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--s5); }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: var(--s5); display: flex; flex-direction: column; gap: var(--s4);
+  }
+  .card .cap { font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3);
+    letter-spacing: 0.06em; text-transform: uppercase; }
+  .row { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+
+  .btn {
+    font-family: var(--font-sans); font-size: var(--t-micro); font-weight: 500;
+    padding: 9px 16px; border-radius: var(--radius); cursor: pointer;
+    border: 1px solid transparent; transition: background .15s, border-color .15s, color .15s;
+  }
+  /* the one strong element in a colorless system: solid ink */
+  .btn-primary { background: var(--ink-solid); color: var(--paper); }
+  .btn-primary:hover { background: #33342f; }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line-2); }
+  .btn-ghost:hover { border-color: var(--ink); }
+  .btn:focus-visible { outline: 2px solid var(--ink-solid); outline-offset: 2px; }
+
+  /* quiet monochrome state chips — pass/fail carried by the symbol, never color */
+  .chip-tag {
+    display: inline-flex; align-items: baseline; gap: 8px;
+    font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.03em;
+    padding: 5px 11px; border-radius: var(--radius);
+    border: 1px solid var(--line-2); color: var(--ink-2); background: transparent;
+  }
+  .chip-tag .g { font-weight: 500; font-size: 13px; color: var(--ink); }
+  .chip-tag .num { font-variant-numeric: tabular-nums; color: var(--ink); }
+
+  .field {
+    font-family: var(--font-sans); font-size: var(--t-micro); color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius);
+    padding: 9px 12px; width: 100%;
+  }
+  .field:focus-visible { outline: 2px solid var(--ink-solid); outline-offset: 1px; border-color: transparent; }
+  .field::placeholder { color: var(--ink-3); }
+
+  .radii-demo { display: flex; gap: var(--s4); align-items: flex-end; }
+  .radii-demo div { width: 44px; height: 44px; background: var(--sunken); border: 1px solid var(--line-2); }
+  .radii-demo figcaption { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3);
+    text-align: center; margin-top: 6px; }
+  .radii-demo figure { margin: 0; }
+
+  .space-scale { display: flex; flex-direction: column; gap: var(--s2); }
+  .space-scale .bar { display: flex; align-items: center; gap: var(--s3); }
+  .space-scale .bar i { height: 8px; background: var(--ink-solid); border-radius: 1px; display: block; }
+  .space-scale .bar span { font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3); min-width: 42px; }
+
+  .noshadow-note { font-size: 12px; color: var(--ink-3); line-height: 1.4; }
+
+  /* ---- mapping cards ---- */
+  .maps { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s5); }
+  @media (max-width: 820px) { .maps { grid-template-columns: 1fr; } }
+  .map { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: var(--s6); display: flex; flex-direction: column; gap: var(--s3); }
+  .map .src { font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-3); }
+  .map h3 { font-size: var(--t-lead); }
+  .map ul { margin: var(--s2) 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s3); }
+  .map li { font-size: var(--t-micro); color: var(--ink-2); line-height: 1.45; padding-left: 18px; position: relative; }
+  .map li::before { content: "+"; position: absolute; left: 0; color: var(--ink-3); font-family: var(--font-mono); }
+  .map.ours { border-color: var(--ink); }
+  .map.ours li::before { content: "\2713"; color: var(--ink); }
+
+  /* ---- signature pattern preview ---- */
+  .panel { border: 1px solid var(--line-2); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .panel-bar { display: flex; align-items: center; gap: 10px; padding: 10px var(--s4);
+    border-bottom: 1px solid var(--line); font-family: var(--font-mono); font-size: var(--t-eyebrow);
+    color: var(--ink-3); letter-spacing: 0.04em; }
+  .panel-bar .flag { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-2); }
+  .split { display: grid; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 720px) { .split { grid-template-columns: 1fr; } }
+  .split > div { padding: var(--s5); overflow-x: auto; }
+  .split > div:first-child { border-right: 1px solid var(--line); }
+  @media (max-width: 720px) { .split > div:first-child { border-right: 0; border-bottom: 1px solid var(--line); } }
+  pre { margin: 0; font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.65;
+    color: var(--ink); white-space: pre; }
+  .cmt { color: var(--ink-3); }
+  .kw { color: var(--ink); font-weight: 500; }
+  .str { color: var(--ink-2); }
+  .arrow-tag { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono);
+    font-size: var(--t-eyebrow); color: var(--ink-3); letter-spacing: 0.06em; margin: var(--s4) 0; }
+  .arrow-tag .tick { color: var(--ink-2); }
+
+  footer { border-top: 1px solid var(--line); padding: var(--s7) 0 var(--s9);
+    font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3);
+    letter-spacing: 0.04em; display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--s3); }
+
+  /* load-in, gated */
+  .fade { opacity: 0; transform: translateY(8px); animation: rise .6s cubic-bezier(.2,.7,.2,1) forwards; }
+  .fade:nth-child(2) { animation-delay: .05s; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .fade { animation: none; opacity: 1; transform: none; } }
+</style>
+
+<div class="rail">
+  <b>DESIGN&#8202;·&#8202;DNA</b>
+  <span>v0.3 · grayscale</span>
+  <span class="spacer"></span>
+  <span>spec&#160;&#8594;&#160;test-code&nbsp;· synthesized from meter + lightfield</span>
+</div>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="coords fade">
+      <span>REF-01&#160;&#160;meter.com/command</span>
+      <span>REF-02&#160;&#160;lightfield.app</span>
+      <span>LEAN&#160;&#160;austere / editorial</span>
+      <span>PALETTE&#160;&#160;grayscale</span>
+    </div>
+    <h1 class="display fade">The look of software that <em>has to be right.</em></h1>
+    <p class="lede fade">A quiet, technical system for a tool that turns specifications into working test
+      code. Warm off-white paper, never-black ink, hairline rules instead of shadows, and a
+      <b>sans + monospace</b> pairing — because the mono isn't a style here, it's the product's material.
+      <b>No color at all</b>: hierarchy is carried by space, weight, and rule; pass and fail by symbol.</p>
+    <div class="measure" aria-hidden="true"></div>
+  </header>
+
+  <!-- COLOR -->
+  <section>
+    <div class="sec-head">
+      <div class="label">
+        <span class="eyebrow">Palette</span>
+        <span class="count">7 tokens&#160;/&#160;0 hue</span>
+      </div>
+      <p>White, a warm off-white ground, and a warm near-black laddered by opacity. No accent, no tint —
+        the warmth is the only "color," and it's what keeps grayscale from feeling cheap.</p>
+    </div>
+
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:var(--paper)"></div><div class="meta"><span class="role">Paper</span><span class="hex">#F6F5F3</span></div><span class="use">Page ground — warm off-white</span></div>
+      <div class="sw"><div class="chip" style="background:var(--surface)"></div><div class="meta"><span class="role">Surface</span><span class="hex">#FFFFFF</span></div><span class="use">Cards, panels</span></div>
+      <div class="sw"><div class="chip" style="background:var(--sunken)"></div><div class="meta"><span class="role">Sunken</span><span class="hex">#EEECE7</span></div><span class="use">Code wells, insets</span></div>
+      <div class="sw"><div class="chip" style="background:var(--ink-solid)"></div><div class="meta"><span class="role">Ink</span><span class="hex">#1B1C19</span></div><span class="use">Solid fills, primary button</span></div>
+      <div class="sw"><div class="chip" style="background:var(--ink-2)"></div><div class="meta"><span class="role">Ink&#8202;·&#8202;2</span><span class="hex">ink · 60%</span></div><span class="use">Secondary text</span></div>
+      <div class="sw"><div class="chip" style="background:var(--ink-3)"></div><div class="meta"><span class="role">Ink&#8202;·&#8202;3</span><span class="hex">ink · 42%</span></div><span class="use">Labels, captions</span></div>
+      <div class="sw"><div class="chip" style="background:var(--line-2)"></div><div class="meta"><span class="role">Hairline</span><span class="hex">ink · 12–22%</span></div><span class="use">Borders, rules, dividers</span></div>
+    </div>
+  </section>
+
+  <!-- TYPE -->
+  <section>
+    <div class="sec-head">
+      <div class="label">
+        <span class="eyebrow">Type</span>
+        <span class="count">2 families&#160;/&#160;2 weights</span>
+      </div>
+      <p>A neutral grotesque for reading (SF&#8202;Pro on this Mac — the actual meter face), a monospace for
+        labels, data and code. Weight is held to 400/500; with no color, hierarchy leans harder on size and space.</p>
+    </div>
+
+    <div class="type-list">
+      <div class="spec-row">
+        <div class="ann"><b>Eyebrow · mono</b><br>12px · 500 · +0.10em · upper</div>
+        <div class="eyebrow" style="font-size:var(--t-eyebrow)">AI TEST GENERATION</div>
+      </div>
+      <div class="spec-row">
+        <div class="ann"><b>Display</b><br>clamp 40–76px · 400 · −0.03em</div>
+        <div class="display" style="font-size:clamp(32px,5vw,52px)">Specs in, tests out.</div>
+      </div>
+      <div class="spec-row">
+        <div class="ann"><b>Heading · H2</b><br>28px · 500 · −0.015em</div>
+        <h2>Coverage toward 100%, without the manual grind</h2>
+      </div>
+      <div class="spec-row">
+        <div class="ann"><b>Lead</b><br>19px · 400 · 1.55</div>
+        <p style="font-size:var(--t-lead);color:var(--ink-2);max-width:52ch">Decompose a specification into
+          comprehensive cases, retrieve the right context for each, generate the test.</p>
+      </div>
+      <div class="spec-row">
+        <div class="ann"><b>Body</b><br>15px · 400 · 1.6 · ~65ch</div>
+        <p class="para-specimen">The application takes in application and feature specifications and writes the
+          test code for them. It breaks each one into <b>simple, comprehensive test cases</b>, gathers the right
+          context, and generates accurate unit, integration, and end-to-end tests from that context.</p>
+      </div>
+      <div class="spec-row">
+        <div class="ann"><b>Mono · data</b><br>13px · tabular-nums</div>
+        <div class="mono" style="font-size:var(--t-micro);color:var(--ink-2)">tests&#160;248&#160;·&#160;passing&#160;241&#160;·&#160;coverage&#160;94.3%&#160;·&#160;t&#160;12.408s</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRIMITIVES -->
+  <section>
+    <div class="sec-head">
+      <div class="label">
+        <span class="eyebrow">Primitives</span>
+        <span class="count">flat&#160;/&#160;hairline&#160;/&#160;2px radius</span>
+      </div>
+      <p>Depth is drawn, not lit — and never colored. Everything sits on the page with a 1px hairline and a
+        small radius; the one strong element is a <b>solid-ink</b> button. No shadow, no tint, no gradient.</p>
+    </div>
+
+    <div class="prims">
+      <div class="card">
+        <span class="cap">Buttons</span>
+        <div class="row">
+          <button class="btn btn-primary">Start free</button>
+          <button class="btn btn-ghost">Read the docs</button>
+        </div>
+        <span class="noshadow-note">Solid ink for the primary action; hairline ghost for the secondary.</span>
+      </div>
+
+      <div class="card">
+        <span class="cap">State</span>
+        <div class="row">
+          <span class="chip-tag">agentic RAG</span>
+          <span class="chip-tag"><span class="g">&#10003;</span><span class="num">241</span> passing</span>
+          <span class="chip-tag"><span class="g">&#10007;</span><span class="num">7</span> failing</span>
+        </div>
+        <span class="noshadow-note">Pass / fail read from the ✓ and ✕ symbols alone — no green, no red.</span>
+      </div>
+
+      <div class="card">
+        <span class="cap">Input</span>
+        <input class="field" placeholder="Paste a feature spec or Jira ticket…" aria-label="Spec input demo">
+        <span class="noshadow-note">Ink focus ring; no colored highlight.</span>
+      </div>
+
+      <div class="card">
+        <span class="cap">Radius</span>
+        <div class="radii-demo">
+          <figure><div style="border-radius:2px"></div><figcaption>2px</figcaption></figure>
+        </div>
+        <span class="noshadow-note">One radius, everywhere. Nearly square — just enough to take the edge off.</span>
+      </div>
+
+      <div class="card">
+        <span class="cap">Spacing · 4px base</span>
+        <div class="space-scale">
+          <div class="bar"><i style="width:8px"></i><span>8</span></div>
+          <div class="bar"><i style="width:16px"></i><span>16</span></div>
+          <div class="bar"><i style="width:32px"></i><span>32</span></div>
+          <div class="bar"><i style="width:64px"></i><span>64</span></div>
+          <div class="bar"><i style="width:96px"></i><span>96</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="cap">Hairline card</span>
+        <p style="font-size:var(--t-micro);color:var(--ink-2);line-height:1.5">This card is the whole system in
+          miniature: warm surface, 1px line, 10px radius, ink laddered by opacity — and not one drop of color.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIGNATURE PATTERN -->
+  <section>
+    <div class="sec-head">
+      <div class="label">
+        <span class="eyebrow">Signature</span>
+        <span class="count">spec&#160;&#8594;&#160;test</span>
+      </div>
+      <p>The centerpiece the landing page is built around: a specification on the left, the generated test on
+        the right. Mono type earns its place — this is the product doing its job.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-bar"><span class="flag"></span>SPEC&#160;&#8594;&#160;TEST&#160;&#160;·&#160;&#160;checkout.spec &#8594; checkout.test.ts</div>
+      <div class="split">
+        <div>
+<pre><span class="cmt"># spec — feature</span>
+Given an empty cart
+When the user adds a
+  $40 item and applies
+  code <span class="str">"SAVE10"</span>
+Then the order total
+  is <span class="str">$36.00</span>
+And the discount line
+  reads <span class="str">"-$4.00"</span></pre>
+        </div>
+        <div>
+<pre><span class="kw">test</span>(<span class="str">"applies SAVE10 to a $40 cart"</span>, <span class="kw">async</span> () =&gt; {
+  <span class="kw">const</span> cart = <span class="kw">await</span> newCart();
+  <span class="kw">await</span> cart.add(item({ price: <span class="str">40</span> }));
+  <span class="kw">await</span> cart.apply(<span class="str">"SAVE10"</span>);
+
+  expect(cart.discount).toBe(<span class="str">-4.00</span>);
+  expect(cart.total).toBe(<span class="str">36.00</span>);
+});
+<span class="cmt">// ✓ unit · integration · e2e</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="arrow-tag"><span class="tick">&#9679;</span> generated · human-reviewed · run in a sandbox</div>
+  </section>
+
+  <!-- MAPPING -->
+  <section>
+    <div class="sec-head">
+      <div class="label">
+        <span class="eyebrow">Lineage</span>
+        <span class="count">what came from where</span>
+      </div>
+      <p>The system is a synthesis, tuned to the austere extreme. Most of the restraint is Lightfield; the
+        typographic confidence is Meter; the spec&#8594;test signature and the symbol-only pass/fail are ours.</p>
+    </div>
+
+    <div class="maps">
+      <div class="map">
+        <span class="src">from · Lightfield</span>
+        <h3>Restraint</h3>
+        <ul>
+          <li>Warm off-white paper, ink by opacity</li>
+          <li>Weights 400 / 500 only</li>
+          <li>No shadows — hairlines &amp; small radii</li>
+          <li>Mono labels, generous space</li>
+        </ul>
+      </div>
+      <div class="map">
+        <span class="src">from · Meter</span>
+        <h3>Confidence</h3>
+        <ul>
+          <li>A real display moment in the hero</li>
+          <li>Tabular, instrument-like detailing</li>
+          <li>A tight, deliberate type scale</li>
+        </ul>
+      </div>
+      <div class="map ours">
+        <span class="src">ours · the product</span>
+        <h3>Material</h3>
+        <ul>
+          <li>Spec&#160;&#8594;&#160;test as the hero object</li>
+          <li>Pass / fail as symbols, not color</li>
+          <li>Mono = the thing being made</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>DESIGN-DNA · v0.3</span>
+    <span>next → landing page on these tokens</span>
+    <span>grayscale · SF Pro + SF Mono</span>
+  </footer>
+
+</div>
