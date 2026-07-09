@@ -21,6 +21,7 @@ class PipelineState(TypedDict, total=False):
     graded: list[Document]                       # CRAG-kept (relevant) docs
     confidence: str                              # "high" | "low" (drives the correction loop)
     attempts: int                                # correction-loop counter
-    endpoints: list[str]                         # "METHOD path" ids -> eval-facing output
+    endpoints: list[str]                         # "METHOD path" ids retrieved (the test targets)
+    dependency_endpoints: list[str]              # upstream producers from the graph (prerequisites)
     dependencies: str                            # rendered call-order deps for the endpoints
     tests: str                                   # first-pass generated test code

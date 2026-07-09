@@ -25,6 +25,7 @@ from rag import GRAPH_JSON
 DEFAULT_GRAPH_PATH = GRAPH_JSON
 
 DOWNSTREAM_RENDER_CAP = 10  # dependents can fan out widely; keep prompts bounded
+UPSTREAM_CLOSURE_CAP = 10   # prerequisite producers to add to the retrieved set (upstream is shallow)
 
 
 class DependencyGraph:
@@ -99,6 +100,29 @@ class DependencyGraph:
                         nxt.append(consumer)
             frontier = nxt
         return out
+
+    def upstream_closure(self, endpoint_ids, limit=UPSTREAM_CLOSURE_CAP):
+        """Deduped prerequisite producers (transitively) required by the given
+        endpoints, excluding the inputs themselves, ordered producers-first.
+
+        This is the call-order prerequisite set to surface *alongside* the
+        retrieved target endpoints (e.g. GET /organizations, which supplies the
+        organizationId a target needs). upstream() already ends at the endpoint
+        itself, so we drop the inputs and dedupe across them. Capped at `limit`.
+        """
+        if isinstance(endpoint_ids, str):
+            endpoint_ids = [endpoint_ids]
+        targets = set(endpoint_ids)
+        out, seen = [], set()
+        for eid in endpoint_ids:
+            if not self.has(eid):
+                continue
+            for nid in self.upstream(eid):        # root->leaf, ends at eid
+                if nid in targets or nid in seen:
+                    continue
+                seen.add(nid)
+                out.append(nid)
+        return out[:limit]
 
     def _needs(self, endpoint_id):
         """[(param, producer_or_None, is_orphan)] for endpoint_id's path params."""

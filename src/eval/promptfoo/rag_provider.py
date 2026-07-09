@@ -2,8 +2,12 @@
 
 promptfoo calls ``call_api(prompt, options, context)``; ``prompt`` is the
 rendered question (expected_endpoints never reach here). We run the pipeline and
-return the retrieved endpoint ids as a list of "METHOD path" strings — exactly
-what score_retrieval.parse_retrieved consumes, so no scorer changes are needed.
+return, as a list of "METHOD path" strings, the union of the retrieved target
+endpoints and the upstream prerequisites the dependency graph adds — because the
+ground truth is target + closure, and the whole context (targets + call-order
+producers) is what reaches the generation LLM. The two stay separate in pipeline
+state; we combine them only here, at the eval boundary. This is exactly what
+score_retrieval.parse_retrieved consumes, so no scorer changes are needed.
 
 Bootstraps ``src/`` onto sys.path so ``rag`` imports; the pipeline then resolves
 the Chroma store and dependency-graph paths via rag/__init__.py (anchored on the
@@ -34,7 +38,11 @@ def _get_pipeline():
 def call_api(prompt, options, context):
     question = prompt if isinstance(prompt, str) else str(prompt)
     state = _get_pipeline().run(question)
-    return {"output": state.get("endpoints", [])}
+    endpoints = state.get("endpoints", []) or []
+    deps = state.get("dependency_endpoints", []) or []
+    # Retrieved targets first, then prerequisite producers the graph adds (deduped).
+    combined = endpoints + [d for d in deps if d not in endpoints]
+    return {"output": combined}
 
 
 if __name__ == "__main__":

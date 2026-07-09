@@ -200,6 +200,15 @@ class AutoTestLLM:
             return ""
         return self.depgraph.render(endpoints, direction=direction)
 
+    def dependency_endpoints(self, endpoints):
+        """Upstream producer endpoints (prerequisites) for the retrieved endpoints,
+        from the dependency graph. Kept separate from the retrieved `endpoints`
+        (we don't pretend they were retrieved) but added to the eval-scored set,
+        since the ground truth is target + closure. Empty if no graph."""
+        if self.depgraph is None or not endpoints:
+            return []
+        return self.depgraph.upstream_closure(endpoints)
+
 
     @staticmethod
     def _operation(doc):
@@ -262,7 +271,11 @@ class AutoTestLLM:
             return {"endpoints": self._endpoint_ids(docs)}
 
         def dependencies_node(state):
-            return {"dependencies": self.endpoint_dependencies(state.get("endpoints", []))}
+            eps = state.get("endpoints", [])
+            return {
+                "dependencies": self.endpoint_dependencies(eps),        # rendered text for generation
+                "dependency_endpoints": self.dependency_endpoints(eps),  # prerequisite ids for the eval set
+            }
 
         def generate_node(state):
             docs = state.get("graded") or state.get("ranked") or []
@@ -280,8 +293,8 @@ class AutoTestLLM:
         builder.add_node("grade", grade_node)
         builder.add_node("rewrite", rewrite_node)
         builder.add_node("finalize", finalize_node)
+        builder.add_node("dependencies", dependencies_node)   # runs in eval + full mode
         if not self.eval_mode:
-            builder.add_node("dependencies", dependencies_node)
             builder.add_node("generate", generate_node)
 
         builder.add_edge(START, "generate_queries")
@@ -291,10 +304,10 @@ class AutoTestLLM:
         builder.add_conditional_edges("grade", decide,
                                       {"rewrite": "rewrite", "finalize": "finalize"})
         builder.add_edge("rewrite", "generate_queries")   # re-fuse on the rewritten query
+        builder.add_edge("finalize", "dependencies")      # add graph prerequisites to the set
         if self.eval_mode:
-            builder.add_edge("finalize", END)             # eval: stop at retrieved endpoints
+            builder.add_edge("dependencies", END)         # eval: stop after targets + prerequisites
         else:
-            builder.add_edge("finalize", "dependencies")
             builder.add_edge("dependencies", "generate")
             builder.add_edge("generate", END)
 
@@ -314,8 +327,11 @@ if __name__ == "__main__":
     state = AutoTestLLM().run(question)
 
     print(f"=== Query: {question}")
-    print("\n=== Retrieved endpoints ===")
+    print("\n=== Retrieved endpoints (targets) ===")
     for endpoint in state.get("endpoints", []):
+        print(" ", endpoint)
+    print("\n=== Dependency endpoints (prerequisites added from the graph) ===")
+    for endpoint in state.get("dependency_endpoints", []):
         print(" ", endpoint)
     print("\n=== Call-order dependencies ===")
     print(state.get("dependencies") or "(none)")
