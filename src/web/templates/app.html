@@ -6,20 +6,16 @@
 {% block body %}
 <div class="app" data-view="empty" data-nav="closed" id="appRoot">
   <aside class="sidebar">
-    <div class="side-head">{{ ui.brand('/', 'wip') }}</div>
+    <div class="side-head">{{ ui.brand('/') }}</div>
     <button class="newbtn" id="newBtn"><span class="plus">+</span> New test</button>
     <div class="side-links">
       <a href="/runs">Runs</a>
       <a href="/coverage">Coverage</a>
     </div>
-    {# Test library (G3). Items are stubbed; the model (versions, source spec,
-       last-run, tags) is TBD with the backend — slots are built, not filled. #}
+    {# Test library (G3). Real generated tests are added here as they're created;
+       the item model (versions, source spec, last-run, tags) is TBD with the backend. #}
     <nav class="recents" id="recents">
-      <div class="rgroup">Today</div>
-      <button class="ritem" data-title="GET /organizations returns the org list"><span class="st">&#10003;</span><span class="tt">GET /organizations returns the org list</span></button>
-      <button class="ritem" data-title="Auth rejects a missing API key"><span class="st">&#10007;</span><span class="tt">Auth rejects a missing API key</span></button>
-      <div class="rgroup">Earlier</div>
-      <button class="ritem" data-title="Rate limit returns 429 after burst"><span class="st">&#10003;</span><span class="tt">Rate limit returns 429 after burst</span><span class="flake-tag">flaky</span></button>
+      <div class="lib-empty" id="libEmpty">No tests yet.<br>Describe one below to get started.</div>
     </nav>
     <div class="side-foot"><a class="back" href="/">&#8592; Back to site</a></div>
   </aside>
@@ -29,9 +25,11 @@
       <button class="menu" id="menuBtn" aria-label="Toggle sidebar">&#9776;</button>
       <div class="title" id="topTitle">New test</div>
       <button class="ctxbtn" id="ctxBtn" aria-haspopup="true" aria-expanded="false">Devices: <b id="ctxLabel">none</b> <span class="car">&#9662;</span></button>
-      <a class="icobtn" href="/settings" title="Settings" aria-label="Settings">&#9881;</a>
-      <button class="ph-btn" title="Placeholder">Share</button>
-      <div class="ph-av" title="Placeholder account"></div>
+      <a class="icobtn settings-btn" href="/settings" title="Settings" aria-label="Settings">&#9881;</a>
+      <div class="userbox">
+        <span class="who" title="{{ request.state.user.username }}">{{ request.state.user.username }}</span>
+        <form method="post" action="/logout" style="display:inline"><button class="logout" type="submit">Log out</button></form>
+      </div>
     </div>
     <div class="ctxmenu" id="ctxMenu"></div>
     <div class="mentionmenu" id="mentionMenu"></div>
@@ -45,11 +43,6 @@
           <button class="send" id="heroSend" disabled aria-label="Generate test">&#8593;</button>
         </div>
         <div class="hint">enter to generate · shift + enter for a new line</div>
-        <div class="examples" id="examples">
-          <button class="ex">GET /organizations returns the org list</button>
-          <button class="ex">Reject a request with no API key</button>
-          <button class="ex">Cover the 404 path for an unknown network</button>
-        </div>
       </div>
 
       <div class="work" id="workView">

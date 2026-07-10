@@ -23,14 +23,14 @@
   var workspace = document.getElementById('workspace');
   var topTitle = document.getElementById('topTitle');
 
-  /* ---------------- verified networks (from Settings, via localStorage) ---------------- */
-  var LS_KEY = 'cw.networks';
-  function loadNetworks() {
-    try { var v = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); return Array.isArray(v) ? v : []; }
-    catch (e) { return []; }
-  }
-  var NETWORKS = loadNetworks();      // [{id, name, orgName, devices:[{name,serial,mac,model,clientId,networkId}]}]
+  /* ---------------- verified networks (from the server-side store) ---------------- */
+  var NETWORKS = [];                   // [{id, name, orgName, devices:[{name,serial,mac,model,clientId,networkId}]}]
   var activeNetworkId = null;
+  function loadNetworks() {
+    fetch('/api/networks').then(function (r) { return r.json(); }).then(function (d) {
+      NETWORKS = Array.isArray(d) ? d : []; refreshCtx();
+    }).catch(function () { /* leave empty; picker shows the "add in Settings" state */ });
+  }
 
   function allNetworks() { return NETWORKS; }
   function activeNetwork() {
@@ -73,10 +73,17 @@
   function addRecent(title) {
     document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
     var recents = document.getElementById('recents');
+    var empty = document.getElementById('libEmpty');
+    if (empty) empty.remove();
+    var firstGroup = recents.querySelector('.rgroup');
+    if (!firstGroup) {
+      firstGroup = document.createElement('div');
+      firstGroup.className = 'rgroup'; firstGroup.textContent = 'Today';
+      recents.insertBefore(firstGroup, recents.firstChild);
+    }
     var btn = document.createElement('button');
     btn.className = 'ritem active'; btn.dataset.title = title;
     btn.innerHTML = '<span class="st">&#183;</span><span class="tt">' + esc(trunc(title, 40)) + '</span>';
-    var firstGroup = recents.querySelector('.rgroup');
     recents.insertBefore(btn, firstGroup.nextSibling);
   }
 
@@ -131,17 +138,15 @@
     if (!e.target.closest('.export-wrap')) { var m = workspace.querySelector('#exportMenu'); if (m) m.classList.remove('open'); }
   });
 
-  /* ---------------- sidebar / new test / examples ---------------- */
+  /* ---------------- sidebar / new test ---------------- */
   document.getElementById('newBtn').addEventListener('click', function () {
     app.dataset.view = 'empty'; app.dataset.nav = 'closed';
     document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
     topTitle.textContent = 'New test'; clearComposer(heroInput); heroSend.disabled = true; heroInput.focus();
   });
-  document.getElementById('examples').addEventListener('click', function (e) {
-    if (e.target.classList.contains('ex')) fromHero(e.target.textContent.trim(), []);
-  });
-  document.querySelectorAll('#recents .ritem').forEach(function (r) {
-    r.addEventListener('click', function () { loadTest(r.dataset.title); });
+  // library items are added at runtime — delegate so clicks work as they appear
+  document.getElementById('recents').addEventListener('click', function (e) {
+    var item = e.target.closest('.ritem'); if (item) loadTest(item.dataset.title);
   });
   document.getElementById('menuBtn').addEventListener('click', function () {
     app.dataset.nav = app.dataset.nav === 'open' ? 'closed' : 'open';
@@ -281,4 +286,5 @@
   wireComposer(heroInput, heroSend, fromHero);
   wireComposer(dockInput, dockSend, fromDock);
   refreshCtx();
+  loadNetworks();   // fetch verified networks from the server, then refresh the picker
 })();

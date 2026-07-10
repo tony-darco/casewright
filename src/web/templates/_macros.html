@@ -5,6 +5,6 @@
 <svg class="mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="2"></rect><path d="M6 11.4 L9.4 14.8 L16 7.4" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
 {% endmacro %}
 
-{% macro brand(href='/', badge=None) %}
-<a class="brand" href="{{ href }}">{{ mark() }}{{ WORDMARK }}{% if badge %}<span class="ph">{{ badge }}</span>{% endif %}</a>
+{% macro brand(href='/') %}
+<a class="brand" href="{{ href }}">{{ mark() }}{{ WORDMARK }}</a>
 {% endmacro %}

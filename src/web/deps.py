@@ -15,7 +15,6 @@ from web import config
 templates = Jinja2Templates(directory=str(config.TEMPLATES_DIR))
 # Expose the wordmark to every template without threading it through each route.
 templates.env.globals["WORDMARK"] = config.WORDMARK
-templates.env.globals["WORDMARK_BADGE"] = config.WORDMARK_BADGE
 
 
 _pipeline = None          # cached AutoTestLLM once built
