@@ -1,0 +1,32 @@
+{# Meraki API key state (write-only, per-user). Never renders the plaintext key —
+   only a masked hint. Stored encrypted at rest, scoped to the logged-in user. #}
+<div id="apikeyStatus" class="apikey-status">
+  {% if configured %}
+    <div class="apikey-row">
+      <span class="apikey-state"><span class="ok">&#10003;</span> Configured</span>
+      <span class="apikey-mask mono">{{ masked }}</span>
+      <button class="btn btn-ghost" id="apikeyReplaceBtn" type="button">Replace</button>
+      <button class="btn btn-ghost" type="button"
+              hx-post="/settings/meraki/apikey/remove" hx-target="#apikeyStatus" hx-swap="outerHTML">Remove</button>
+    </div>
+    <form class="set-form small apikey-form" id="apikeyForm" hidden
+          hx-post="/settings/meraki/apikey" hx-target="#apikeyStatus" hx-swap="outerHTML"
+          hx-disabled-elt="find button[type='submit']" hx-indicator="find .spinner">
+      <input class="set-input mono" type="password" name="apiKey" placeholder="Paste a new API key" autocomplete="off" aria-label="New Meraki API key">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <span class="spinner htmx-indicator" aria-hidden="true"></span>
+    </form>
+
+  {% else %}
+    <form class="set-form small apikey-form" id="apikeyForm"
+          hx-post="/settings/meraki/apikey" hx-target="#apikeyStatus" hx-swap="outerHTML"
+          hx-disabled-elt="find button[type='submit']" hx-indicator="find .spinner">
+      <input class="set-input mono" type="password" name="apiKey" placeholder="Paste your Meraki API key" autocomplete="off" aria-label="Meraki API key">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <span class="spinner htmx-indicator" aria-hidden="true"></span>
+    </form>
+  {% endif %}
+
+  {% if error %}<div class="set-error" style="display:block"><b>&#10007;</b> {{ error }}</div>{% endif %}
+  {% if identity %}<div class="apikey-note">verified · calling as <b>{{ identity }}</b></div>{% endif %}
+</div>

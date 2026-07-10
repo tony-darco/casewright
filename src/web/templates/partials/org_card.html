@@ -20,6 +20,11 @@
       <button class="btn btn-ghost netcancel" type="button">Cancel</button>
     </form>
     <div class="set-error net-error" id="neterr-{{ org.id }}"></div>
-    <div class="net-list" id="netlist-{{ org.id }}"></div>
+    <div class="net-list" id="netlist-{{ org.id }}">
+      {% for net in org.networks or [] %}
+        {% set devices = net.devices %}{% set org_name = org.name %}
+        {% include "partials/net_card.html" %}
+      {% endfor %}
+    </div>
   </div>
 </div>

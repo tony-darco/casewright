@@ -7,10 +7,9 @@ raw Meraki JSON:
     network -> {id, orgId, name, url}
     device  -> {serial, name, model, mac, networkId, clientId}
 
-The API key comes from ``MERAKI_API_KEY``. When it is unset, ``configured()`` is
-False and callers render a "not configured" state — the UI stays demoable
-without credentials. Any API failure raises ``MerakiError`` with a
-human-readable message for the inline ``.set-error`` slot.
+This is a pure Meraki client: the caller passes the user's API key in (looked up
+from the per-user store). It has no knowledge of users or storage. Any API failure
+raises ``MerakiError`` with a human-readable message for the inline error slot.
 """
 
 from urllib.parse import urlparse
@@ -26,16 +25,13 @@ class MerakiError(Exception):
     """A verify/fetch failed; the message is safe to show inline."""
 
 
-def configured():
-    return bool(config.MERAKI_API_KEY)
-
-
-def _get(path):
-    if not configured():
-        raise MerakiError("Meraki integration is not configured (set MERAKI_API_KEY).")
+def _get(path, key):
+    # The key is never logged and never returned to the client.
+    if not key:
+        raise MerakiError("Meraki integration is not configured (add an API key in Settings).")
     url = f"{config.MERAKI_BASE_URL}{path}"
     headers = {
-        "Authorization": f"Bearer {config.MERAKI_API_KEY}",
+        "X-Cisco-Meraki-API-Key": key,
         "Accept": "application/json",
     }
     try:
@@ -93,16 +89,25 @@ def _map_device(data):
     }
 
 
-def verify_org(org_id):
-    return _map_org(_get(f"/organizations/{org_id}"))
+def verify_org(org_id, key):
+    return _map_org(_get(f"/organizations/{org_id}", key))
 
 
-def verify_network(network_id):
-    return _map_network(_get(f"/networks/{network_id}"))
+def verify_network(network_id, key):
+    return _map_network(_get(f"/networks/{network_id}", key))
 
 
-def list_devices(network_id):
-    data = _get(f"/networks/{network_id}/devices")
+def list_devices(network_id, key):
+    data = _get(f"/networks/{network_id}/devices", key)
     if not isinstance(data, list):
         raise MerakiError("Unexpected device list from Meraki.")
     return [_map_device(d) for d in data if isinstance(d, dict)]
+
+
+def validate_key(key):
+    """Confirm a key works before we store it, via the canonical "who am I"
+    endpoint. Returns a display name for the calling identity, or raises."""
+    data = _get("/administered/identities/me", key)
+    if not isinstance(data, dict):
+        raise MerakiError("Unexpected response validating the API key.")
+    return data.get("name") or data.get("email") or "your account"
