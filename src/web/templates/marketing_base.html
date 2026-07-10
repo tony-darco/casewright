@@ -10,8 +10,11 @@
       <a href="/how" class="{{ 'active' if active == 'how' }}">How it works</a>
     </div>
     <div class="mnav-right">
-      <a class="mnav-login" href="/login">Log in</a>
+      {% if user %}
       <a class="btn btn-primary" href="/app">Open app <span class="ar">&#8594;</span></a>
+      {% else %}
+      <a class="mnav-login" href="/login">Log in</a>
+      {% endif %}
     </div>
   </div>
 </nav>
