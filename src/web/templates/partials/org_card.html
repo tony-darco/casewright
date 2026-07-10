@@ -1,0 +1,25 @@
+{# Verified Meraki organization (handoff G10). Networks nest under it as children. #}
+<div class="org-card" data-org-id="{{ org.id }}">
+  <div class="org-row">
+    <span class="org-id">#{{ org.id }}</span>
+    <a class="org-name" href="{{ org.url }}" target="_blank" rel="noopener">{{ org.name }}</a>
+    <button class="addnet-btn" title="Add network" aria-label="Add network to {{ org.name }}">+</button>
+    <span class="stat-pill"><span class="g">{% if org.status == 'operational' %}&#10003;{% else %}&#10007;{% endif %}</span>{{ org.status }}</span>
+  </div>
+  <div class="org-meta"><span>region <b>{{ org.region }}</b></span><span>host <b>{{ org.hostname }}</b></span></div>
+
+  <div class="nested">
+    <div class="nested-head"><h3>Networks</h3><span class="dev-count" data-netcount></span></div>
+    <form class="set-form small net-form" data-org-id="{{ org.id }}" hidden
+          hx-post="/settings/meraki/orgs/{{ org.id }}/networks"
+          hx-target="#netlist-{{ org.id }}" hx-swap="beforeend"
+          hx-disabled-elt="find button[type='submit']">
+      <input type="hidden" name="orgName" value="{{ org.name }}">
+      <input class="set-input mono net-input" name="networkId" placeholder="Network ID — e.g. L_549236_1" aria-label="Network ID" autocomplete="off">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <button class="btn btn-ghost netcancel" type="button">Cancel</button>
+    </form>
+    <div class="set-error net-error" id="neterr-{{ org.id }}"></div>
+    <div class="net-list" id="netlist-{{ org.id }}"></div>
+  </div>
+</div>

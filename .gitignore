@@ -9,3 +9,4 @@ data/chroma
 .env
 __pycache__
 *.egg-info
+.preview*

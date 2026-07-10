@@ -1,0 +1,13 @@
+{# Verified Meraki network (handoff G10), nested under its org. Carries its device
+   set as JSON so the app page can offer them for @-mentions (via localStorage). #}
+<div class="net-card" data-net-id="{{ net.id }}"
+     data-network='{{ {"id": net.id, "name": net.name, "orgName": org_name, "devices": devices} | tojson }}'>
+  <div class="org-row">
+    <span class="org-id">#{{ net.id }}</span>
+    <a class="org-name" href="{{ net.url }}" target="_blank" rel="noopener">{{ net.name }}</a>
+  </div>
+  <div class="nested">
+    <div class="nested-head"><h3>Devices</h3><span class="dev-count">{{ devices|length }} found</span></div>
+    {% include "partials/dev_table.html" %}
+  </div>
+</div>

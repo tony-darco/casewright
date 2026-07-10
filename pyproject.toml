@@ -17,6 +17,11 @@ dependencies = [
     "requests>=2.31,<3",
     "pyyaml>=6,<7",
     "python-dotenv>=1,<2",
+    # web serving layer (frontend/UX per docs/FRONTEND_HANDOFF.md)
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "jinja2>=3.1,<4",
+    "python-multipart>=0.0.9,<1",
 ]
 
 [project.optional-dependencies]

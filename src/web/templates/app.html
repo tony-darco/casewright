@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}{{ WORDMARK }} — app{% endblock %}
+{% block body_class %}route-app{% endblock %}
+
+{% block body %}
+<div class="app" data-view="empty" data-nav="closed" id="appRoot">
+  <aside class="sidebar">
+    <div class="side-head">{{ ui.brand('/', 'wip') }}</div>
+    <button class="newbtn" id="newBtn"><span class="plus">+</span> New test</button>
+    <div class="side-links">
+      <a href="/runs">Runs</a>
+      <a href="/coverage">Coverage</a>
+    </div>
+    {# Test library (G3). Items are stubbed; the model (versions, source spec,
+       last-run, tags) is TBD with the backend — slots are built, not filled. #}
+    <nav class="recents" id="recents">
+      <div class="rgroup">Today</div>
+      <button class="ritem" data-title="GET /organizations returns the org list"><span class="st">&#10003;</span><span class="tt">GET /organizations returns the org list</span></button>
+      <button class="ritem" data-title="Auth rejects a missing API key"><span class="st">&#10007;</span><span class="tt">Auth rejects a missing API key</span></button>
+      <div class="rgroup">Earlier</div>
+      <button class="ritem" data-title="Rate limit returns 429 after burst"><span class="st">&#10003;</span><span class="tt">Rate limit returns 429 after burst</span><span class="flake-tag">flaky</span></button>
+    </nav>
+    <div class="side-foot"><a class="back" href="/">&#8592; Back to site</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="menu" id="menuBtn" aria-label="Toggle sidebar">&#9776;</button>
+      <div class="title" id="topTitle">New test</div>
+      <button class="ctxbtn" id="ctxBtn" aria-haspopup="true" aria-expanded="false">Devices: <b id="ctxLabel">none</b> <span class="car">&#9662;</span></button>
+      <a class="icobtn" href="/settings" title="Settings" aria-label="Settings">&#9881;</a>
+      <button class="ph-btn" title="Placeholder">Share</button>
+      <div class="ph-av" title="Placeholder account"></div>
+    </div>
+    <div class="ctxmenu" id="ctxMenu"></div>
+    <div class="mentionmenu" id="mentionMenu"></div>
+
+    <div class="stage">
+      <div class="empty" id="emptyView">
+        <h1>What do you want to <em>test?</em></h1>
+        <div class="composer">
+          <div class="cetext" id="heroInput" contenteditable="true" role="textbox" aria-multiline="true"
+            data-placeholder="Describe a test — an endpoint, a feature, an edge case… (type @ to reference a device)" aria-label="Describe a test"></div>
+          <button class="send" id="heroSend" disabled aria-label="Generate test">&#8593;</button>
+        </div>
+        <div class="hint">enter to generate · shift + enter for a new line</div>
+        <div class="examples" id="examples">
+          <button class="ex">GET /organizations returns the org list</button>
+          <button class="ex">Reject a request with no API key</button>
+          <button class="ex">Cover the 404 path for an unknown network</button>
+        </div>
+      </div>
+
+      <div class="work" id="workView">
+        <div class="work-body">
+          {# HTMX swap target — POST /app/generate replaces this with partials/workspace.html #}
+          <div id="workspace"></div>
+        </div>
+        <div class="dock">
+          <div class="composer">
+            <div class="cetext" id="dockInput" contenteditable="true" role="textbox" aria-multiline="true"
+              data-placeholder="Refine this test, or describe another… (type @ to reference a device)" aria-label="Refine or add a test"></div>
+            <button class="send" id="dockSend" disabled aria-label="Generate test">&#8593;</button>
+          </div>
+          <div class="hint2">{{ WORDMARK }} can be wrong — generated tests are for review, run in a sandbox</div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div class="backdrop" id="backdrop"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/app.js') }}"></script>
+{% endblock %}

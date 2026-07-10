@@ -1,0 +1,60 @@
+{# Generated-test workspace panel (handoff G2). Returned by POST /app/generate and
+   swapped into #workspace. States: error (pipeline unavailable), empty (nothing
+   generated), or code. The Run button is present but INERT (§0.2); the Output tab
+   is a placeholder — no execution. #}
+<div class="panel enter" data-file="{{ file_name|default('generated.test.ts', true) }}">
+  <div class="panel-head">
+    <div class="tabs">
+      <button class="tab active" data-tab="code" type="button">Code
+        {% if file_name %}<span class="ph-file mono">{{ file_name }}</span>{% endif %}</button>
+      <button class="tab" data-tab="output" type="button">Output</button>
+    </div>
+    <div class="head-right">
+      {% if not error and not empty %}
+      <div class="export-wrap">
+        <button class="icobtn" id="exportBtn" title="Export" aria-haspopup="true" aria-expanded="false">&#8615;</button>
+        <div class="export-menu" id="exportMenu">
+          <button type="button" data-export="copy">Copy code <span class="d">to clipboard</span></button>
+          <button type="button" data-export="download">Download file <span class="d">{{ file_name }}</span></button>
+        </div>
+      </div>
+      {% endif %}
+      <button class="runbtn" disabled aria-disabled="true" title="Running isn't available yet">
+        <span class="tri">&#9654;</span> Run</button>
+      <span class="run-note">execution isn't available yet</span>
+    </div>
+  </div>
+
+  <div class="panel-body">
+    <div class="pane show" id="paneCode">
+      {% if error %}
+        <div class="gen-error">
+          <b>&#10007; Generation unavailable.</b>
+          <div class="muted">{{ error }}</div>
+          <div class="muted">The generator needs Ollama running and <span class="mono">AUTOTEST_DATA_DIR</span> set. Everything else in the app still works.</div>
+        </div>
+      {% elif empty %}
+        <div class="gen-error">
+          <b>No tests generated.</b>
+          <div class="muted">The retriever didn't find enough context to ground a test for “{{ prompt }}”. Try a more specific prompt or an endpoint reference.</div>
+        </div>
+      {% else %}
+        <div class="codearea">
+          <div class="gutter" aria-hidden="true">{{ gutter }}</div>
+          <pre class="code" id="codeEl">{{ code }}</pre>
+        </div>
+      {% endif %}
+    </div>
+    <div class="pane" id="paneOutput">
+      <div class="out-empty"><span class="big">&#9654;</span> Test execution isn't available yet.</div>
+    </div>
+  </div>
+
+  {% if endpoints %}
+  <div class="run-note" style="padding: 7px 16px; border-top: 1px solid var(--line);">
+    grounded in&#160;·&#160;{% for e in endpoints %}{{ e }}{% if not loop.last %} · {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{# TODO: contract TBD — the generated-code payload shape (file name derivation,
+   metadata, multi-file output) is co-decided with the backend as it evolves. #}

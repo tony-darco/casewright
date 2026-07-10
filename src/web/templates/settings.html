@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}{{ WORDMARK }} — settings{% endblock %}
+
+{% block body %}
+<div class="set-shell" id="setShell">
+  <div class="set-top">
+    <div class="set-top-left">
+      <button class="set-burger" id="setBurger" aria-label="Open settings menu">&#9776;</button>
+      {{ ui.brand('/app', 'wip') }}
+    </div>
+    <a class="back2" href="/app">&#8592; Back to app</a>
+  </div>
+
+  <div class="set-body" id="setBody" data-cat="meraki">
+    <nav class="set-nav">
+      <div class="set-nav-title">Settings</div>
+      <button class="set-nav-item active" data-cat="meraki">Meraki integration</button>
+      <button class="set-nav-item" data-cat="language">Output language</button>
+      <button class="set-nav-item" data-cat="general">General</button>
+    </nav>
+
+    <div class="set-content">
+      <!-- Meraki integration (G10) -->
+      <section class="set-cat cat-meraki">
+        <div class="set-head">
+          <span class="eyebrow">Meraki integration</span>
+          <h1>Organizations &amp; networks</h1>
+          <p>Connect Meraki organizations and networks. Once a network is verified, its devices become
+            available to reference in a test with <span class="mono">@device-name</span>.</p>
+        </div>
+        {% if not meraki_configured %}
+        <div class="set-error" style="display:block; margin-bottom: var(--s4)">
+          <b>&#9888;</b> Meraki isn't configured — set <span class="mono">MERAKI_API_KEY</span> to verify against the live Dashboard API.
+          You can still explore the flow; verification will report the missing key.
+        </div>
+        {% endif %}
+        <div class="set-section-head">
+          <h2>Organizations</h2>
+          <p>Add an organization ID to verify it against the Meraki Dashboard API.</p>
+        </div>
+        <form class="set-form" id="orgForm"
+              hx-post="/settings/meraki/orgs" hx-target="#orgList" hx-swap="beforeend"
+              hx-disabled-elt="#orgSaveBtn">
+          <input class="set-input mono" id="orgInput" name="orgId" placeholder="Organization ID — e.g. 549236" aria-label="Organization ID" autocomplete="off">
+          <button class="btn btn-primary" id="orgSaveBtn" type="submit">Save</button>
+        </form>
+        <div class="set-hint">validates via <b>GET /organizations/{organizationId}</b></div>
+        <div class="set-error" id="orgError"></div>
+        <div class="org-list" id="orgList"></div>
+      </section>
+
+      <!-- Output language (G12) -->
+      <section class="set-cat cat-language">
+        <div class="set-head">
+          <span class="eyebrow">Output language</span>
+          <h1>Preferred test language</h1>
+          <p>New tests are generated in this language and framework by default. You can still override it
+            on any individual test.</p>
+        </div>
+        <div class="lang-list" id="langList">
+          <button class="lang-opt active" data-lang="ts"><span class="lcol"><span class="ln">TypeScript</span><span class="lf">Vitest / Jest</span></span><span class="chk">&#10003;</span></button>
+          <button class="lang-opt" data-lang="py"><span class="lcol"><span class="ln">Python</span><span class="lf">pytest</span></span><span class="chk">&#10003;</span></button>
+          <button class="lang-opt" data-lang="java"><span class="lcol"><span class="ln">Java</span><span class="lf">JUnit 5</span></span><span class="chk">&#10003;</span></button>
+          <button class="lang-opt" data-lang="go"><span class="lcol"><span class="ln">Go</span><span class="lf">testing</span></span><span class="chk">&#10003;</span></button>
+          <button class="lang-opt" data-lang="csharp"><span class="lcol"><span class="ln">C#</span><span class="lf">xUnit</span></span><span class="chk">&#10003;</span></button>
+        </div>
+        <div class="gen-note">Selection is saved locally; persistence follows the backend preferences contract (TBD).</div>
+      </section>
+
+      <!-- General (G12) -->
+      <section class="set-cat cat-general">
+        <div class="set-head">
+          <span class="eyebrow">General</span>
+          <h1>Workspace</h1>
+          <p>Basic preferences for this workspace.</p>
+        </div>
+        <div class="gen-field">
+          <label for="wsName">Display name</label>
+          <input class="set-input" id="wsName" value="Your workspace" aria-label="Workspace display name">
+        </div>
+        <div class="gen-note">More options will land here as the product grows.</div>
+      </section>
+    </div>
+  </div>
+  <div class="set-backdrop" id="setBackdrop"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/settings.js') }}"></script>
+{% endblock %}

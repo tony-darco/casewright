@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}{{ WORDMARK }} — coverage{% endblock %}
+
+{% block body %}
+<div class="set-shell">
+  <div class="set-top">
+    <div class="set-top-left">{{ ui.brand('/app', 'wip') }}</div>
+    <a class="back2" href="/app">&#8592; Back to app</a>
+  </div>
+
+  <div class="shell-wrap">
+    <div class="shell-head">
+      <span class="eyebrow">Dashboard</span>
+      <h1>Spec coverage</h1>
+      <p>A traceability matrix mapping <b>specifications → generated tests → status</b>, so you can see
+        which specs are covered and proven. {{ WORDMARK|capitalize }} is spec-first — this is where that pays off.
+        Data model TBD with the backend.</p>
+    </div>
+
+    <div class="matrix">
+      <div class="matrix-row matrix-head">
+        <span>Specification</span><span>Generated tests</span><span>Status</span>
+      </div>
+      <div class="matrix-row">
+        <span class="mono" style="color:var(--ink-3)">—</span>
+        <span class="mono" style="color:var(--ink-3)">—</span>
+        <span class="st">—</span>
+      </div>
+    </div>
+    <div class="empty-state" style="min-height:160px">
+      <span class="big">▦</span> No specs mapped yet.<br>Add specs and generate tests to populate the matrix.
+    </div>
+  </div>
+</div>
+{% endblock %}

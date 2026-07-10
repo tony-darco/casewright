@@ -1,0 +1,99 @@
+{% extends "marketing_base.html" %}
+{% block title %}How {{ WORDMARK }} works{% endblock %}
+
+{% block main %}
+<main>
+  <header class="m-hero" style="padding-bottom:var(--s7)"><div class="mwrap">
+    <div class="eyebrow">How it works</div>
+    <h1 style="font-size:clamp(36px,6vw,64px);max-width:20ch">A retrieval pipeline that reads before it writes.</h1>
+    <p class="sub">{{ WORDMARK|capitalize }} doesn't guess at your code. It decomposes each specification, retrieves the exact
+      context every case needs, and only then generates the test — so the output reflects how your system
+      actually behaves.</p>
+  </div></header>
+
+  <section class="m-section" style="padding-top:0"><div class="mwrap">
+    <div class="m-steps">
+      <div class="m-step">
+        <div class="idx">STEP 01<b>Decompose</b></div>
+        <div>
+          <p>A specification rarely maps to a single test. {{ WORDMARK|capitalize }} breaks each one into simple, comprehensive
+            cases — the happy path, the boundaries, and the failure modes — so nothing quietly goes uncovered.</p>
+          <div class="io"><span>in: specification</span><span>out: case list</span></div>
+        </div>
+      </div>
+      <div class="m-step">
+        <div class="idx">STEP 02<b>Retrieve</b></div>
+        <div>
+          <p>For every case, a hybrid agentic RAG step gathers the exact code, types, and fixtures it needs.
+            This retrieval pipeline is the core of the system — it's what keeps generated tests grounded in your
+            real interfaces instead of plausible-looking fiction.</p>
+          <div class="io"><span>per case</span><span>&#8594; grounded context</span></div>
+        </div>
+      </div>
+      <div class="m-step">
+        <div class="idx">STEP 03<b>Generate</b></div>
+        <div>
+          <p>From that grounded context, {{ WORDMARK|capitalize }} writes accurate unit, integration, and end-to-end tests in
+            the frameworks you already use — ready for a human to review and drop into the suite.</p>
+          <div class="io"><span>out: unit</span><span>integration</span><span>e2e</span></div>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="m-section m-band"><div class="mwrap">
+    <div class="m-kicker"><span class="eyebrow">Hybrid agentic RAG</span><h2>Why retrieval, not just a prompt</h2></div>
+    <div class="m-two">
+      <div>
+        <p>A model asked to "write a test" with no context invents interfaces, guesses payloads, and asserts
+          against behavior that doesn't exist. The tests look right and fail on contact.</p>
+        <p>{{ WORDMARK|capitalize }} inverts that. Each case drives an agentic retrieval loop that pulls the relevant source,
+          type definitions, existing fixtures, and prior tests — combining semantic and keyword search — then
+          generates against what it found. Grounded in, grounded out.</p>
+      </div>
+      <div class="m-diagram">spec
+ └─ <b>decompose</b>
+     ├─ case: happy path
+     ├─ case: edge / boundary
+     └─ case: failure mode
+          │
+          ▼
+     <b>retrieve</b>  (hybrid: semantic + keyword)
+          ├─ source under test
+          ├─ types &amp; interfaces
+          ├─ fixtures / factories
+          └─ neighboring tests
+          │
+          ▼
+     <b>generate</b> → unit · integration · e2e</div>
+    </div>
+  </div></section>
+
+  <section class="m-section m-band"><div class="mwrap">
+    <div class="m-kicker"><span class="eyebrow">Targets</span><h2>Generates for the tools you already run</h2></div>
+    <div class="targets">
+      <span class="tchip">TypeScript</span><span class="tchip">Selenium</span>
+      <span class="tchip">Playwright <span class="soon">· soon</span></span><span class="tchip">Vitest <span class="soon">· soon</span></span>
+      <span class="tchip">Jira <span class="soon">· soon</span></span><span class="tchip">GitHub <span class="soon">· soon</span></span>
+    </div>
+  </div></section>
+
+  <section class="m-section m-band"><div class="mwrap">
+    <div class="m-trust">
+      <div class="lab">Safety by default</div>
+      <div>
+        <h2>Generated code is untrusted — we treat it that way</h2>
+        <p>Test code generated from specifications can be shaped by untrusted text pulled from a retrieved
+          corpus. {{ WORDMARK|capitalize }} never runs it for you behind the scenes: every generated test is meant for human
+          review and executes in a sandbox, never straight into a developer machine or CI pipeline.</p>
+        <div class="chk"><span><b>&#10003;</b> Human review in the loop</span><span><b>&#10003;</b> Sandboxed execution</span><span><b>&#10003;</b> No silent side effects</span></div>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="m-close m-band"><div class="mwrap">
+    <h2>See it turn a spec into tests.</h2>
+    <div class="cta"><a class="btn btn-primary" href="/app">Open app <span class="ar">&#8594;</span></a><a class="btn btn-ghost" href="/">Back to overview</a></div>
+  </div></section>
+</main>
+{% endblock %}

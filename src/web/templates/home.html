@@ -1,0 +1,76 @@
+{% extends "marketing_base.html" %}
+{% block title %}{{ WORDMARK }} — specifications in, working tests out{% endblock %}
+
+{% block main %}
+<main>
+  <header class="m-hero"><div class="mwrap">
+    <div class="eyebrow fade">AI test generation&#160;·&#160;unit / integration / e2e</div>
+    <h1 class="fade d1">Specifications in.<br><em>Working tests out.</em></h1>
+    <p class="sub fade d2">{{ WORDMARK|capitalize }} turns application and feature specs into real test code. Describe what a
+      feature should do; it writes the <b>unit, integration, and end-to-end tests</b> that prove it — closing the
+      coverage gap without the manual grind.</p>
+    <div class="cta fade d2">
+      <a class="btn btn-primary" href="/app">Open app <span class="ar">&#8594;</span></a>
+      <a class="btn btn-ghost" href="/how">How it works</a>
+    </div>
+    <div class="note fade d3">Early access · the MVP generates tests from specifications</div>
+  </div></header>
+
+  <section class="m-section" style="padding-top:0"><div class="mwrap">
+    <div class="m-panel fade">
+      <div class="m-panelbar"><span class="flag"></span>SPEC&#160;&#8594;&#160;TEST<span class="rt">checkout.spec &#8594; checkout.test.ts</span></div>
+      <div class="m-split">
+        <div>
+          <div class="col-label">Specification · in</div>
+<pre><span class="cmt"># feature: cart discount</span>
+Given an empty cart
+When the user adds a $40 item
+  and applies code <span class="str">"SAVE10"</span>
+Then the order total is <span class="str">$36.00</span>
+And the discount line
+  reads <span class="str">"-$4.00"</span></pre>
+        </div>
+        <div>
+          <div class="col-label">Generated test · out</div>
+<pre><span class="kw">test</span>(<span class="str">"applies SAVE10 to a $40 cart"</span>, <span class="kw">async</span> () =&gt; {
+  <span class="kw">const</span> cart = <span class="kw">await</span> newCart();
+  <span class="kw">await</span> cart.add(item({ price: <span class="str">40</span> }));
+  <span class="kw">await</span> cart.apply(<span class="str">"SAVE10"</span>);
+
+  expect(cart.discount).toBe(<span class="str">-4.00</span>);
+  expect(cart.total).toBe(<span class="str">36.00</span>);
+});</pre>
+        </div>
+      </div>
+      <div class="m-results">
+        <span class="m"><span class="num">248</span> cases</span><span class="sep">·</span>
+        <span class="m"><span class="g">&#10003;</span><span class="num">241</span> passing</span>
+        <span class="m"><span class="g">&#10007;</span><span class="num">7</span> failing</span><span class="sep">·</span>
+        <span class="m"><span class="num">94.3%</span> coverage</span><span class="sep">·</span>
+        <span class="m"><span class="num">12.408s</span></span>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="m-section m-band"><div class="mwrap">
+    <div class="m-kicker">
+      <span class="eyebrow">What it does</span>
+      <h2>The tests you'd write if you had the time — and the ones you'd miss</h2>
+    </div>
+    <div class="m-feat">
+      <div class="m-card"><span class="k">Decompose</span><h3>Specs become cases</h3><p>Each specification is split into simple, comprehensive test cases — happy paths, edge cases, and failure modes.</p></div>
+      <div class="m-card"><span class="k">Ground</span><h3>Context-aware, not guessed</h3><p>Hybrid agentic retrieval pulls real context from your codebase, so tests match your actual interfaces and behavior.</p></div>
+      <div class="m-card"><span class="k">Generate</span><h3>Unit → integration → e2e</h3><p>Accurate test code across levels, in the frameworks you already run — ready for review and your suite.</p></div>
+      <div class="m-card"><span class="k">Coverage</span><h3>Toward 100%, faster</h3><p>Coverage gaps pile up faster than teams can close them. {{ WORDMARK|capitalize }} closes them at the pace features are defined.</p></div>
+    </div>
+  </div></section>
+
+  <section class="m-close m-band"><div class="mwrap">
+    <h2>Stop writing tests by hand. Start from the spec.</h2>
+    <div class="cta">
+      <a class="btn btn-primary" href="/app">Open app <span class="ar">&#8594;</span></a>
+      <a class="btn btn-ghost" href="/how">See how it works</a>
+    </div>
+  </div></section>
+</main>
+{% endblock %}

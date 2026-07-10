@@ -1,0 +1,15 @@
+{# Device table for a verified network (handoff G10): serial · name · model · mac.
+   Rendered inside net_card.html and also returned standalone by the devices route. #}
+{% if devices %}
+<div class="dev-table">
+  <div class="dev-head-row"><span>Name</span><span>Model</span><span>Serial</span><span>MAC</span></div>
+  {% for d in devices %}
+  <div class="dev-row" title="{{ d.serial }} · {{ d.model }} · {{ d.mac }}" data-client-id="{{ d.clientId }}">
+    <span class="dn">{{ d.name }}</span><span class="mono">{{ d.model }}</span>
+    <span class="mono">{{ d.serial }}</span><span class="mono">{{ d.mac }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="net-empty">No devices found in this network.</div>
+{% endif %}
