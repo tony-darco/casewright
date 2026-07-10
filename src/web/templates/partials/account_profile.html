@@ -1,0 +1,20 @@
+{# Profile form (name / username / email). HTMX-swapped in place on save. #}
+<div id="accountProfile" class="account-block">
+  <form class="auth-form account-form" hx-post="/account/profile" hx-target="#accountProfile" hx-swap="outerHTML">
+    <div class="auth-row">
+      <label>First name
+        <input class="set-input" type="text" name="first_name" value="{{ account.first_name|default('', true) }}" required autocomplete="given-name"></label>
+      <label>Last name
+        <input class="set-input" type="text" name="last_name" value="{{ account.last_name|default('', true) }}" required autocomplete="family-name"></label>
+    </div>
+    <label>Username
+      <input class="set-input" type="text" name="username" value="{{ account.username|default('', true) }}" required autocomplete="username"></label>
+    <label>Email
+      <input class="set-input" type="email" name="email" value="{{ account.email|default('', true) }}" required autocomplete="email"></label>
+    <div class="account-actions">
+      <button class="btn btn-primary" type="submit">Save changes</button>
+      {% if profile_msg %}<span class="account-msg"><b>&#10003;</b> {{ profile_msg }}</span>{% endif %}
+    </div>
+    {% if profile_error %}<div class="set-error" style="display:block"><b>&#10007;</b> {{ profile_error }}</div>{% endif %}
+  </form>
+</div>

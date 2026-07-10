@@ -22,6 +22,11 @@ dependencies = [
     "uvicorn[standard]>=0.30,<1",
     "jinja2>=3.1,<4",
     "python-multipart>=0.0.9,<1",
+    # auth: JWT sessions + password hashing
+    "pyjwt>=2.8,<3",
+    "bcrypt>=4.1,<5",
+    # encryption at rest for stored secrets (Meraki API key)
+    "cryptography>=42,<47",
 ]
 
 [project.optional-dependencies]
