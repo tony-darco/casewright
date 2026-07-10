@@ -55,11 +55,16 @@
   }
   var GENNING = '<div class="panel"><div class="panel-body"><div class="genning"><span class="dot"></span> Generating tests…</div></div></div>';
 
+  function setActive(item) {
+    document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
+    if (item) item.classList.add('active');
+  }
+
   function generate(text, devices) {
     app.dataset.view = 'work';
     topTitle.innerHTML = '<b>' + esc(trunc(text, 60)) + '</b>';
     workspace.innerHTML = GENNING;
-    var langEl = document.querySelector('.lang-opt.active');
+    var le = document.getElementById('libEmpty'); if (le) le.hidden = true;
     htmx.ajax('POST', '/app/generate', {
       target: '#workspace', swap: 'innerHTML',
       values: {
@@ -67,38 +72,30 @@
         devices: JSON.stringify(devices || []),
         language: localStorage.getItem('cw.language') || 'ts'
       }
+    }).then(function () {
+      // the saved test was prepended to #testList via an OOB swap — select it
+      setActive(document.querySelector('#testList .ritem'));
     });
-  }
-
-  function addRecent(title) {
-    document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
-    var recents = document.getElementById('recents');
-    var empty = document.getElementById('libEmpty');
-    if (empty) empty.remove();
-    var firstGroup = recents.querySelector('.rgroup');
-    if (!firstGroup) {
-      firstGroup = document.createElement('div');
-      firstGroup.className = 'rgroup'; firstGroup.textContent = 'Today';
-      recents.insertBefore(firstGroup, recents.firstChild);
-    }
-    var btn = document.createElement('button');
-    btn.className = 'ritem active'; btn.dataset.title = title;
-    btn.innerHTML = '<span class="st">&#183;</span><span class="tt">' + esc(trunc(title, 40)) + '</span>';
-    recents.insertBefore(btn, firstGroup.nextSibling);
   }
 
   function fromHero(text, devices) {
     emptyView.classList.add('leaving');
     setTimeout(function () {
-      addRecent(text); generate(text, devices); emptyView.classList.remove('leaving');
+      generate(text, devices); emptyView.classList.remove('leaving');
       clearComposer(heroInput); heroSend.disabled = true; dockInput.focus();
     }, 200);
   }
-  function fromDock(text, devices) { addRecent(text); generate(text, devices); clearComposer(dockInput); dockSend.disabled = true; }
+  function fromDock(text, devices) { generate(text, devices); clearComposer(dockInput); dockSend.disabled = true; }
 
-  function loadTest(title) {
-    document.querySelectorAll('.ritem').forEach(function (r) { r.classList.toggle('active', r.dataset.title === title); });
-    generate(title, []);
+  // Load a saved test back into the workspace (GET, not a re-generate).
+  function loadTest(item) {
+    if (!item) return;
+    var tt = item.querySelector('.tt');
+    setActive(item);
+    app.dataset.view = 'work'; app.dataset.nav = 'closed';
+    topTitle.innerHTML = '<b>' + esc(trunc((tt ? tt.textContent : 'Test').trim(), 60)) + '</b>';
+    workspace.innerHTML = GENNING;
+    htmx.ajax('GET', '/app/tests/' + item.dataset.testId, { target: '#workspace', swap: 'innerHTML' });
   }
 
   /* ---------------- workspace: tabs / export (delegated; survives swaps) ---------------- */
@@ -146,7 +143,18 @@
   });
   // library items are added at runtime — delegate so clicks work as they appear
   document.getElementById('recents').addEventListener('click', function (e) {
-    var item = e.target.closest('.ritem'); if (item) loadTest(item.dataset.title);
+    var rename = e.target.closest('.ritem-rename');
+    if (rename) {
+      var it = rename.closest('.ritem'); it.classList.add('editing');
+      var inp = it.querySelector('.ritem-input'); if (inp) { inp.focus(); inp.select(); }
+      return;
+    }
+    var load = e.target.closest('.ritem-load');
+    if (load) loadTest(load.closest('.ritem'));
+  });
+  // Esc cancels an in-progress rename
+  document.getElementById('recents').addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { var it = e.target.closest('.ritem.editing'); if (it) it.classList.remove('editing'); }
   });
   document.getElementById('menuBtn').addEventListener('click', function () {
     app.dataset.nav = app.dataset.nav === 'open' ? 'closed' : 'open';

@@ -1,0 +1,4 @@
+{# Response for POST /app/generate: the workspace panel, plus (on a real result)
+   an out-of-band prepend of the new test into the sidebar library. #}
+{% include "partials/workspace.html" %}
+{% if t %}{% set oob = true %}{% include "partials/test_item.html" %}{% endif %}

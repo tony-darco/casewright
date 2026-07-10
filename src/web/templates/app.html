@@ -12,10 +12,12 @@
       <a href="/runs">Runs</a>
       <a href="/coverage">Coverage</a>
     </div>
-    {# Test library (G3). Real generated tests are added here as they're created;
-       the item model (versions, source spec, last-run, tags) is TBD with the backend. #}
+    {# Test library (G3) — the user's persisted tests, newest first. #}
     <nav class="recents" id="recents">
-      <div class="lib-empty" id="libEmpty">No tests yet.<br>Describe one below to get started.</div>
+      <div class="lib-empty" id="libEmpty"{% if tests %} hidden{% endif %}>No tests yet.<br>Describe one below to get started.</div>
+      <div id="testList">
+        {% for t in tests %}{% include "partials/test_item.html" %}{% endfor %}
+      </div>
     </nav>
     <div class="side-foot"><a class="back" href="/">&#8592; Back to site</a></div>
   </aside>

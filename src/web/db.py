@@ -30,6 +30,24 @@ CREATE TABLE IF NOT EXISTS meraki_data (
     api_key_enc TEXT,
     orgs_json   TEXT NOT NULL DEFAULT '[]'
 );
+
+-- Persisted generated tests (per user). Relational identifiers + a JSON column for
+-- the flexible/document-ish bits (grounded endpoints, @device refs) — SQLite serves
+-- the "document" role here, no second datastore needed.
+CREATE TABLE IF NOT EXISTS tests (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name           TEXT NOT NULL DEFAULT '',
+    prompt         TEXT NOT NULL DEFAULT '',
+    file_name      TEXT NOT NULL DEFAULT '',
+    code           TEXT NOT NULL DEFAULT '',
+    language       TEXT NOT NULL DEFAULT '',
+    endpoints_json TEXT NOT NULL DEFAULT '[]',
+    devices_json   TEXT NOT NULL DEFAULT '[]',
+    created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_tests_user ON tests(user_id, created_at DESC);
 """
 
 

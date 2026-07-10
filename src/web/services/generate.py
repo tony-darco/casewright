@@ -84,6 +84,10 @@ def build_view_model(prompt, devices, language="ts"):
 
     code = (state.get("tests") or "").rstrip("\n")
     endpoints = state.get("endpoints") or []
+    return _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints)
+
+
+def _workspace_vm(prompt, code, file_name, endpoints):
     line_count = code.count("\n") + 1 if code else 0
     return {
         "prompt": prompt,
@@ -91,7 +95,16 @@ def build_view_model(prompt, devices, language="ts"):
         # prebuilt line-number gutter (kept out of the template to avoid escape ambiguity)
         "gutter": "\n".join(str(i) for i in range(1, line_count + 1)),
         "line_count": line_count,
-        "file_name": _filename(prompt, endpoints, language),
+        "file_name": file_name,
         "endpoints": endpoints,
         "empty": not code,
     }
+
+
+def view_model_from_test(test):
+    """Rebuild the workspace view model from a stored test row (for loading it back)."""
+    endpoints = parse_devices(test.get("endpoints_json"))  # same forgiving JSON parse
+    vm = _workspace_vm(test.get("prompt", ""), test.get("code") or "",
+                       test.get("file_name") or "", endpoints)
+    vm["t"] = {"id": test["id"], "name": test["name"]}
+    return vm
