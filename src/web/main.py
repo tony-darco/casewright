@@ -18,13 +18,17 @@ from web.auth import AuthRedirect, require_user
 from web.routers import account_routes, app_view, auth_routes, settings, site
 from web.services import logs_store
 
+# Fail closed on insecure secrets before doing anything else (issue #10): outside
+# DEV_MODE this aborts startup rather than signing forgeable sessions.
+config.validate_startup_secrets()
+
 db.init()  # ensure the SQLite schema exists before serving
 logs_store.install_app_log()  # capture app-wide logs for Settings → Logs (issue #8)
 
-if config.JWT_SECRET == "dev-insecure-change-me":
+if config.DEV_MODE and config.JWT_SECRET == config.JWT_DEV_SENTINEL:
     logging.getLogger("web").warning(
-        "JWT_SECRET is the insecure dev default — set JWT_SECRET (and a real "
-        "CASEWRIGHT_ENC_KEY) before deploying, or sessions can be forged."
+        "CASEWRIGHT_DEV mode: signing sessions with the insecure dev JWT secret. "
+        "Never run this in production — set JWT_SECRET and CASEWRIGHT_ENC_KEY instead."
     )
 
 app = FastAPI(title="casewright", docs_url=None, redoc_url=None)
