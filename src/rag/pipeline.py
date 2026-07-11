@@ -325,6 +325,44 @@ class AutoTestLLM:
     async def ainvoke(self, query: str):
         return await self.graph.ainvoke({"query": query, "original_query": query, "attempts": 0})
 
+    def stream_run(self, query: str):
+        """Stream the run as it happens. Yields, in order:
+
+            ("stage", node_name)  -- a graph node just started/finished (progress)
+            ("token", text)       -- a token from the test-generation LLM (typewriter)
+            ("final", state)      -- the accumulated final state (endpoints, tests, ...)
+
+        Uses LangGraph's dual stream: ``updates`` (per node) for stage progress and
+        ``messages`` (per LLM token) for the generated code, filtered to the
+        ``generate`` node. The ``generate`` stage is announced on its first token
+        (so "Writing the test…" precedes the code), with a fallback to its node
+        update if the model didn't stream.
+        """
+        inputs = {"query": query, "original_query": query, "attempts": 0}
+        final: dict = {}
+        gen_announced = False
+        for mode, chunk in self.graph.stream(inputs, stream_mode=["updates", "messages"]):
+            if mode == "updates":
+                for node, delta in chunk.items():
+                    if isinstance(delta, dict):
+                        final.update(delta)
+                    if node == "generate":
+                        if not gen_announced:
+                            gen_announced = True
+                            yield ("stage", "generate")
+                    else:
+                        yield ("stage", node)
+            else:  # "messages" — (message_chunk, metadata) per LLM token
+                message_chunk, meta = chunk
+                if isinstance(meta, dict) and meta.get("langgraph_node") == "generate":
+                    if not gen_announced:
+                        gen_announced = True
+                        yield ("stage", "generate")
+                    text = getattr(message_chunk, "content", "") or ""
+                    if text:
+                        yield ("token", text)
+        yield ("final", final)
+
 
 if __name__ == "__main__":
     question = sys.argv[1] if len(sys.argv) > 1 else "List the organizations"

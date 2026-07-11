@@ -10,8 +10,10 @@ per-user test library (persisted).
 ``GET  /runs`` / ``/coverage``   dashboard shells (empty states).
 """
 
+import json
+
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 
 from web.auth import require_user
 from web.deps import templates
@@ -23,6 +25,10 @@ router = APIRouter()
 def _default_name(prompt: str) -> str:
     p = " ".join((prompt or "").split())
     return (p[:60] + "…") if len(p) > 60 else (p or "Untitled test")
+
+
+def _sse(obj: dict) -> str:
+    return "data: " + json.dumps(obj) + "\n\n"
 
 
 @router.get("/app", response_class=HTMLResponse)
@@ -49,6 +55,43 @@ def app_generate(
             vm["code"], language, vm["endpoints"], dev,
         )
     return templates.TemplateResponse(request, "partials/generate_result.html", vm)
+
+
+@router.post("/app/generate/stream")
+def app_generate_stream(
+    request: Request,
+    prompt: str = Form(""),
+    devices: str = Form(""),
+    language: str = Form("ts"),
+    user: dict = Depends(require_user),
+):
+    """Live generation over SSE: stage-progress + token-by-token code. On the final
+    event, persist the test and stream a ``done`` with the rendered panel + sidebar
+    item. Sync def so the blocking pipeline stream runs in Starlette's threadpool."""
+    dev = generate.parse_devices(devices)
+    uid = user["id"]
+
+    def event_stream():
+        for ev in generate.stream_events(prompt, dev, language):
+            if ev["type"] != "final":
+                yield _sse(ev)
+                continue
+            vm = ev["vm"]
+            t = None
+            if not vm.get("error") and not vm.get("empty"):
+                t = tests_store.create_test(
+                    uid, _default_name(prompt), vm["prompt"], vm["file_name"],
+                    vm["code"], language, vm["endpoints"], dev,
+                )
+            panel = templates.get_template("partials/workspace.html").render(vm)
+            item = templates.get_template("partials/test_item.html").render({"t": t}) if t else ""
+            yield _sse({"type": "done", "panel_html": panel, "item_html": item})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/app/tests/{test_id}", response_class=HTMLResponse)
