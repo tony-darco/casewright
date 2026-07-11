@@ -16,8 +16,10 @@ from fastapi.staticfiles import StaticFiles
 from web import config, db
 from web.auth import AuthRedirect, require_user
 from web.routers import account_routes, app_view, auth_routes, settings, site
+from web.services import logs_store
 
 db.init()  # ensure the SQLite schema exists before serving
+logs_store.install_app_log()  # capture app-wide logs for Settings → Logs (issue #8)
 
 if config.JWT_SECRET == "dev-insecure-change-me":
     logging.getLogger("web").warning(

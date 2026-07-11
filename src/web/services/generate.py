@@ -3,20 +3,30 @@
 Contract (co-decided, handoff G2): the composer posts ``prompt`` plus a JSON
 ``devices`` array (the @-mention identifiers, G11) and a ``language``. We build a
 compact device-context block, run the real pipeline, and hand the template a
-plain view model. ``language`` is carried but not yet fed into generation (P2
-follow-up).
+plain view model.
+
+Three concerns beyond the happy path live here:
+- failures are surfaced, never silent — build/run errors come back as ``{"error": ...}``
+  with a human-readable cause (issue #7);
+- generated code is cleaned to pure Python before it reaches the UI (issue #9);
+- every generation records a per-test log (pipeline stages + errors) returned on the
+  view model as ``_log`` for the caller to persist (issue #8).
 """
 
 import json
+import logging
 import re
 
+from web import config
 from web.deps import get_pipeline
 
+logger = logging.getLogger("web.generate")
+
 # language code -> generated-file extension. Single-select in Settings (G12);
-# per-test override is a later concern.
+# per-test override is a later concern. Python is the default target (issue #9).
 _EXT = {
-    "ts": "test.ts",
     "py": "test.py",
+    "ts": "test.ts",
     "java": "Test.java",
     "go": "_test.go",
     "csharp": "Tests.cs",
@@ -52,8 +62,98 @@ def _device_context(devices):
     return "\n".join(lines)
 
 
+def _concrete_context(devices, meta):
+    """Real identifiers the generated test should use literally, instead of
+    placeholders (issue #9): base URL, org ID, and each referenced device's network
+    ID + serial. Values come from the user's verified Meraki data / @device mentions."""
+    meta = meta or {}
+    lines = ["Concrete values — use these literally, do not invent placeholders:"]
+    lines.append(f"- base URL: {meta.get('base_url') or config.MERAKI_BASE_URL}")
+    if meta.get("org_id"):
+        lines.append(f"- organization ID: {meta['org_id']}")
+    net_ids = []
+    for d in devices or []:
+        if isinstance(d, dict) and d.get("networkId") and d["networkId"] not in net_ids:
+            net_ids.append(d["networkId"])
+    for nid in net_ids:
+        lines.append(f"- network ID: {nid}")
+    lines.append("- API key: read from the MERAKI_API_KEY environment variable")
+    return "\n".join(lines)
+
+
+def _full_prompt(prompt, devices, meta):
+    parts = [prompt]
+    ctx = _device_context(devices)
+    if ctx:
+        parts.append(ctx)
+    parts.append(_concrete_context(devices, meta))
+    return "\n\n".join(parts)
+
+
+_FENCE_RE = re.compile(r"```[ \t]*([\w+-]*)[ \t]*\r?\n(.*?)```", re.DOTALL)
+_CODE_START_RE = re.compile(r"^\s*(import |from |def |class |@|async |BASE_URL|BASE_URL\s*=)")
+
+
+def clean_code(text):
+    """Strip LLM fluff so only runnable Python reaches the user (issue #9).
+
+    Prefers fenced code blocks (```python ... ```); if the model wrapped its answer
+    in prose + a fence, we keep the fence body. With no fence, we drop any leading
+    prose before the first obvious code line. Valid Python (including real comments)
+    is left untouched.
+    """
+    if not text:
+        return ""
+    blocks = _FENCE_RE.findall(text)
+    if blocks:
+        py = [body for lang, body in blocks if lang.lower() in ("python", "py", "")]
+        chosen = py or [body for _, body in blocks]
+        return "\n\n".join(b.strip("\n") for b in chosen).strip()
+    lines = text.strip("\n").splitlines()
+    for i, ln in enumerate(lines):
+        if _CODE_START_RE.match(ln):
+            return "\n".join(lines[i:]).strip()
+    return text.strip()
+
+
+# httpx/requests/ollama connection failures stringify inconsistently; match on the
+# common shapes so the user gets a cause they can act on, not a stack-trace fragment.
+_CONN_HINTS = (
+    "connect", "connection", "refused", "max retries", "newconnectionerror",
+    "timed out", "timeout", "unreachable", "failed to establish", "name resolution",
+    "httpx", "httpcore",
+)
+
+
+def humanize_error(exc):
+    """Turn a low-level build/run exception into a message worth showing (issue #7)."""
+    raw = str(exc).strip() or exc.__class__.__name__
+    low = raw.lower()
+    if any(h in low for h in _CONN_HINTS):
+        return (
+            "Couldn't reach the model backend (Ollama). Make sure it's running and "
+            f"reachable, then try again. ({raw[:200]})"
+        )
+    return raw
+
+
+class _GenLog:
+    """Accumulates per-test log entries during one generation (issue #8).
+
+    Pure collector — deliberately NOT mirrored into the app-wide logger: these entries
+    include the user's prompt, and the app-wide log is visible to any signed-in user.
+    Operational failures still reach the app log via the ``logger.exception`` calls
+    below (which carry no prompt text)."""
+
+    def __init__(self):
+        self.entries = []
+
+    def add(self, stage, message, level="info"):
+        self.entries.append({"stage": stage, "level": level, "message": message})
+
+
 def _filename(prompt, endpoints, language):
-    ext = _EXT.get(language, "test.ts")
+    ext = _EXT.get(language, "test.py")
     # Prefer a slug from the first retrieved endpoint id (e.g. "GET /organizations"),
     # else from the prompt. Keep it filesystem-safe and short.
     basis = endpoints[0] if endpoints else prompt
@@ -61,30 +161,40 @@ def _filename(prompt, endpoints, language):
     return f"{slug}.{ext}"
 
 
-def build_view_model(prompt, devices, language="ts"):
+def build_view_model(prompt, devices, language="py", meta=None):
     """Run the pipeline for ``prompt`` and return a template context dict.
 
-    Never raises: a build/run failure comes back as ``{"error": ...}`` so the
-    workspace partial can show an inline message and keep the app usable.
+    Never raises: a build/run failure comes back as ``{"error": ...}`` (with the cause
+    humanized) so the workspace partial can show an inline message and keep the app
+    usable. The returned ``_log`` carries the per-test log for the caller to persist.
     """
     prompt = (prompt or "").strip()
+    log = _GenLog()
+    log.add("start", f"prompt={prompt!r}, devices={len(devices or [])}")
+
     pipeline, error = get_pipeline()
     if error is not None:
-        return {"error": error, "prompt": prompt}
-
-    full_prompt = prompt
-    ctx = _device_context(devices)
-    if ctx:
-        full_prompt = f"{prompt}\n\n{ctx}"
+        log.add("error", f"pipeline unavailable: {error}", "error")
+        return {"error": error, "prompt": prompt, "_log": log.entries}
 
     try:
-        state = pipeline.run(full_prompt)
+        state = pipeline.run(_full_prompt(prompt, devices, meta))
     except Exception as exc:  # noqa: BLE001 — surfaced inline, not a 500
-        return {"error": str(exc) or exc.__class__.__name__, "prompt": prompt}
+        msg = humanize_error(exc)
+        log.add("error", msg, "error")
+        logger.exception("generation failed")
+        return {"error": msg, "prompt": prompt, "_log": log.entries}
 
-    code = (state.get("tests") or "").rstrip("\n")
     endpoints = state.get("endpoints") or []
-    return _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints)
+    log.add("retrieve", f"grounded in {len(endpoints)} endpoint(s): {', '.join(endpoints) or '(none)'}")
+    code = clean_code((state.get("tests") or "").rstrip("\n"))
+    log.add("generate", f"generated {code.count(chr(10)) + 1 if code else 0} line(s)"
+            if code else "no code generated (retriever found nothing to ground)",
+            "info" if code else "error")
+
+    vm = _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints)
+    vm["_log"] = log.entries
+    return vm
 
 
 def _workspace_vm(prompt, code, file_name, endpoints):
@@ -123,7 +233,7 @@ STAGE_LABELS = {
 }
 
 
-def stream_events(prompt, devices, language="ts"):
+def stream_events(prompt, devices, language="py", meta=None):
     """Yield streaming events for the SSE endpoint:
 
         {"type": "stage", "node": ..., "label": ...}   -- progress
@@ -131,23 +241,24 @@ def stream_events(prompt, devices, language="ts"):
         {"type": "final", "vm": <workspace view model>}
 
     A build/run failure (e.g. Ollama unreachable) comes back as a final vm with an
-    ``error`` so the UI surfaces it instead of failing silently (see issue #7).
+    ``error`` so the UI surfaces it instead of failing silently (see issue #7). The
+    final vm carries ``_log`` (the per-test log) for the caller to persist (issue #8).
     """
     prompt = (prompt or "").strip()
+    log = _GenLog()
+    log.add("start", f"prompt={prompt!r}, devices={len(devices or [])}")
+
     pipeline, error = get_pipeline()
     if error is not None:
-        yield {"type": "final", "vm": {"error": error, "prompt": prompt}}
+        log.add("error", f"pipeline unavailable: {error}", "error")
+        yield {"type": "final", "vm": {"error": error, "prompt": prompt, "_log": log.entries}}
         return
-
-    full_prompt = prompt
-    ctx = _device_context(devices)
-    if ctx:
-        full_prompt = f"{prompt}\n\n{ctx}"
 
     final = {}
     try:
-        for kind, payload in pipeline.stream_run(full_prompt):
+        for kind, payload in pipeline.stream_run(_full_prompt(prompt, devices, meta)):
             if kind == "stage":
+                log.add(payload, STAGE_LABELS.get(payload, payload))  # pipeline dedups the generate stage
                 label = STAGE_LABELS.get(payload)
                 if label:
                     yield {"type": "stage", "node": payload, "label": label}
@@ -156,9 +267,20 @@ def stream_events(prompt, devices, language="ts"):
             elif kind == "final":
                 final = payload or {}
     except Exception as exc:  # surfaced inline, not a 500
-        yield {"type": "final", "vm": {"error": str(exc) or exc.__class__.__name__, "prompt": prompt}}
+        msg = humanize_error(exc)
+        log.add("error", msg, "error")
+        logger.exception("streaming generation failed")
+        yield {"type": "error", "message": msg}
+        yield {"type": "final", "vm": {"error": msg, "prompt": prompt, "_log": log.entries}}
         return
 
-    code = (final.get("tests") or "").rstrip("\n")
     endpoints = final.get("endpoints") or []
-    yield {"type": "final", "vm": _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints)}
+    log.add("retrieve", f"grounded in {len(endpoints)} endpoint(s): {', '.join(endpoints) or '(none)'}")
+    code = clean_code((final.get("tests") or "").rstrip("\n"))
+    log.add("generate", f"generated {code.count(chr(10)) + 1 if code else 0} line(s)"
+            if code else "no code generated (retriever found nothing to ground)",
+            "info" if code else "error")
+
+    vm = _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints)
+    vm["_log"] = log.entries
+    yield {"type": "final", "vm": vm}

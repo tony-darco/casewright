@@ -17,7 +17,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 
 from web.auth import require_user
 from web.deps import templates
-from web.services import generate, tests_store
+from web.services import generate, logs_store, store, tests_store
 
 router = APIRouter()
 
@@ -25,6 +25,13 @@ router = APIRouter()
 def _default_name(prompt: str) -> str:
     p = " ".join((prompt or "").split())
     return (p[:60] + "…") if len(p) > 60 else (p or "Untitled test")
+
+
+def _gen_meta(user_id: int, devices: list) -> dict:
+    """Concrete identifiers to inject into the generated test (issue #9): base URL and
+    the org that owns the first referenced device's network."""
+    net_id = next((d.get("networkId") for d in devices if isinstance(d, dict) and d.get("networkId")), "")
+    return {"base_url": None, "org_id": store.org_id_for_network(user_id, net_id)}
 
 
 def _sse(obj: dict) -> str:
@@ -43,17 +50,18 @@ def app_generate(
     request: Request,
     prompt: str = Form(""),
     devices: str = Form(""),
-    language: str = Form("ts"),
+    language: str = Form("py"),
     user: dict = Depends(require_user),
 ):
     dev = generate.parse_devices(devices)
-    vm = generate.build_view_model(prompt, dev, language)
+    vm = generate.build_view_model(prompt, dev, language, _gen_meta(user["id"], dev))
     # persist only real generations (not the pipeline-unavailable / empty states)
     if not vm.get("error") and not vm.get("empty"):
         vm["t"] = tests_store.create_test(
             user["id"], _default_name(prompt), vm["prompt"], vm["file_name"],
             vm["code"], language, vm["endpoints"], dev,
         )
+        logs_store.record(user["id"], vm["t"]["id"], vm.get("_log"))
     return templates.TemplateResponse(request, "partials/generate_result.html", vm)
 
 
@@ -62,7 +70,7 @@ def app_generate_stream(
     request: Request,
     prompt: str = Form(""),
     devices: str = Form(""),
-    language: str = Form("ts"),
+    language: str = Form("py"),
     user: dict = Depends(require_user),
 ):
     """Live generation over SSE: stage-progress + token-by-token code. On the final
@@ -70,9 +78,10 @@ def app_generate_stream(
     item. Sync def so the blocking pipeline stream runs in Starlette's threadpool."""
     dev = generate.parse_devices(devices)
     uid = user["id"]
+    meta = _gen_meta(uid, dev)
 
     def event_stream():
-        for ev in generate.stream_events(prompt, dev, language):
+        for ev in generate.stream_events(prompt, dev, language, meta):
             if ev["type"] != "final":
                 yield _sse(ev)
                 continue
@@ -83,6 +92,7 @@ def app_generate_stream(
                     uid, _default_name(prompt), vm["prompt"], vm["file_name"],
                     vm["code"], language, vm["endpoints"], dev,
                 )
+                logs_store.record(uid, t["id"], vm.get("_log"))
             panel = templates.get_template("partials/workspace.html").render(vm)
             item = templates.get_template("partials/test_item.html").render({"t": t}) if t else ""
             yield _sse({"type": "done", "panel_html": panel, "item_html": item})

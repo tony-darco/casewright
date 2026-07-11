@@ -1,0 +1,33 @@
+{# Logs page body (issue #8): app-wide log + expandable per-test sections. Loaded
+   on demand into #logsContent by the Logs nav item. #}
+<div class="org-head"><h2>Application log</h2></div>
+<div class="logblock" role="log" aria-label="Application log">
+  {% for r in app_log %}
+    <div class="logline {{ 'error' if r.level in ('ERROR', 'CRITICAL') else '' }}">
+      <span class="lvl">{{ r.level }}</span>
+      <span class="src mono">{{ r.name }}</span>
+      <span class="msg">{{ r.message }}</span>
+    </div>
+  {% else %}
+    <div class="gen-note">No application log entries yet.</div>
+  {% endfor %}
+</div>
+
+<div class="org-head" style="margin-top:var(--s8)"><h2>Per-test logs</h2></div>
+{% if test_logs %}
+  {% for t in test_logs %}
+    <details class="log-test">
+      <summary><span class="lt-name">{{ t.name }}</span><span class="lt-meta mono">{{ t.created_at }}</span></summary>
+      <div class="logblock">
+        {% for e in t.entries %}
+          <div class="logline {{ 'error' if e.level == 'error' else '' }}">
+            <span class="lvl">{{ e.stage }}</span>
+            <span class="msg">{{ e.message }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </details>
+  {% endfor %}
+{% else %}
+  <div class="gen-note">No per-test logs yet — generate a test to see its pipeline log here.</div>
+{% endif %}

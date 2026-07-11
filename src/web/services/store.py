@@ -103,6 +103,18 @@ def add_network(user_id: int, org_id: str, net: dict, devices: list) -> dict:
     return entry
 
 
+def org_id_for_network(user_id: int, network_id: str) -> str:
+    """The org that owns ``network_id`` for this user, or the first connected org as
+    a fallback (used to inject a concrete organization ID into generated tests)."""
+    orgs = list_orgs(user_id)
+    if network_id:
+        for org in orgs:
+            for net in org.get("networks", []):
+                if net.get("id") == network_id:
+                    return org.get("id", "")
+    return orgs[0].get("id", "") if orgs else ""
+
+
 def verified_networks(user_id: int) -> list:
     out = []
     for org in list_orgs(user_id):

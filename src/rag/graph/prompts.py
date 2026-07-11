@@ -43,8 +43,13 @@ GENERATE_SYSTEM = (
     "the requests library that exercises those endpoints. If call-order "
     "dependencies are provided, honor them exactly: call each listed producer "
     "endpoint first to obtain the path parameters it supplies (treat them as setup "
-    "steps/fixtures), and only then call the target endpoint. Use placeholder base "
-    "URLs/credentials via variables. Output only Python code."
+    "steps/fixtures), and only then call the target endpoint. "
+    "When concrete values are provided (base URL, organization ID, network ID, "
+    "device serials), use those literal values in the code — do NOT leave "
+    "placeholders like YOUR_ORG_ID for anything that was supplied. The API key is "
+    "the only secret: read it from the environment. "
+    "Output raw Python source ONLY: no Markdown code fences, no prose, no "
+    "explanations before or after the code."
 )
 
 

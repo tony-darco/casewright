@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 from web.auth import require_user
 from web.deps import templates
-from web.services import meraki, store
+from web.services import logs_store, meraki, store
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,16 @@ def settings_home(request: Request, user: dict = Depends(require_user)):
     ctx["orgs"] = store.list_orgs(user["id"])  # this user's persisted orgs/networks/devices
     ctx["account"] = user  # id, username, email, first_name, last_name
     return templates.TemplateResponse(request, "settings.html", ctx)
+
+
+@router.get("/settings/logs", response_class=HTMLResponse)
+def settings_logs(request: Request, user: dict = Depends(require_user)):
+    """Logs page (issue #8): the app-wide log plus this user's per-test logs.
+    Loaded on demand (HTMX) since the app log can be large."""
+    return templates.TemplateResponse(request, "partials/logs.html", {
+        "app_log": logs_store.app_log_lines(),
+        "test_logs": logs_store.tests_with_logs(user["id"]),
+    })
 
 
 @router.post("/settings/meraki/apikey", response_class=HTMLResponse)
