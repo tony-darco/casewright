@@ -189,10 +189,11 @@ class AutoTestLLM:
             SystemMessage(prompts.GENERATE_SYSTEM),
             HumanMessage(prompts.user_generate(query, context, dependencies)),
         ]
-        try:
-            return self.chat.invoke(msgs).content or ""
-        except Exception:
-            return ""
+        # Deliberately NOT swallowed: unlike the retrieval nodes (which have graceful
+        # fallbacks), a failure here — e.g. the model backend unreachable — must surface
+        # as an error, not a silent empty result that looks like "nothing retrieved"
+        # (issue #7). The web layer catches this and shows the cause.
+        return self.chat.invoke(msgs).content or ""
 
     def endpoint_dependencies(self, endpoints, direction: str = "both"):
         """Rendered call-order dependencies for the given endpoint ids, or "" if

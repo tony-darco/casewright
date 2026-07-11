@@ -18,6 +18,8 @@
       <button class="set-nav-item active" data-cat="account">Account</button>
       <button class="set-nav-item" data-cat="meraki">Meraki integration</button>
       <button class="set-nav-item" data-cat="language">Output language</button>
+      <button class="set-nav-item" data-cat="logs"
+              hx-get="/settings/logs" hx-target="#logsContent" hx-swap="innerHTML">Logs</button>
       <button class="set-nav-item" data-cat="general">General</button>
     </nav>
 
@@ -85,13 +87,24 @@
             on any individual test.</p>
         </div>
         <div class="lang-list" id="langList">
-          <button class="lang-opt active" data-lang="ts"><span class="lcol"><span class="ln">TypeScript</span><span class="lf">Vitest / Jest</span></span><span class="chk">&#10003;</span></button>
-          <button class="lang-opt" data-lang="py"><span class="lcol"><span class="ln">Python</span><span class="lf">pytest</span></span><span class="chk">&#10003;</span></button>
+          <button class="lang-opt active" data-lang="py"><span class="lcol"><span class="ln">Python</span><span class="lf">pytest</span></span><span class="chk">&#10003;</span></button>
+          <button class="lang-opt" data-lang="ts"><span class="lcol"><span class="ln">TypeScript</span><span class="lf">Vitest / Jest</span></span><span class="chk">&#10003;</span></button>
           <button class="lang-opt" data-lang="java"><span class="lcol"><span class="ln">Java</span><span class="lf">JUnit 5</span></span><span class="chk">&#10003;</span></button>
           <button class="lang-opt" data-lang="go"><span class="lcol"><span class="ln">Go</span><span class="lf">testing</span></span><span class="chk">&#10003;</span></button>
           <button class="lang-opt" data-lang="csharp"><span class="lcol"><span class="ln">C#</span><span class="lf">xUnit</span></span><span class="chk">&#10003;</span></button>
         </div>
         <div class="gen-note">Selection is saved locally; persistence follows the backend preferences contract (TBD).</div>
+      </section>
+
+      <!-- Logs (issue #8) -->
+      <section class="set-cat cat-logs">
+        <div class="set-head">
+          <span class="eyebrow">Logs</span>
+          <h1>Logs</h1>
+          <p>The application log, plus a section for each generated test showing its pipeline
+            stages and any errors.</p>
+        </div>
+        <div id="logsContent"><div class="gen-note">Select <b>Logs</b> to load…</div></div>
       </section>
 
       <!-- General (G12) -->

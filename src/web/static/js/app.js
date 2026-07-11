@@ -74,6 +74,7 @@
   function handleStreamEvent(ev, stageEl, codeEl) {
     if (ev.type === 'stage') { if (stageEl) stageEl.textContent = ev.label; }
     else if (ev.type === 'token') { if (codeEl) { codeEl.textContent += ev.text; codeEl.scrollTop = codeEl.scrollHeight; } }
+    else if (ev.type === 'error') { if (stageEl) stageEl.textContent = ev.message; }  // final 'done' renders the error panel
     else if (ev.type === 'done') {
       workspace.innerHTML = ev.panel_html;   // final panel, OR the error/empty state
       if (ev.item_html) {
@@ -98,7 +99,7 @@
     var codeEl = workspace.querySelector('#streamCode');
     var body = new URLSearchParams({
       prompt: text, devices: JSON.stringify(devices || []),
-      language: localStorage.getItem('cw.language') || 'ts'
+      language: localStorage.getItem('cw.language') || 'py'
     });
     fetch('/app/generate/stream', {
       method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString()
@@ -155,7 +156,7 @@
   function downloadFile() {
     var codeEl = workspace.querySelector('#codeEl'); if (!codeEl) return;
     var panel = workspace.querySelector('.panel');
-    var name = (panel && panel.dataset.file) || 'generated.test.ts';
+    var name = (panel && panel.dataset.file) || 'generated.test.py';
     var blob = new Blob([codeEl.textContent], { type: 'text/plain' });
     var url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url; a.download = name; document.body.appendChild(a); a.click();

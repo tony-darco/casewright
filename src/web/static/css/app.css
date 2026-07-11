@@ -321,7 +321,26 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 #setBody[data-cat="account"] .cat-account,
 #setBody[data-cat="meraki"] .cat-meraki,
 #setBody[data-cat="language"] .cat-language,
+#setBody[data-cat="logs"] .cat-logs,
 #setBody[data-cat="general"] .cat-general { display: block; }
+/* Logs page (issue #8) */
+.logblock { background: var(--sunken); border: 1px solid var(--line); border-radius: 8px;
+  padding: var(--s3) var(--s4); max-height: 340px; overflow: auto; font-size: 12.5px; }
+.logline { display: flex; gap: var(--s3); align-items: baseline; padding: 2px 0; line-height: 1.5; }
+.logline .lvl { flex: 0 0 auto; min-width: 64px; color: var(--ink-3); font-size: 11px;
+  text-transform: uppercase; letter-spacing: .02em; }
+.logline .src { flex: 0 0 auto; color: var(--ink-3); }
+.logline .msg { flex: 1 1 auto; min-width: 0; white-space: pre-wrap; word-break: break-word; }
+/* grayscale design system: signal errors with weight + a ✕ marker, never color */
+.logline.error { color: var(--ink); font-weight: 500; }
+.logline.error .lvl::before { content: "\2717\00a0"; }
+.log-test { border: 1px solid var(--line); border-radius: 8px; margin-top: var(--s3); }
+.log-test > summary { cursor: pointer; padding: var(--s3) var(--s4); display: flex;
+  justify-content: space-between; align-items: center; gap: var(--s3); }
+.log-test .lt-name { font-weight: 500; }
+.log-test .lt-meta { color: var(--ink-3); font-size: 12px; }
+.log-test > .logblock { border: none; border-top: 1px solid var(--line); border-radius: 0 0 8px 8px; }
+
 .account-form { max-width: 460px; margin-top: var(--s5); }
 .account-block + .org-head { margin-top: var(--s8); }
 .account-actions { display: flex; align-items: center; gap: var(--s4); margin-top: var(--s2); }

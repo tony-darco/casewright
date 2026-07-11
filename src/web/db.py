@@ -48,6 +48,20 @@ CREATE TABLE IF NOT EXISTS tests (
     updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_tests_user ON tests(user_id, created_at DESC);
+
+-- Per-test generation logs (issue #8): pipeline stages + errors, tied to a test id
+-- and scoped to a user. Deleted with the test/user via cascade. The app-wide log is
+-- an in-memory ring buffer (web.services.logs_store), not persisted here.
+CREATE TABLE IF NOT EXISTS test_logs (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    test_id    INTEGER NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+    stage      TEXT NOT NULL DEFAULT '',
+    level      TEXT NOT NULL DEFAULT 'info',
+    message    TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_test_logs_test ON test_logs(test_id, id);
 """
 
 
