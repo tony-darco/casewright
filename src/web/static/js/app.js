@@ -60,22 +60,68 @@
     if (item) item.classList.add('active');
   }
 
+  var STREAM_SHELL = '<div class="panel"><div class="panel-body"><div class="stream-wrap">'
+    + '<div class="stream-stage"><span class="dot"></span> <span class="stxt">Starting…</span></div>'
+    + '<pre class="code stream-code" id="streamCode"></pre></div></div></div>';
+
+  function streamError() {
+    workspace.innerHTML = '<div class="panel"><div class="panel-body"><div class="gen-error">'
+      + '<b>&#10007; Generation interrupted.</b>'
+      + '<div class="muted">The stream was lost — check that the model backend (Ollama) is running and reachable, then try again.</div>'
+      + '</div></div></div>';
+  }
+
+  function handleStreamEvent(ev, stageEl, codeEl) {
+    if (ev.type === 'stage') { if (stageEl) stageEl.textContent = ev.label; }
+    else if (ev.type === 'token') { if (codeEl) { codeEl.textContent += ev.text; codeEl.scrollTop = codeEl.scrollHeight; } }
+    else if (ev.type === 'done') {
+      workspace.innerHTML = ev.panel_html;   // final panel, OR the error/empty state
+      if (ev.item_html) {
+        var list = document.getElementById('testList');
+        if (list) {
+          list.insertAdjacentHTML('afterbegin', ev.item_html);
+          var first = list.firstElementChild;
+          if (window.htmx && first) htmx.process(first);   // wire the item's rename form
+          setActive(first);
+        }
+      }
+    }
+  }
+
+  // Live generation: stream stage-progress + tokens over SSE (fetch stream).
   function generate(text, devices) {
     app.dataset.view = 'work';
     topTitle.innerHTML = '<b>' + esc(trunc(text, 60)) + '</b>';
-    workspace.innerHTML = GENNING;
     var le = document.getElementById('libEmpty'); if (le) le.hidden = true;
-    htmx.ajax('POST', '/app/generate', {
-      target: '#workspace', swap: 'innerHTML',
-      values: {
-        prompt: text,
-        devices: JSON.stringify(devices || []),
-        language: localStorage.getItem('cw.language') || 'ts'
-      }
-    }).then(function () {
-      // the saved test was prepended to #testList via an OOB swap — select it
-      setActive(document.querySelector('#testList .ritem'));
+    workspace.innerHTML = STREAM_SHELL;
+    var stageEl = workspace.querySelector('.stream-stage .stxt');
+    var codeEl = workspace.querySelector('#streamCode');
+    var body = new URLSearchParams({
+      prompt: text, devices: JSON.stringify(devices || []),
+      language: localStorage.getItem('cw.language') || 'ts'
     });
+    fetch('/app/generate/stream', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString()
+    }).then(function (resp) {
+      var ct = resp.headers.get('content-type') || '';
+      if (!resp.ok || ct.indexOf('text/event-stream') === -1) { window.location = '/login'; return; }
+      var reader = resp.body.getReader(), dec = new TextDecoder(), buf = '';
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) return;
+          buf += dec.decode(r.value, { stream: true });
+          var parts = buf.split('\n\n'); buf = parts.pop();
+          for (var i = 0; i < parts.length; i++) {
+            var line = parts[i].replace(/^data: ?/, '');
+            if (!line) continue;
+            var ev; try { ev = JSON.parse(line); } catch (e) { continue; }
+            handleStreamEvent(ev, stageEl, codeEl);
+          }
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(streamError);
   }
 
   function fromHero(text, devices) {

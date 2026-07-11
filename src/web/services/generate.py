@@ -108,3 +108,57 @@ def view_model_from_test(test):
                        test.get("file_name") or "", endpoints)
     vm["t"] = {"id": test["id"], "name": test["name"]}
     return vm
+
+
+# Graph node -> the status line the user sees while that stage runs (live generation).
+STAGE_LABELS = {
+    "generate_queries": "Expanding your prompt into search queries…",
+    "retrieve": "Searching the API spec…",
+    "rerank": "Ranking the most relevant endpoints…",
+    "grade": "Checking relevance…",
+    "rewrite": "Refining the search…",
+    "finalize": "Selecting endpoints…",
+    "dependencies": "Resolving call-order dependencies…",
+    "generate": "Writing the test…",
+}
+
+
+def stream_events(prompt, devices, language="ts"):
+    """Yield streaming events for the SSE endpoint:
+
+        {"type": "stage", "node": ..., "label": ...}   -- progress
+        {"type": "token", "text": ...}                 -- generated code, char by char
+        {"type": "final", "vm": <workspace view model>}
+
+    A build/run failure (e.g. Ollama unreachable) comes back as a final vm with an
+    ``error`` so the UI surfaces it instead of failing silently (see issue #7).
+    """
+    prompt = (prompt or "").strip()
+    pipeline, error = get_pipeline()
+    if error is not None:
+        yield {"type": "final", "vm": {"error": error, "prompt": prompt}}
+        return
+
+    full_prompt = prompt
+    ctx = _device_context(devices)
+    if ctx:
+        full_prompt = f"{prompt}\n\n{ctx}"
+
+    final = {}
+    try:
+        for kind, payload in pipeline.stream_run(full_prompt):
+            if kind == "stage":
+                label = STAGE_LABELS.get(payload)
+                if label:
+                    yield {"type": "stage", "node": payload, "label": label}
+            elif kind == "token":
+                yield {"type": "token", "text": payload}
+            elif kind == "final":
+                final = payload or {}
+    except Exception as exc:  # surfaced inline, not a 500
+        yield {"type": "final", "vm": {"error": str(exc) or exc.__class__.__name__, "prompt": prompt}}
+        return
+
+    code = (final.get("tests") or "").rstrip("\n")
+    endpoints = final.get("endpoints") or []
+    yield {"type": "final", "vm": _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints)}
