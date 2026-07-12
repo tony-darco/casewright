@@ -31,6 +31,18 @@ CREATE TABLE IF NOT EXISTS meraki_data (
     orgs_json   TEXT NOT NULL DEFAULT '[]'
 );
 
+-- Per-user model-provider settings (Settings → Model provider). Blank/NULL fields
+-- mean "use the backend default" (the .env / ProviderConfig defaults keep working
+-- untouched — see web.services.provider_store).
+CREATE TABLE IF NOT EXISTS provider_settings (
+    user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    provider    TEXT NOT NULL DEFAULT 'ollama',
+    ollama_url  TEXT NOT NULL DEFAULT '',
+    chat_model  TEXT NOT NULL DEFAULT '',
+    embed_model TEXT NOT NULL DEFAULT '',
+    temperature REAL
+);
+
 -- Persisted generated tests (per user). Relational identifiers + a JSON column for
 -- the flexible/document-ish bits (grounded endpoints, @device refs) — SQLite serves
 -- the "document" role here, no second datastore needed.

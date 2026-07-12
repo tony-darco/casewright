@@ -361,6 +361,7 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 #setBody[data-cat="account"] .cat-account,
 #setBody[data-cat="meraki"] .cat-meraki,
 #setBody[data-cat="language"] .cat-language,
+#setBody[data-cat="provider"] .cat-provider,
 #setBody[data-cat="logs"] .cat-logs,
 #setBody[data-cat="general"] .cat-general { display: block; }
 /* Logs page (issue #8) */
@@ -418,6 +419,20 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .lang-opt .lf { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
 .lang-opt .chk { margin-left: auto; font-family: var(--font-mono); color: var(--ink); opacity: 0; }
 .lang-opt.active .chk { opacity: 1; }
+
+/* Model provider (Settings) */
+.cat-provider .gen-field .set-input { width: 100%; }
+.cat-provider .prov-temp { max-width: 120px; }
+.prov-row { display: flex; gap: var(--s3); }
+.prov-row .set-input { flex: 1; width: auto; }
+.prov-status { font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); margin-top: var(--s2); }
+.prov-status .ok, .prov-saved .ok { color: var(--ink); font-family: var(--font-mono); }
+.prov-confirm { max-width: 420px; margin-top: var(--s4); padding: var(--s4);
+  border: 1px solid var(--line); border-radius: 8px; }
+.prov-confirm p { font-size: var(--t-micro); color: var(--ink-2); margin-bottom: var(--s3); }
+.prov-confirm-actions { display: flex; gap: var(--s3); align-items: center; }
+.prov-saved { font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); margin-top: var(--s3); }
+.prov-actions { display: flex; gap: var(--s3); align-items: center; margin-top: var(--s6); }
 
 .gen-field { max-width: 420px; margin-top: var(--s5); }
 .gen-field label { display: block; font-size: var(--t-micro); font-weight: 500; margin-bottom: var(--s2); }

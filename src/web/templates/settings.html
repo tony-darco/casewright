@@ -18,6 +18,7 @@
       <button class="set-nav-item active" data-cat="account">Account</button>
       <button class="set-nav-item" data-cat="meraki">Meraki integration</button>
       <button class="set-nav-item" data-cat="language">Output language</button>
+      <button class="set-nav-item" data-cat="provider">Model provider</button>
       <button class="set-nav-item" data-cat="logs"
               hx-get="/settings/logs" hx-target="#logsContent" hx-swap="innerHTML">Logs</button>
       <button class="set-nav-item" data-cat="general">General</button>
@@ -94,6 +95,73 @@
           <button class="lang-opt" data-lang="csharp"><span class="lcol"><span class="ln">C#</span><span class="lf">xUnit</span></span><span class="chk">&#10003;</span></button>
         </div>
         <div class="gen-note">Selection is saved locally; persistence follows the backend preferences contract (TBD).</div>
+      </section>
+
+      <!-- Model provider -->
+      <section class="set-cat cat-provider">
+        <div class="set-head">
+          <span class="eyebrow">Model provider</span>
+          <h1>Model provider</h1>
+          <p>The LLM backend used to generate tests. Leave a field blank to keep the server's
+            built-in default.</p>
+        </div>
+
+        <form id="providerForm" hx-post="/settings/provider" hx-target="#providerResult" hx-swap="innerHTML"
+              hx-disabled-elt="find button[type='submit']" hx-indicator="find .spinner">
+          <div class="gen-field">
+            <label for="provProvider">Provider</label>
+            <select class="set-input" id="provProvider" name="provider">
+              <option value="ollama" selected>Ollama</option>
+            </select>
+            <div class="set-hint">more providers will land here as the product grows</div>
+          </div>
+
+          <div class="gen-field">
+            <label for="provUrl">Ollama server URL</label>
+            <div class="prov-row">
+              <input class="set-input mono" id="provUrl" name="ollamaUrl" value="{{ provider.ollama_url }}"
+                     placeholder="http://localhost:11434" autocomplete="off" spellcheck="false"
+                     aria-label="Ollama server URL">
+              <button class="btn btn-ghost" id="provCheckBtn" type="button"
+                      hx-post="/settings/provider/check" hx-include="#provUrl"
+                      hx-target="#providerCheck" hx-swap="innerHTML"
+                      hx-disabled-elt="this">Test connection</button>
+            </div>
+            <div id="providerCheck">{% include "partials/provider_check.html" %}</div>
+          </div>
+
+          <div class="gen-field">
+            <label for="provChat">Chat model</label>
+            <input class="set-input mono" id="provChat" name="chatModel" list="chatModels"
+                   value="{{ provider.chat_model }}" placeholder="e.g. mistral-small:22b"
+                   autocomplete="off" spellcheck="false" aria-label="Chat model">
+            <div class="set-hint">test the connection to pick from installed models, or type any name —
+              if it isn't on the server you'll be offered a pull</div>
+          </div>
+
+          <div class="gen-field">
+            <label for="provEmbed">Embedding model</label>
+            <input class="set-input mono" id="provEmbed" name="embedModel" list="embedModels"
+                   value="{{ provider.embed_model }}" placeholder="e.g. nomic-embed-text:latest"
+                   autocomplete="off" spellcheck="false" aria-label="Embedding model">
+            <div class="set-hint"><b>warning:</b> the vector store was built with one embedding model —
+              changing it requires re-ingesting the corpus, or retrieval will break</div>
+          </div>
+
+          <div class="gen-field">
+            <label for="provTemp">Temperature</label>
+            <input class="set-input mono prov-temp" id="provTemp" name="temperature" type="number"
+                   step="0.1" min="0" max="2" placeholder="0.0"
+                   value="{{ '' if provider.temperature is none else provider.temperature }}"
+                   aria-label="Temperature">
+          </div>
+
+          <div class="prov-actions">
+            <button class="btn btn-primary" type="submit">Save</button>
+            <span class="spinner htmx-indicator" aria-hidden="true"></span>
+          </div>
+          <div id="providerResult"></div>
+        </form>
       </section>
 
       <!-- Logs (issue #8) -->

@@ -17,7 +17,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 
 from web.auth import require_user
 from web.deps import templates
-from web.services import generate, logs_store, store, tests_store
+from web.services import generate, logs_store, provider_store, store, tests_store
 
 router = APIRouter()
 
@@ -54,7 +54,8 @@ def app_generate(
     user: dict = Depends(require_user),
 ):
     dev = generate.parse_devices(devices)
-    vm = generate.build_view_model(prompt, dev, language, _gen_meta(user["id"], dev))
+    vm = generate.build_view_model(prompt, dev, language, _gen_meta(user["id"], dev),
+                                   provider_store.overrides(user["id"]))
     vm["devices"] = devices  # raw JSON, echoed to the panel so a regenerate reuses the same @device grounding
     # persist only real generations (not the pipeline-unavailable / empty states)
     if not vm.get("error") and not vm.get("empty"):
@@ -80,9 +81,10 @@ def app_generate_stream(
     dev = generate.parse_devices(devices)
     uid = user["id"]
     meta = _gen_meta(uid, dev)
+    prov = provider_store.overrides(uid)
 
     def event_stream():
-        for ev in generate.stream_events(prompt, dev, language, meta):
+        for ev in generate.stream_events(prompt, dev, language, meta, prov):
             if ev["type"] != "final":
                 yield _sse(ev)
                 continue

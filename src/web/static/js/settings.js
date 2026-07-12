@@ -121,6 +121,7 @@
     var xhr = e.detail.xhr; if (!xhr) return;
     var retargeted = xhr.getResponseHeader && xhr.getResponseHeader('HX-Retarget'); // errors are retargeted
     var form = e.detail.elt.closest && e.detail.elt.closest('form');
+    if (form && form.id === 'providerForm') return; // provider settings stay filled after save
     if (xhr.status >= 200 && xhr.status < 300 && !retargeted && form) {
       form.querySelectorAll('input').forEach(function (i) { if (i.type !== 'hidden') i.value = ''; });
       if (form.classList.contains('net-form')) form.hidden = true;
