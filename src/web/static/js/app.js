@@ -71,66 +71,117 @@
       + '</div></div></div>';
   }
 
-  function handleStreamEvent(ev, stageEl, codeEl) {
-    if (ev.type === 'stage') { if (stageEl) stageEl.textContent = ev.label; }
-    else if (ev.type === 'token') {
-      if (codeEl) {
-        // Only stick to the bottom if the user is already there; if they scrolled up
-        // to read, don't yank them back down (#13).
-        var atBottom = (codeEl.scrollHeight - codeEl.scrollTop - codeEl.clientHeight) <= 24;
-        codeEl.textContent += ev.text;
-        if (atBottom) codeEl.scrollTop = codeEl.scrollHeight;
-      }
-    }
-    else if (ev.type === 'error') { if (stageEl) stageEl.textContent = ev.message; }  // final 'done' renders the error panel
-    else if (ev.type === 'done') {
-      workspace.innerHTML = ev.panel_html;   // final panel, OR the error/empty state
-      if (ev.item_html) {
-        var list = document.getElementById('testList');
-        if (list) {
-          list.insertAdjacentHTML('afterbegin', ev.item_html);
-          var first = list.firstElementChild;
-          if (window.htmx && first) htmx.process(first);   // wire the item's rename form
-          setActive(first);
+  // --- background generation (#11): the run lives server-side, keyed by test id.
+  // The client keeps a stream open per active generation and updates the workspace
+  // only while that test is the one being viewed, so navigating away doesn't stop it.
+  var activeGens = {};   // testId -> { stage, code, streaming }
+  function viewing() { return app.dataset.viewing || ''; }
+
+  function renderStreamShell(prefill) {
+    workspace.innerHTML = STREAM_SHELL;
+    if (!prefill) return;
+    var stageEl = workspace.querySelector('.stream-stage .stxt');
+    var codeEl = workspace.querySelector('#streamCode');
+    if (stageEl && prefill.stage) stageEl.textContent = prefill.stage;
+    if (codeEl && prefill.code) { codeEl.textContent = prefill.code; codeEl.scrollTop = codeEl.scrollHeight; }
+  }
+
+  function onGenEvent(testId, ev) {
+    var g = activeGens[testId] || (activeGens[testId] = { stage: '', code: '' });
+    var isViewing = viewing() === String(testId);
+    if (ev.type === 'stage') {
+      g.stage = ev.label;
+      if (isViewing) { var s = workspace.querySelector('.stream-stage .stxt'); if (s) s.textContent = ev.label; }
+    } else if (ev.type === 'token') {
+      g.code += ev.text;
+      if (isViewing) {
+        var c = workspace.querySelector('#streamCode');
+        if (c) {
+          var atBottom = (c.scrollHeight - c.scrollTop - c.clientHeight) <= 24;  // don't yank a scrolled-up reader
+          c.textContent += ev.text;
+          if (atBottom) c.scrollTop = c.scrollHeight;
         }
       }
+    } else if (ev.type === 'error') {
+      g.stage = ev.message;
+      if (isViewing) { var se = workspace.querySelector('.stream-stage .stxt'); if (se) se.textContent = ev.message; }
+    } else if (ev.type === 'done') {
+      // sidebar item: done -> replace (flips status, rewires rename); failed -> remove.
+      var existing = document.getElementById('test-' + testId);
+      if (ev.item_html) {
+        if (existing) existing.outerHTML = ev.item_html;
+        else { var list = document.getElementById('testList'); if (list) list.insertAdjacentHTML('afterbegin', ev.item_html); }
+        var el = document.getElementById('test-' + testId);
+        if (window.htmx && el) htmx.process(el);
+        if (isViewing && el) setActive(el);
+      } else if (existing) {
+        existing.remove();
+      }
+      if (isViewing) workspace.innerHTML = ev.panel_html;
+      delete activeGens[testId];
     }
   }
 
-  // Live generation: stream stage-progress + tokens over SSE (fetch stream).
+  function pumpStream(resp, testId) {
+    var reader = resp.body.getReader(), dec = new TextDecoder(), buf = '';
+    function pump() {
+      return reader.read().then(function (r) {
+        if (r.done) { if (activeGens[testId]) activeGens[testId].streaming = false; return; }
+        buf += dec.decode(r.value, { stream: true });
+        var parts = buf.split('\n\n'); buf = parts.pop();
+        for (var i = 0; i < parts.length; i++) {
+          var line = parts[i].replace(/^data: ?/, '');
+          if (!line) continue;
+          var ev; try { ev = JSON.parse(line); } catch (e) { continue; }
+          onGenEvent(testId, ev);
+        }
+        return pump();
+      });
+    }
+    return pump();
+  }
+
+  // Attach to a test's generation stream. focus=true shows it in the workspace.
+  function attachStream(testId, focus) {
+    if (focus) { app.dataset.viewing = String(testId); renderStreamShell(activeGens[testId]); }
+    if (activeGens[testId] && activeGens[testId].streaming) return;   // already streaming client-side
+    activeGens[testId] = activeGens[testId] || { stage: '', code: '' };
+    activeGens[testId].streaming = true;
+    fetch('/app/generate/' + testId + '/stream').then(function (resp) {
+      var ct = resp.headers.get('content-type') || '';
+      if (resp.status === 401) { window.location = '/login'; return; }
+      if (!resp.ok || ct.indexOf('text/event-stream') === -1) { if (activeGens[testId]) activeGens[testId].streaming = false; if (viewing() === String(testId)) streamError(); return; }
+      return pumpStream(resp, testId);
+    }).catch(function () { if (activeGens[testId]) activeGens[testId].streaming = false; if (viewing() === String(testId)) streamError(); });
+  }
+
+  // Start a new generation (or regenerate): create it server-side, then attach.
   // `language` is the per-test choice; it falls back to the Settings default.
   function generate(text, devices, language) {
     app.dataset.view = 'work';
     topTitle.innerHTML = '<b>' + esc(trunc(text, 60)) + '</b>';
     var le = document.getElementById('libEmpty'); if (le) le.hidden = true;
+    app.dataset.viewing = '';                 // no test id yet; set on attach
     workspace.innerHTML = STREAM_SHELL;
-    var stageEl = workspace.querySelector('.stream-stage .stxt');
-    var codeEl = workspace.querySelector('#streamCode');
     var body = new URLSearchParams({
       prompt: text, devices: JSON.stringify(devices || []),
       language: language || localStorage.getItem('cw.language') || 'py'
     });
-    fetch('/app/generate/stream', {
+    fetch('/app/generate/start', {
       method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString()
     }).then(function (resp) {
-      var ct = resp.headers.get('content-type') || '';
-      if (!resp.ok || ct.indexOf('text/event-stream') === -1) { window.location = '/login'; return; }
-      var reader = resp.body.getReader(), dec = new TextDecoder(), buf = '';
-      function pump() {
-        return reader.read().then(function (r) {
-          if (r.done) return;
-          buf += dec.decode(r.value, { stream: true });
-          var parts = buf.split('\n\n'); buf = parts.pop();
-          for (var i = 0; i < parts.length; i++) {
-            var line = parts[i].replace(/^data: ?/, '');
-            if (!line) continue;
-            var ev; try { ev = JSON.parse(line); } catch (e) { continue; }
-            handleStreamEvent(ev, stageEl, codeEl);
-          }
-          return pump();
-        });
+      if (resp.status === 401) { window.location = '/login'; return null; }
+      if (!resp.ok) { streamError(); return null; }
+      return resp.json();
+    }).then(function (d) {
+      if (!d) return;
+      var list = document.getElementById('testList');
+      if (list && d.item_html) {
+        list.insertAdjacentHTML('afterbegin', d.item_html);
+        var first = list.firstElementChild;
+        if (window.htmx && first) htmx.process(first);
       }
-      return pump();
+      attachStream(d.test_id, true);
     }).catch(streamError);
   }
 
@@ -145,15 +196,22 @@
   }
   function fromDock(text, devices) { generate(text, devices, langOf('dockLang')); clearComposer(dockInput); dockSend.disabled = true; }
 
-  // Load a saved test back into the workspace (GET, not a re-generate).
+  // Open a test in the workspace. A still-generating test reattaches to its live
+  // stream (#11); a finished one loads its saved code.
   function loadTest(item) {
     if (!item) return;
     var tt = item.querySelector('.tt');
+    var testId = item.dataset.testId;
     setActive(item);
     app.dataset.view = 'work'; app.dataset.nav = 'closed';
     topTitle.innerHTML = '<b>' + esc(trunc((tt ? tt.textContent : 'Test').trim(), 60)) + '</b>';
-    workspace.innerHTML = GENNING;
-    htmx.ajax('GET', '/app/tests/' + item.dataset.testId, { target: '#workspace', swap: 'innerHTML' });
+    if (item.dataset.status === 'generating' || activeGens[testId]) {
+      attachStream(testId, true);            // reattach: buffered progress + live updates
+    } else {
+      app.dataset.viewing = String(testId);
+      workspace.innerHTML = GENNING;
+      htmx.ajax('GET', '/app/tests/' + testId, { target: '#workspace', swap: 'innerHTML' });
+    }
   }
 
   /* ---------------- workspace: tabs / export (delegated; survives swaps) ---------------- */
@@ -246,7 +304,7 @@
 
   /* ---------------- sidebar / new test ---------------- */
   document.getElementById('newBtn').addEventListener('click', function () {
-    app.dataset.view = 'empty'; app.dataset.nav = 'closed';
+    app.dataset.view = 'empty'; app.dataset.nav = 'closed'; app.dataset.viewing = '';
     document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
     topTitle.textContent = 'New test'; clearComposer(heroInput); heroSend.disabled = true; heroInput.focus();
   });

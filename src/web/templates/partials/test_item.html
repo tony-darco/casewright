@@ -1,8 +1,8 @@
 {# One saved test in the sidebar library. `oob` set when returned from generate,
    so htmx prepends it to #testList; renders inline (no oob) in the list loop and
    the rename response. #}
-<div class="ritem" id="test-{{ t.id }}" data-test-id="{{ t.id }}"{% if oob %} hx-swap-oob="afterbegin:#testList"{% endif %}>
-  <button type="button" class="ritem-load"><span class="st">&#183;</span><span class="tt">{{ t.name or 'Untitled test' }}</span></button>
+<div class="ritem" id="test-{{ t.id }}" data-test-id="{{ t.id }}" data-status="{{ t.status|default('done', true) }}"{% if oob %} hx-swap-oob="afterbegin:#testList"{% endif %}>
+  <button type="button" class="ritem-load"><span class="st" aria-hidden="true">&#183;</span><span class="tt">{{ t.name or 'Untitled test' }}</span></button>
   <button type="button" class="ritem-rename" title="Rename" aria-label="Rename test">&#9998;</button>
   <form class="ritem-editform"
         hx-post="/app/tests/{{ t.id }}/rename" hx-target="#test-{{ t.id }}" hx-swap="outerHTML">
