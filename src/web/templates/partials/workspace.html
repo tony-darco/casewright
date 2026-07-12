@@ -68,6 +68,15 @@
     </div>
   </div>
 
+  {% if validation and not error and not empty %}
+  <div class="code-validate {{ 'ok' if validation.ok else ('unknown' if validation.ok is none else 'bad') }}"
+    title="{{ validation.detail }}">
+    {% if validation.ok %}&#10003; valid {{ validation.label }}{% if validation.method != 'ast' %} <span class="vmeth">· {{ validation.method }}</span>{% endif %}
+    {% elif validation.ok is none %}&#8211; {{ validation.detail }}
+    {% else %}&#10007; {{ validation.detail }}{% endif %}
+  </div>
+  {% endif %}
+
   {% if endpoints %}
   <div class="run-note" style="padding: 7px 16px; border-top: 1px solid var(--line);">
     grounded in&#160;·&#160;{% for e in endpoints %}{{ e }}{% if not loop.last %} · {% endif %}{% endfor %}

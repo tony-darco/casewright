@@ -10,13 +10,14 @@ import json
 from web import db
 
 
-def create_test(user_id, name, prompt, file_name, code, language, endpoints, devices):
+def create_test(user_id, name, prompt, file_name, code, language, endpoints, devices, validation=None):
     with db.cursor() as conn:
         cur = conn.execute(
             "INSERT INTO tests (user_id, name, prompt, file_name, code, language, "
-            "endpoints_json, devices_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "endpoints_json, devices_json, validation_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (user_id, name.strip(), prompt, file_name, code, language,
-             json.dumps(endpoints or []), json.dumps(devices or [])),
+             json.dumps(endpoints or []), json.dumps(devices or []),
+             json.dumps(validation) if validation else ""),
         )
         test_id = cur.lastrowid
     return {"id": test_id, "name": name.strip()}
