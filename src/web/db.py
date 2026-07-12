@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS tests (
     language       TEXT NOT NULL DEFAULT '',
     endpoints_json TEXT NOT NULL DEFAULT '[]',
     devices_json   TEXT NOT NULL DEFAULT '[]',
+    validation_json TEXT NOT NULL DEFAULT '',
     created_at     TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -112,6 +113,10 @@ def init() -> None:
                 conn.execute(f"ALTER TABLE users ADD COLUMN {name} {ddl}")
         # unique email, but allow many blanks (migrated rows) via a partial index
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email <> ''")
+        # add-column migration: per-test language-validation result (JSON), added later
+        test_cols = {row[1] for row in conn.execute("PRAGMA table_info(tests)").fetchall()}
+        if "validation_json" not in test_cols:
+            conn.execute("ALTER TABLE tests ADD COLUMN validation_json TEXT NOT NULL DEFAULT ''")
         _repair_meraki_data_fk(conn)
         conn.execute("PRAGMA foreign_keys=ON")
 

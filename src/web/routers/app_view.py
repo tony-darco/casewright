@@ -61,7 +61,7 @@ def app_generate(
     if not vm.get("error") and not vm.get("empty"):
         vm["t"] = tests_store.create_test(
             user["id"], _default_name(prompt), vm["prompt"], vm["file_name"],
-            vm["code"], language, vm["endpoints"], dev,
+            vm["code"], language, vm["endpoints"], dev, vm.get("validation"),
         )
         logs_store.record(user["id"], vm["t"]["id"], vm.get("_log"))
     return templates.TemplateResponse(request, "partials/generate_result.html", vm)
@@ -94,7 +94,7 @@ def app_generate_stream(
             if not vm.get("error") and not vm.get("empty"):
                 t = tests_store.create_test(
                     uid, _default_name(prompt), vm["prompt"], vm["file_name"],
-                    vm["code"], language, vm["endpoints"], dev,
+                    vm["code"], language, vm["endpoints"], dev, vm.get("validation"),
                 )
                 logs_store.record(uid, t["id"], vm.get("_log"))
                 vm["t"] = t  # so the rendered panel carries the test id (editable code saves to it)

@@ -26,3 +26,4 @@ class PipelineState(TypedDict, total=False):
     dependencies: str                            # rendered call-order deps for the endpoints
     language: str                                # target language for generation/sanitization
     tests: str                                   # first-pass generated test code (sanitized)
+    validation: dict                             # {ok, method, detail, language} for the code

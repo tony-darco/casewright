@@ -9,7 +9,7 @@ assembles them into a LangGraph:
                             |                    [confidence low & attempts<MAX]
                          rewrite <------------------- decide
                                                       | else
-                                       finalize -> generate -> sanitize -> END
+                            finalize -> generate -> sanitize -> validate -> END
 
 The model is swappable via ProviderConfig; nothing here names Ollama directly.
 Graph state carries a `messages` channel so conversational multi-turn can be
@@ -30,6 +30,7 @@ from rag.graph import languages, prompts
 from rag.graph.fusion import reciprocal_rank_fusion
 from rag.graph.sanitize import sanitize_code
 from rag.graph.state import PipelineState
+from rag.graph.validate import validate_code
 from rag.provider import (
     ProviderConfig,
     build_chat_model,
@@ -304,6 +305,11 @@ class AutoTestLLM:
             language = state.get("language", languages.DEFAULT.name)
             return {"tests": sanitize_code(state.get("tests", ""), language)}
 
+        def validate_node(state):
+            # Check the sanitized code is actually the selected language (warn, don't block).
+            language = state.get("language", languages.DEFAULT.name)
+            return {"validation": validate_code(state.get("tests", ""), language)}
+
         def decide(state) -> Literal["rewrite", "finalize"]:
             if state.get("confidence") == "low" and state.get("attempts", 0) < MAX_ATTEMPTS:
                 return "rewrite"
@@ -319,6 +325,7 @@ class AutoTestLLM:
         if not self.eval_mode:
             builder.add_node("generate", generate_node)
             builder.add_node("sanitize", sanitize_node)
+            builder.add_node("validate", validate_node)
 
         builder.add_edge(START, "generate_queries")
         builder.add_edge("generate_queries", "retrieve")
@@ -333,7 +340,8 @@ class AutoTestLLM:
         else:
             builder.add_edge("dependencies", "generate")
             builder.add_edge("generate", "sanitize")   # deterministic fence/prose strip
-            builder.add_edge("sanitize", END)
+            builder.add_edge("sanitize", "validate")   # check output is the selected language
+            builder.add_edge("validate", END)
 
         return builder.compile()
 

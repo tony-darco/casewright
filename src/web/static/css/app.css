@@ -306,6 +306,14 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
   color: var(--ink-3); background: color-mix(in srgb, var(--surface) 86%, transparent); padding: 2px 8px;
   border-radius: var(--radius); pointer-events: none; }
 .code-status:empty { display: none; }
+
+/* Language validation badge (grayscale per design system — no ✓/✕ color). */
+.code-validate { padding: 7px 16px; border-top: 1px solid var(--line); font-family: var(--font-mono);
+  font-size: var(--t-eyebrow); letter-spacing: 0.02em; color: var(--ink-3); }
+.code-validate.ok { color: var(--ink-2); }
+.code-validate.unknown { color: var(--ink-3); }
+.code-validate.bad { color: var(--ink); background: var(--sunken); font-weight: 500; }
+.code-validate .vmeth { color: var(--ink-3); }
 .runmeta { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--line); color: var(--ink); }
 .runmeta .sep { color: var(--line-2); padding: 0 6px; }
 .running { display: inline-flex; align-items: center; gap: 9px; color: var(--ink-2); }
