@@ -13,11 +13,13 @@ per-user test library (persisted).
 import json
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from web.auth import require_user
 from web.deps import templates
-from web.services import generate, logs_store, provider_store, store, tests_store
+from web.services import generate, gen_registry, logs_store, provider_store, store, tests_store
+
+_SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 router = APIRouter()
 
@@ -67,46 +69,87 @@ def app_generate(
     return templates.TemplateResponse(request, "partials/generate_result.html", vm)
 
 
-@router.post("/app/generate/stream")
-def app_generate_stream(
-    request: Request,
+def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language, meta, prov):
+    """Background worker (#11): run the pipeline, emit stream events onto ``job``, and
+    persist the finished test (or drop the placeholder on failure). Runs off the
+    request, so it survives the client navigating away or disconnecting."""
+    for ev in generate.stream_events(prompt, dev, language, meta, prov):
+        if ev["type"] != "final":
+            job.emit(ev)                       # stage / token / error passthrough
+            continue
+        vm = ev["vm"]
+        vm["devices"] = devices_raw            # echoed to the panel so regenerate reuses grounding
+        ok = not vm.get("error") and not vm.get("empty")
+        if ok:
+            tests_store.finish_test(uid, test_id, vm["file_name"], vm["code"],
+                                    vm["endpoints"], vm.get("validation"), "done")
+            logs_store.record(uid, test_id, vm.get("_log"))
+            vm["t"] = {"id": test_id, "name": name}
+            item = templates.get_template("partials/test_item.html").render(
+                {"t": {"id": test_id, "name": name, "status": "done"}})
+        else:
+            tests_store.delete_test(uid, test_id)   # failed/empty: don't leave a placeholder
+            item = ""
+        panel = templates.get_template("partials/workspace.html").render(vm)
+        job.emit({"type": "done", "panel_html": panel, "item_html": item,
+                  "status": "done" if ok else "error", "test_id": test_id})
+
+
+@router.post("/app/generate/start")
+def app_generate_start(
     prompt: str = Form(""),
     devices: str = Form(""),
     language: str = Form("py"),
     user: dict = Depends(require_user),
 ):
-    """Live generation over SSE: stage-progress + token-by-token code. On the final
-    event, persist the test and stream a ``done`` with the rendered panel + sidebar
-    item. Sync def so the blocking pipeline stream runs in Starlette's threadpool."""
+    """Kick off a generation in the background and return the new (generating) test id
+    plus its sidebar item. The client then attaches to ``/app/generate/{id}/stream``."""
     dev = generate.parse_devices(devices)
     uid = user["id"]
+    name = _default_name(prompt)
     meta = _gen_meta(uid, dev)
     prov = provider_store.overrides(uid)
+    t = tests_store.create_generating(uid, name, prompt, language, dev)
+    test_id = t["id"]
 
-    def event_stream():
-        for ev in generate.stream_events(prompt, dev, language, meta, prov):
-            if ev["type"] != "final":
-                yield _sse(ev)
-                continue
-            vm = ev["vm"]
-            vm["devices"] = devices  # raw JSON, echoed to the panel for regenerate (see /app/generate)
-            t = None
-            if not vm.get("error") and not vm.get("empty"):
-                t = tests_store.create_test(
-                    uid, _default_name(prompt), vm["prompt"], vm["file_name"],
-                    vm["code"], language, vm["endpoints"], dev, vm.get("validation"),
-                )
-                logs_store.record(uid, t["id"], vm.get("_log"))
-                vm["t"] = t  # so the rendered panel carries the test id (editable code saves to it)
+    gen_registry.start(test_id, uid, lambda job: _run_generation(
+        job, uid, test_id, name, prompt, dev, devices, language, meta, prov))
+
+    item = templates.get_template("partials/test_item.html").render({"t": t})
+    return JSONResponse({"test_id": test_id, "item_html": item})
+
+
+@router.get("/app/generate/{test_id}/stream")
+def app_generate_attach(test_id: int, user: dict = Depends(require_user)):
+    """Attach to a running generation (replay so far + live), or serve the persisted
+    result if the job already finished. Lets a returning client see progress (#11)."""
+    uid = user["id"]
+    job = gen_registry.get(test_id, uid)
+    if job is not None:
+        return StreamingResponse((_sse(ev) for ev in job.subscribe()),
+                                 media_type="text/event-stream", headers=_SSE_HEADERS)
+
+    test = tests_store.get_test(uid, test_id)
+
+    def fallback():
+        if not test:
+            yield _sse({"type": "error", "message": "Generation not found."})
+            panel = "<div class='panel'><div class='panel-body'><div class='gen-error'>" \
+                    "<b>&#10007; Not found.</b></div></div></div>"
+            yield _sse({"type": "done", "panel_html": panel, "status": "error", "test_id": test_id})
+        elif test.get("status") == "generating":
+            # job gone but row still generating -> the server was restarted mid-run
+            msg = "This generation was interrupted (the server restarted). Regenerate to try again."
+            yield _sse({"type": "error", "message": msg})
+            panel = "<div class='panel'><div class='panel-body'><div class='gen-error'>" \
+                    f"<b>&#10007; Generation interrupted.</b><div class='muted'>{msg}</div></div></div></div>"
+            yield _sse({"type": "done", "panel_html": panel, "status": "error", "test_id": test_id})
+        else:
+            vm = generate.view_model_from_test(test)
             panel = templates.get_template("partials/workspace.html").render(vm)
-            item = templates.get_template("partials/test_item.html").render({"t": t}) if t else ""
-            yield _sse({"type": "done", "panel_html": panel, "item_html": item})
+            yield _sse({"type": "done", "panel_html": panel, "status": test.get("status"), "test_id": test_id})
 
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
+    return StreamingResponse(fallback(), media_type="text/event-stream", headers=_SSE_HEADERS)
 
 
 @router.get("/app/tests/{test_id}", response_class=HTMLResponse)

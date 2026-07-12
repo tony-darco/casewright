@@ -184,6 +184,10 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
   padding: 8px var(--s2); color: inherit; font-size: var(--t-micro); }
 .ritem .st { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); flex-shrink: 0; width: 12px; text-align: center; }
 .ritem .tt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+/* a still-generating test (#11): the middot becomes a pulsing dot */
+.ritem[data-status="generating"] .st { color: transparent; position: relative; }
+.ritem[data-status="generating"] .st::before { content: ''; position: absolute; inset: 0; margin: auto;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--ink-2); animation: cw-pulse 1.2s ease-in-out infinite; }
 .ritem-rename { flex-shrink: 0; opacity: 0; color: var(--ink-3); font-family: var(--font-mono); font-size: 12px;
   padding: 4px 7px; margin-right: 4px; border-radius: var(--radius); transition: opacity .12s, color .12s, background .12s; }
 .ritem:hover .ritem-rename { opacity: 1; }
