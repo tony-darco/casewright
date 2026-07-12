@@ -24,4 +24,5 @@ class PipelineState(TypedDict, total=False):
     endpoints: list[str]                         # "METHOD path" ids retrieved (the test targets)
     dependency_endpoints: list[str]              # upstream producers from the graph (prerequisites)
     dependencies: str                            # rendered call-order deps for the endpoints
-    tests: str                                   # first-pass generated test code
+    language: str                                # target language for generation/sanitization
+    tests: str                                   # first-pass generated test code (sanitized)

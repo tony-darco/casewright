@@ -90,31 +90,8 @@ def _full_prompt(prompt, devices, meta):
     return "\n\n".join(parts)
 
 
-_FENCE_RE = re.compile(r"```[ \t]*([\w+-]*)[ \t]*\r?\n(.*?)```", re.DOTALL)
-_CODE_START_RE = re.compile(r"^\s*(import |from |def |class |@|async |BASE_URL|BASE_URL\s*=)")
-
-
-def clean_code(text):
-    """Strip LLM fluff so only runnable Python reaches the user (issue #9).
-
-    Prefers fenced code blocks (```python ... ```); if the model wrapped its answer
-    in prose + a fence, we keep the fence body. With no fence, we drop any leading
-    prose before the first obvious code line. Valid Python (including real comments)
-    is left untouched.
-    """
-    if not text:
-        return ""
-    blocks = _FENCE_RE.findall(text)
-    if blocks:
-        py = [body for lang, body in blocks if lang.lower() in ("python", "py", "")]
-        chosen = py or [body for _, body in blocks]
-        return "\n\n".join(b.strip("\n") for b in chosen).strip()
-    lines = text.strip("\n").splitlines()
-    for i, ln in enumerate(lines):
-        if _CODE_START_RE.match(ln):
-            return "\n".join(lines[i:]).strip()
-    return text.strip()
-
+# The generated code is stripped of fences/prose deterministically inside the graph
+# (rag.graph.sanitize, the `sanitize` node), so this adapter trusts state["tests"].
 
 # httpx/requests/ollama connection failures stringify inconsistently; match on the
 # common shapes so the user gets a cause they can act on, not a stack-trace fragment.
@@ -178,7 +155,7 @@ def build_view_model(prompt, devices, language="py", meta=None):
         return {"error": error, "prompt": prompt, "_log": log.entries}
 
     try:
-        state = pipeline.run(_full_prompt(prompt, devices, meta))
+        state = pipeline.run(_full_prompt(prompt, devices, meta), language=language)
     except Exception as exc:  # noqa: BLE001 — surfaced inline, not a 500
         msg = humanize_error(exc)
         log.add("error", msg, "error")
@@ -187,7 +164,7 @@ def build_view_model(prompt, devices, language="py", meta=None):
 
     endpoints = state.get("endpoints") or []
     log.add("retrieve", f"grounded in {len(endpoints)} endpoint(s): {', '.join(endpoints) or '(none)'}")
-    code = clean_code((state.get("tests") or "").rstrip("\n"))
+    code = (state.get("tests") or "").rstrip("\n")   # already sanitized by the graph
     log.add("generate", f"generated {code.count(chr(10)) + 1 if code else 0} line(s)"
             if code else "no code generated (retriever found nothing to ground)",
             "info" if code else "error")
@@ -230,6 +207,7 @@ STAGE_LABELS = {
     "finalize": "Selecting endpoints…",
     "dependencies": "Resolving call-order dependencies…",
     "generate": "Writing the test…",
+    "sanitize": "Cleaning up the generated code…",
 }
 
 
@@ -256,7 +234,7 @@ def stream_events(prompt, devices, language="py", meta=None):
 
     final = {}
     try:
-        for kind, payload in pipeline.stream_run(_full_prompt(prompt, devices, meta)):
+        for kind, payload in pipeline.stream_run(_full_prompt(prompt, devices, meta), language=language):
             if kind == "stage":
                 log.add(payload, STAGE_LABELS.get(payload, payload))  # pipeline dedups the generate stage
                 label = STAGE_LABELS.get(payload)
@@ -276,7 +254,7 @@ def stream_events(prompt, devices, language="py", meta=None):
 
     endpoints = final.get("endpoints") or []
     log.add("retrieve", f"grounded in {len(endpoints)} endpoint(s): {', '.join(endpoints) or '(none)'}")
-    code = clean_code((final.get("tests") or "").rstrip("\n"))
+    code = (final.get("tests") or "").rstrip("\n")   # already sanitized by the graph
     log.add("generate", f"generated {code.count(chr(10)) + 1 if code else 0} line(s)"
             if code else "no code generated (retriever found nothing to ground)",
             "info" if code else "error")
