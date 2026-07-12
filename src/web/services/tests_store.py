@@ -42,6 +42,18 @@ def get_test(user_id, test_id):
     return dict(row) if row else None
 
 
+def update_code(user_id, test_id, code):
+    """Persist the user's edits to a test's code. Scoped to the owner; returns True
+    if a row was updated (the test exists and belongs to the user)."""
+    with db.cursor() as conn:
+        cur = conn.execute(
+            "UPDATE tests SET code = ?, updated_at = datetime('now') "
+            "WHERE id = ? AND user_id = ?",
+            (code, test_id, user_id),
+        )
+        return cur.rowcount > 0
+
+
 def rename_test(user_id, test_id, name):
     with db.cursor() as conn:
         conn.execute(

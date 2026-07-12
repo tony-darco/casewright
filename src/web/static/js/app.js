@@ -90,7 +90,8 @@
   }
 
   // Live generation: stream stage-progress + tokens over SSE (fetch stream).
-  function generate(text, devices) {
+  // `language` is the per-test choice; it falls back to the Settings default.
+  function generate(text, devices, language) {
     app.dataset.view = 'work';
     topTitle.innerHTML = '<b>' + esc(trunc(text, 60)) + '</b>';
     var le = document.getElementById('libEmpty'); if (le) le.hidden = true;
@@ -99,7 +100,7 @@
     var codeEl = workspace.querySelector('#streamCode');
     var body = new URLSearchParams({
       prompt: text, devices: JSON.stringify(devices || []),
-      language: localStorage.getItem('cw.language') || 'py'
+      language: language || localStorage.getItem('cw.language') || 'py'
     });
     fetch('/app/generate/stream', {
       method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString()
@@ -125,14 +126,16 @@
     }).catch(streamError);
   }
 
+  function langOf(id) { var s = document.getElementById(id); return s ? s.value : null; }
   function fromHero(text, devices) {
+    var lang = langOf('heroLang');
     emptyView.classList.add('leaving');
     setTimeout(function () {
-      generate(text, devices); emptyView.classList.remove('leaving');
+      generate(text, devices, lang); emptyView.classList.remove('leaving');
       clearComposer(heroInput); heroSend.disabled = true; dockInput.focus();
     }, 200);
   }
-  function fromDock(text, devices) { generate(text, devices); clearComposer(dockInput); dockSend.disabled = true; }
+  function fromDock(text, devices) { generate(text, devices, langOf('dockLang')); clearComposer(dockInput); dockSend.disabled = true; }
 
   // Load a saved test back into the workspace (GET, not a re-generate).
   function loadTest(item) {
@@ -160,7 +163,8 @@
     var ta = panel.querySelector('#promptEdit'); if (!ta) return;
     var text = ta.value.trim(); if (!text) { ta.focus(); return; }
     var devices = []; try { devices = JSON.parse(panel.dataset.devices || '[]'); } catch (e) { devices = []; }
-    generate(text, devices);
+    var langSel = panel.querySelector('#regenLang');
+    generate(text, devices, langSel ? langSel.value : null);
   }
   function downloadFile() {
     var codeEl = workspace.querySelector('#codeEl'); if (!codeEl) return;
@@ -176,6 +180,45 @@
     if (navigator.clipboard) navigator.clipboard.writeText(codeEl.textContent);
     if (flashBtn) { var o = flashBtn.innerHTML; flashBtn.innerHTML = '&#10003;'; setTimeout(function () { flashBtn.innerHTML = o; }, 1200); }
   }
+  /* ---------------- editable code (Code tab): gutter sync + autosave ---------------- */
+  function syncGutter(codeEl) {
+    var panel = codeEl.closest('.panel'); var gutter = panel && panel.querySelector('.gutter');
+    if (!gutter) return;
+    var n = codeEl.textContent.split('\n').length, lines = [];
+    for (var i = 1; i <= n; i++) lines.push(i);
+    gutter.textContent = lines.join('\n');
+  }
+  function flashStatus(panel, msg, sticky) {
+    var s = panel.querySelector('#codeStatus'); if (!s) return;
+    s.textContent = msg;
+    if (!sticky) setTimeout(function () { if (s.textContent === msg) s.textContent = ''; }, 1500);
+  }
+  function saveCode(codeEl) {
+    var panel = codeEl.closest('.panel'); if (!panel) return;
+    var id = panel.dataset.testId; if (!id) return;              // error/empty/unsaved: nothing to save to
+    var code = codeEl.textContent;
+    if (code === codeEl.dataset.base) return;                    // unchanged since focus
+    flashStatus(panel, 'Saving…', true);
+    fetch('/app/tests/' + id + '/code', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ code: code }).toString()
+    }).then(function (r) {
+      if (r.ok) { codeEl.dataset.base = code; flashStatus(panel, 'Saved'); }
+      else flashStatus(panel, 'Save failed', true);
+    }).catch(function () { flashStatus(panel, 'Save failed', true); });
+  }
+  // Delegated (survives panel swaps): track a baseline on focus, sync line numbers on
+  // input, and autosave on blur when the code changed.
+  workspace.addEventListener('focusin', function (e) {
+    var codeEl = e.target.closest('#codeEl'); if (codeEl) codeEl.dataset.base = codeEl.textContent;
+  });
+  workspace.addEventListener('input', function (e) {
+    var codeEl = e.target.closest('#codeEl'); if (codeEl) syncGutter(codeEl);
+  });
+  workspace.addEventListener('focusout', function (e) {
+    var codeEl = e.target.closest('#codeEl'); if (codeEl) saveCode(codeEl);
+  });
+
   workspace.addEventListener('click', function (e) {
     var tab = e.target.closest('.tab'); if (tab) { switchTab(tab.dataset.tab); return; }
     if (e.target.closest('#regenBtn')) { regenerate(); return; }
@@ -348,6 +391,13 @@
     send.addEventListener('click', function () { var t = textOf(input); if (t) submit(t, collectDevices(input)); });
   }
   document.addEventListener('click', function (e) { if (!mentionMenu.contains(e.target)) closeMention(); }, true);
+
+  // Composer language pickers default to the Settings preferred language (per-test
+  // choices override it but never change this default).
+  (function initComposerLang() {
+    var lang = localStorage.getItem('cw.language') || 'py';
+    ['heroLang', 'dockLang'].forEach(function (id) { var s = document.getElementById(id); if (s) s.value = lang; });
+  })();
 
   wireComposer(heroInput, heroSend, fromHero);
   wireComposer(dockInput, dockSend, fromDock);

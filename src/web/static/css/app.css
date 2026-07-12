@@ -282,6 +282,30 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
   background: var(--ink-solid); color: var(--paper); font-size: var(--t-micro); font-weight: 500; transition: background .15s; }
 .prompt-regen:hover { background: #33342f; }
 .prompt-regen .rico { font-size: 13px; }
+
+/* Output-language pickers (composer + Prompt tab). Native select, minimally styled. */
+.lang-field { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono);
+  font-size: var(--t-eyebrow); letter-spacing: 0.03em; color: var(--ink-3); }
+.lang-select { height: 30px; padding: 0 26px 0 10px; border-radius: var(--radius); background: var(--surface);
+  border: 1px solid var(--line-2); color: var(--ink); font-family: var(--font-mono); font-size: var(--t-micro);
+  cursor: pointer; appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M1 3l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.4'/></svg>");
+  background-repeat: no-repeat; background-position: right 9px center; }
+.lang-select:hover { border-color: var(--ink-3); }
+.lang-select:focus-visible { outline: 2px solid var(--ink-solid); outline-offset: 1px; }
+/* the Prompt-tab picker sits between "start over" (pushed left) and Regenerate */
+.prompt-actions .lang-field { margin-left: 0; }
+/* under the composer input */
+.composer-opts { display: flex; justify-content: flex-end; margin-top: 10px; }
+.empty .composer-opts { margin-top: 12px; margin-bottom: 4px; }
+
+/* Editable Code tab */
+.code[contenteditable] { outline: none; caret-color: var(--ink); }
+.code[contenteditable]:focus { background: color-mix(in srgb, var(--sunken) 40%, transparent); }
+.code-status { position: absolute; right: 14px; bottom: 10px; font-family: var(--font-mono); font-size: 11px;
+  color: var(--ink-3); background: color-mix(in srgb, var(--surface) 86%, transparent); padding: 2px 8px;
+  border-radius: var(--radius); pointer-events: none; }
+.code-status:empty { display: none; }
 .runmeta { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--line); color: var(--ink); }
 .runmeta .sep { color: var(--line-2); padding: 0 6px; }
 .running { display: inline-flex; align-items: center; gap: 9px; color: var(--ink-2); }

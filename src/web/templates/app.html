@@ -44,6 +44,9 @@
             data-placeholder="Describe a test — an endpoint, a feature, an edge case… (type @ to reference a device)" aria-label="Describe a test"></div>
           <button class="send" id="heroSend" disabled aria-label="Generate test">&#8593;</button>
         </div>
+        <div class="composer-opts">
+          <label class="lang-field">Language {{ ui.lang_select('heroLang') }}</label>
+        </div>
         <div class="hint">enter to generate · shift + enter for a new line</div>
       </div>
 
@@ -57,6 +60,9 @@
             <div class="cetext" id="dockInput" contenteditable="true" role="textbox" aria-multiline="true"
               data-placeholder="Refine this test, or describe another… (type @ to reference a device)" aria-label="Refine or add a test"></div>
             <button class="send" id="dockSend" disabled aria-label="Generate test">&#8593;</button>
+          </div>
+          <div class="composer-opts">
+            <label class="lang-field">Language {{ ui.lang_select('dockLang') }}</label>
           </div>
           <div class="hint2">{{ WORDMARK }} can be wrong — generated tests are for review, run in a sandbox</div>
         </div>

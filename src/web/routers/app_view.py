@@ -95,6 +95,7 @@ def app_generate_stream(
                     vm["code"], language, vm["endpoints"], dev,
                 )
                 logs_store.record(uid, t["id"], vm.get("_log"))
+                vm["t"] = t  # so the rendered panel carries the test id (editable code saves to it)
             panel = templates.get_template("partials/workspace.html").render(vm)
             item = templates.get_template("partials/test_item.html").render({"t": t}) if t else ""
             yield _sse({"type": "done", "panel_html": panel, "item_html": item})
@@ -114,6 +115,13 @@ def load_test(request: Request, test_id: int, user: dict = Depends(require_user)
     return templates.TemplateResponse(
         request, "partials/workspace.html", generate.view_model_from_test(test)
     )
+
+
+@router.post("/app/tests/{test_id}/code")
+def save_test_code(test_id: int, code: str = Form(""), user: dict = Depends(require_user)):
+    """Persist edits made in the Code tab. 204 on success, 404 if not the user's test."""
+    ok = tests_store.update_code(user["id"], test_id, code)
+    return HTMLResponse("", status_code=204 if ok else 404)
 
 
 @router.post("/app/tests/{test_id}/rename", response_class=HTMLResponse)
