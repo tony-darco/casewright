@@ -425,6 +425,13 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .cat-provider .prov-temp { max-width: 120px; }
 .prov-row { display: flex; gap: var(--s3); }
 .prov-row .set-input { flex: 1; width: auto; }
+/* Reserve the status line's height up front so a connection check doesn't shift the
+   fields below (Chat model, Embedding model) — with a native <input list=...>
+   suggestion popup open on one of them, a same-tick layout shift can leave the
+   popup rendered at its pre-shift position instead of following the field.
+   padding (not the child's margin-top) reserves the space so nothing collapses. */
+#providerCheck { min-height: 24px; padding-top: var(--s2); }
+#providerCheck > .prov-status, #providerCheck > .set-error { margin-top: 0; }
 .prov-status { font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); margin-top: var(--s2); }
 .prov-status .ok, .prov-saved .ok { color: var(--ink); font-family: var(--font-mono); }
 .prov-confirm { max-width: 420px; margin-top: var(--s4); padding: var(--s4);
