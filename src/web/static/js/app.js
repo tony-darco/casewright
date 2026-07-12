@@ -73,7 +73,15 @@
 
   function handleStreamEvent(ev, stageEl, codeEl) {
     if (ev.type === 'stage') { if (stageEl) stageEl.textContent = ev.label; }
-    else if (ev.type === 'token') { if (codeEl) { codeEl.textContent += ev.text; codeEl.scrollTop = codeEl.scrollHeight; } }
+    else if (ev.type === 'token') {
+      if (codeEl) {
+        // Only stick to the bottom if the user is already there; if they scrolled up
+        // to read, don't yank them back down (#13).
+        var atBottom = (codeEl.scrollHeight - codeEl.scrollTop - codeEl.clientHeight) <= 24;
+        codeEl.textContent += ev.text;
+        if (atBottom) codeEl.scrollTop = codeEl.scrollHeight;
+      }
+    }
     else if (ev.type === 'error') { if (stageEl) stageEl.textContent = ev.message; }  // final 'done' renders the error panel
     else if (ev.type === 'done') {
       workspace.innerHTML = ev.panel_html;   // final panel, OR the error/empty state
@@ -398,6 +406,10 @@
     var lang = localStorage.getItem('cw.language') || 'py';
     ['heroLang', 'dockLang'].forEach(function (id) { var s = document.getElementById(id); if (s) s.value = lang; });
   })();
+
+  // Code-view text-wrap preference (Settings > General, #13). Set on the app root so
+  // it covers both the live stream view and every swapped-in code panel.
+  app.dataset.wrap = localStorage.getItem('cw.wrap') === 'on' ? 'on' : 'off';
 
   wireComposer(heroInput, heroSend, fromHero);
   wireComposer(dockInput, dockSend, fromDock);
