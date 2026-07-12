@@ -255,10 +255,19 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .panel-body { flex: 1; min-height: 0; position: relative; }
 .pane { position: absolute; inset: 0; display: none; overflow: auto; }
 .pane.show { display: block; }
-.codearea { display: flex; min-height: 100%; background: var(--sunken); font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.7; }
+/* width:max-content + min-width:100% so the sunken background spans the full
+   horizontal scroll width — long lines no longer reveal a white gap (#13). */
+.codearea { display: flex; min-height: 100%; width: max-content; min-width: 100%;
+  background: var(--sunken); font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.7; }
 .gutter { flex-shrink: 0; text-align: right; color: var(--ink-3); padding: var(--s4) 12px var(--s4) var(--s4); white-space: pre; user-select: none; border-right: 1px solid var(--line); }
 .code { margin: 0; padding: var(--s4) var(--s5); white-space: pre; color: var(--ink); flex: 1; }
 .code .cmt { color: var(--ink-3); } .code .kw { color: var(--ink); font-weight: 500; } .code .str { color: var(--ink-2); }
+/* Text-wrap preference (Settings > General, #13): wrap long lines instead of
+   scrolling horizontally. Hide the gutter in wrap mode (its line numbers can't line
+   up with wrapped rows). Applies to the Code tab and the live stream view. */
+#appRoot[data-wrap="on"] .code, #appRoot[data-wrap="on"] .stream-code { white-space: pre-wrap; overflow-wrap: anywhere; }
+#appRoot[data-wrap="on"] .codearea { width: auto; }
+#appRoot[data-wrap="on"] .gutter { display: none; }
 .outwrap { padding: var(--s5); font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.8; }
 .out-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s3);
   color: var(--ink-3); font-family: var(--font-mono); font-size: var(--t-micro); }
@@ -452,6 +461,10 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .gen-field { max-width: 420px; margin-top: var(--s5); }
 .gen-field label { display: block; font-size: var(--t-micro); font-weight: 500; margin-bottom: var(--s2); }
 .gen-note { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: var(--s3); }
+.toggle-field { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); }
+.toggle-field .toggle-text label { margin-bottom: 2px; }
+.toggle-field .gen-note { margin-top: 0; }
+.toggle-check { flex-shrink: 0; width: 18px; height: 18px; accent-color: var(--ink-solid); cursor: pointer; }
 .set-wrap { max-width: 860px; margin: 0 auto; width: 100%; padding: var(--s8) clamp(20px, 5vw, 48px) var(--s9); }
 .set-head h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 400; letter-spacing: -0.02em; margin: var(--s3) 0; }
 .set-head p { color: var(--ink-2); font-size: var(--t-body); line-height: 1.6; max-width: 58ch; }

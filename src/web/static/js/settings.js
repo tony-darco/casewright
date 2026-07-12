@@ -38,6 +38,15 @@
     });
   }
 
+  /* ---- code-view text-wrap toggle (persists to localStorage; read by the app) ---- */
+  var wrapToggle = document.getElementById('wrapToggle');
+  if (wrapToggle) {
+    wrapToggle.checked = localStorage.getItem('cw.wrap') === 'on';
+    wrapToggle.addEventListener('change', function () {
+      localStorage.setItem('cw.wrap', wrapToggle.checked ? 'on' : 'off');
+    });
+  }
+
   /* ---- org "Save" enable/disable ---- */
   var orgInput = document.getElementById('orgInput'), orgSave = document.getElementById('orgSaveBtn');
   function orgToggle() { if (orgSave) orgSave.disabled = !orgInput || orgInput.value.trim() === ''; }
