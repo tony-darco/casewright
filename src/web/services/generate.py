@@ -216,6 +216,7 @@ def view_model_from_test(test):
     endpoints = parse_devices(test.get("endpoints_json"))  # same forgiving JSON parse
     vm = _workspace_vm(test.get("prompt", ""), test.get("code") or "",
                        test.get("file_name") or "", endpoints)
+    vm["devices"] = test.get("devices_json") or "[]"  # raw JSON for regenerate to reuse
     vm["t"] = {"id": test["id"], "name": test["name"]}
     return vm
 
