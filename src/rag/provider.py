@@ -96,3 +96,38 @@ def build_vector_store(cfg: ProviderConfig, embeddings=None):
         embedding_function=embeddings,
         persist_directory=str(cfg.persist_dir),
     )
+
+
+# Substrings that mark a transport-level failure once wrapped in a plain exception
+# (some client layers re-raise as a generic error carrying the original message).
+_CONN_HINTS = (
+    "connection refused", "max retries", "newconnectionerror", "failed to establish",
+    "connect call failed", "all connection attempts failed", "name resolution",
+    "timed out", "read timed out", "connection reset", "connection aborted",
+)
+
+
+def is_connection_error(exc: BaseException) -> bool:
+    """True if ``exc`` (or anything in its cause/context chain) is the model backend
+    being unreachable — as opposed to a bad or unparseable model *response*.
+
+    The retrieval nodes deliberately swallow the latter (they have graceful
+    fallbacks); a down backend must NOT be swallowed, or an outage surfaces as a
+    misleading "nothing retrieved" instead of "the provider is down".
+    """
+    try:
+        import httpx
+        transport = (httpx.TransportError,)
+    except Exception:  # httpx should always be present, but never fail the check on it
+        transport = ()
+
+    seen = set()
+    cur = exc
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        if isinstance(cur, (ConnectionError, TimeoutError, *transport)):
+            return True
+        if any(hint in str(cur).lower() for hint in _CONN_HINTS):
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
