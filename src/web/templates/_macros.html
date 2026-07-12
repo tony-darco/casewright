@@ -8,3 +8,12 @@
 {% macro brand(href='/') %}
 <a class="brand" href="{{ href }}">{{ mark() }}{{ WORDMARK }}</a>
 {% endmacro %}
+
+{# Output-language picker. Options mirror Settings (G12); keep them in sync.
+   `selected` preselects a language (a test's own language, or the Settings default). #}
+{% macro lang_select(id, selected='py') %}
+{%- set langs = [('py', 'Python'), ('ts', 'TypeScript'), ('java', 'Java'), ('go', 'Go'), ('csharp', 'C#')] -%}
+<select class="lang-select" id="{{ id }}" aria-label="Test language">
+  {%- for code, label in langs %}<option value="{{ code }}"{% if code == selected %} selected{% endif %}>{{ label }}</option>{% endfor %}
+</select>
+{% endmacro %}

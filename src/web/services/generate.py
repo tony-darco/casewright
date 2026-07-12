@@ -169,12 +169,12 @@ def build_view_model(prompt, devices, language="py", meta=None):
             if code else "no code generated (retriever found nothing to ground)",
             "info" if code else "error")
 
-    vm = _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints)
+    vm = _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints, language)
     vm["_log"] = log.entries
     return vm
 
 
-def _workspace_vm(prompt, code, file_name, endpoints):
+def _workspace_vm(prompt, code, file_name, endpoints, language="py"):
     line_count = code.count("\n") + 1 if code else 0
     return {
         "prompt": prompt,
@@ -184,6 +184,7 @@ def _workspace_vm(prompt, code, file_name, endpoints):
         "line_count": line_count,
         "file_name": file_name,
         "endpoints": endpoints,
+        "language": language,   # the test's language — preselects the Prompt-tab selector
         "empty": not code,
     }
 
@@ -192,7 +193,7 @@ def view_model_from_test(test):
     """Rebuild the workspace view model from a stored test row (for loading it back)."""
     endpoints = parse_devices(test.get("endpoints_json"))  # same forgiving JSON parse
     vm = _workspace_vm(test.get("prompt", ""), test.get("code") or "",
-                       test.get("file_name") or "", endpoints)
+                       test.get("file_name") or "", endpoints, test.get("language") or "py")
     vm["devices"] = test.get("devices_json") or "[]"  # raw JSON for regenerate to reuse
     vm["t"] = {"id": test["id"], "name": test["name"]}
     return vm
@@ -260,6 +261,6 @@ def stream_events(prompt, devices, language="py", meta=None):
             if code else "no code generated (retriever found nothing to ground)",
             "info" if code else "error")
 
-    vm = _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints)
+    vm = _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints, language)
     vm["_log"] = log.entries
     yield {"type": "final", "vm": vm}
