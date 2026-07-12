@@ -1,0 +1,12 @@
+{# Ollama connection-check result — swapped into #providerCheck. Carries the
+   datalists the chat/embedding model inputs reference, so a successful check
+   fills their suggestions (typing a name not listed is still allowed — the save
+   flow offers to pull it). Included with no context for the initial empty state. #}
+<datalist id="chatModels">{% for m in models | default([]) %}<option value="{{ m }}">{% endfor %}</datalist>
+<datalist id="embedModels">{% for m in models | default([]) %}<option value="{{ m }}">{% endfor %}</datalist>
+{% if ok %}
+  <div class="prov-status"><span class="ok">&#10003;</span> Connected — Ollama {{ version }} ·
+    {{ models | length }} model{{ '' if models | length == 1 else 's' }} installed</div>
+{% elif error %}
+  <div class="set-error" style="display:block"><b>&#10007;</b> {{ error }}</div>
+{% endif %}

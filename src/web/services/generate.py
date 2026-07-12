@@ -138,8 +138,9 @@ def _filename(prompt, endpoints, language):
     return f"{slug}.{ext}"
 
 
-def build_view_model(prompt, devices, language="py", meta=None):
+def build_view_model(prompt, devices, language="py", meta=None, overrides=None):
     """Run the pipeline for ``prompt`` and return a template context dict.
+    ``overrides`` are the user's provider settings (ProviderConfig attributes).
 
     Never raises: a build/run failure comes back as ``{"error": ...}`` (with the cause
     humanized) so the workspace partial can show an inline message and keep the app
@@ -149,7 +150,7 @@ def build_view_model(prompt, devices, language="py", meta=None):
     log = _GenLog()
     log.add("start", f"prompt={prompt!r}, devices={len(devices or [])}")
 
-    pipeline, error = get_pipeline()
+    pipeline, error = get_pipeline(overrides)
     if error is not None:
         log.add("error", f"pipeline unavailable: {error}", "error")
         return {"error": error, "prompt": prompt, "_log": log.entries}
@@ -213,7 +214,7 @@ STAGE_LABELS = {
 }
 
 
-def stream_events(prompt, devices, language="py", meta=None):
+def stream_events(prompt, devices, language="py", meta=None, overrides=None):
     """Yield streaming events for the SSE endpoint:
 
         {"type": "stage", "node": ..., "label": ...}   -- progress
@@ -228,7 +229,7 @@ def stream_events(prompt, devices, language="py", meta=None):
     log = _GenLog()
     log.add("start", f"prompt={prompt!r}, devices={len(devices or [])}")
 
-    pipeline, error = get_pipeline()
+    pipeline, error = get_pipeline(overrides)
     if error is not None:
         log.add("error", f"pipeline unavailable: {error}", "error")
         yield {"type": "final", "vm": {"error": error, "prompt": prompt, "_log": log.entries}}

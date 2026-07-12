@@ -12,8 +12,8 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from web.auth import require_user
-from web.deps import templates
-from web.services import logs_store, meraki, store
+from web.deps import forget_failed_pipelines, templates
+from web.services import logs_store, meraki, ollama_admin, provider_store, store
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,7 @@ def settings_home(request: Request, user: dict = Depends(require_user)):
     ctx = _apikey_ctx(user["id"])
     ctx["orgs"] = store.list_orgs(user["id"])  # this user's persisted orgs/networks/devices
     ctx["account"] = user  # id, username, email, first_name, last_name
+    ctx["provider"] = provider_store.get_settings(user["id"])  # model-provider overrides
     return templates.TemplateResponse(request, "settings.html", ctx)
 
 
@@ -75,6 +76,75 @@ def set_apikey(request: Request, apiKey: str = Form(""), user: dict = Depends(re
 def remove_apikey(request: Request, user: dict = Depends(require_user)):
     store.clear_meraki_key(user["id"])
     return _apikey_response(request, user["id"])
+
+
+# --- model provider (Settings → Model provider) -----------------------------------
+
+def _provider_result(request: Request, **ctx):
+    return templates.TemplateResponse(request, "partials/provider_result.html", ctx)
+
+
+@router.post("/settings/provider/check", response_class=HTMLResponse)
+def check_provider(request: Request, ollamaUrl: str = Form(""), user: dict = Depends(require_user)):
+    """Validate the Ollama server is reachable; on success, list its installed
+    models (the partial carries the datalists that feed the model inputs)."""
+    try:
+        url = ollama_admin.normalize_url(ollamaUrl)
+        version = ollama_admin.check_server(url)
+        models = ollama_admin.list_models(url)
+    except ollama_admin.OllamaError as exc:
+        return templates.TemplateResponse(request, "partials/provider_check.html", {"error": str(exc)})
+    return templates.TemplateResponse(
+        request, "partials/provider_check.html", {"ok": True, "version": version, "models": models}
+    )
+
+
+@router.post("/settings/provider", response_class=HTMLResponse)
+def save_provider(
+    request: Request,
+    provider: str = Form("ollama"),
+    ollamaUrl: str = Form(""),
+    chatModel: str = Form(""),
+    embedModel: str = Form(""),
+    temperature: str = Form(""),
+    pull: str = Form(""),
+    user: dict = Depends(require_user),
+):
+    """Validate and save the user's provider settings. If an entered model isn't
+    installed on the server, come back with a confirm prompt instead of pulling
+    unasked; the prompt's button re-posts this same form with ``pull=1``."""
+    if provider != "ollama":
+        return _provider_result(request, error=f"Unsupported provider: {provider!r}.")
+    chat_model, embed_model = chatModel.strip(), embedModel.strip()
+
+    temp = None
+    if temperature.strip():
+        try:
+            temp = float(temperature)
+        except ValueError:
+            return _provider_result(request, error="Temperature must be a number (e.g. 0.2).")
+        if not 0.0 <= temp <= 2.0:
+            return _provider_result(request, error="Temperature must be between 0 and 2.")
+
+    try:
+        url = ollama_admin.normalize_url(ollamaUrl)
+        ollama_admin.check_server(url)  # the server must be up before we persist anything
+        missing = [m for m in dict.fromkeys((chat_model, embed_model))
+                   if m and not ollama_admin.model_exists(url, m)]
+    except ollama_admin.OllamaError as exc:
+        return _provider_result(request, error=str(exc))
+
+    if missing and not pull:
+        return _provider_result(request, missing=missing)
+    for name in missing:
+        try:
+            ollama_admin.pull_model(url, name)
+        except ollama_admin.OllamaError as exc:
+            return _provider_result(request, error=str(exc))
+
+    provider_store.save_settings(user["id"], provider, url, chat_model, embed_model, temp)
+    forget_failed_pipelines()  # the new settings may fix a previously failed pipeline build
+    return _provider_result(request, saved=provider_store.get_settings(user["id"]), pulled=missing)
 
 
 def _error(request: Request, message: str, retarget: str | None = None):
