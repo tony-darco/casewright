@@ -9,7 +9,7 @@ assembles them into a LangGraph:
                             |                    [confidence low & attempts<MAX]
                          rewrite <------------------- decide
                                                       | else
-                                                   finalize -> generate -> END
+                                       finalize -> generate -> sanitize -> END
 
 The model is swappable via ProviderConfig; nothing here names Ollama directly.
 Graph state carries a `messages` channel so conversational multi-turn can be
@@ -26,8 +26,9 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 
 from rag.depgraph import get_default_graph
-from rag.graph import prompts
+from rag.graph import languages, prompts
 from rag.graph.fusion import reciprocal_rank_fusion
+from rag.graph.sanitize import sanitize_code
 from rag.graph.state import PipelineState
 from rag.provider import (
     ProviderConfig,
@@ -181,12 +182,13 @@ class AutoTestLLM:
         except Exception:
             return original_query
 
-    def generate_tests(self, query: str, docs, dependencies: str = ""):
+    def generate_tests(self, query: str, docs, dependencies: str = "", language="python"):
         if not docs:
             return ""
+        lang = languages.resolve(language)
         context = "\n\n".join(self._render_full(d) for d in docs)
         msgs = [
-            SystemMessage(prompts.GENERATE_SYSTEM),
+            SystemMessage(prompts.generate_system(lang.label, lang.framework)),
             HumanMessage(prompts.user_generate(query, context, dependencies)),
         ]
         # Deliberately NOT swallowed: unlike the retrieval nodes (which have graceful
@@ -285,7 +287,13 @@ class AutoTestLLM:
         def generate_node(state):
             docs = state.get("graded") or state.get("ranked") or []
             question = state.get("original_query", state["query"])
-            return {"tests": self.generate_tests(question, docs, state.get("dependencies", ""))}
+            language = state.get("language", languages.DEFAULT.name)
+            return {"tests": self.generate_tests(question, docs, state.get("dependencies", ""), language)}
+
+        def sanitize_node(state):
+            # Deterministic strip of fences/prose so only runnable source reaches the user.
+            language = state.get("language", languages.DEFAULT.name)
+            return {"tests": sanitize_code(state.get("tests", ""), language)}
 
         def decide(state) -> Literal["rewrite", "finalize"]:
             if state.get("confidence") == "low" and state.get("attempts", 0) < MAX_ATTEMPTS:
@@ -301,6 +309,7 @@ class AutoTestLLM:
         builder.add_node("dependencies", dependencies_node)   # runs in eval + full mode
         if not self.eval_mode:
             builder.add_node("generate", generate_node)
+            builder.add_node("sanitize", sanitize_node)
 
         builder.add_edge(START, "generate_queries")
         builder.add_edge("generate_queries", "retrieve")
@@ -314,19 +323,26 @@ class AutoTestLLM:
             builder.add_edge("dependencies", END)         # eval: stop after targets + prerequisites
         else:
             builder.add_edge("dependencies", "generate")
-            builder.add_edge("generate", END)
+            builder.add_edge("generate", "sanitize")   # deterministic fence/prose strip
+            builder.add_edge("sanitize", END)
 
         return builder.compile()
 
     # -- entry points --------------------------------------------------------
 
-    def run(self, query: str):
-        return self.graph.invoke({"query": query, "original_query": query, "attempts": 0})
+    def _inputs(self, query: str, language: str) -> dict:
+        return {
+            "query": query, "original_query": query, "attempts": 0,
+            "language": languages.resolve(language).name,
+        }
 
-    async def ainvoke(self, query: str):
-        return await self.graph.ainvoke({"query": query, "original_query": query, "attempts": 0})
+    def run(self, query: str, language: str = "python"):
+        return self.graph.invoke(self._inputs(query, language))
 
-    def stream_run(self, query: str):
+    async def ainvoke(self, query: str, language: str = "python"):
+        return await self.graph.ainvoke(self._inputs(query, language))
+
+    def stream_run(self, query: str, language: str = "python"):
         """Stream the run as it happens. Yields, in order:
 
             ("stage", node_name)  -- a graph node just started/finished (progress)
@@ -339,7 +355,7 @@ class AutoTestLLM:
         (so "Writing the test…" precedes the code), with a fallback to its node
         update if the model didn't stream.
         """
-        inputs = {"query": query, "original_query": query, "attempts": 0}
+        inputs = self._inputs(query, language)
         final: dict = {}
         gen_announced = False
         for mode, chunk in self.graph.stream(inputs, stream_mode=["updates", "messages"]):

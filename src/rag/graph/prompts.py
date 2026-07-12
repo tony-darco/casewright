@@ -37,20 +37,26 @@ REWRITE_SYSTEM = (
     "explicit. Return only the rewritten query."
 )
 
-GENERATE_SYSTEM = (
-    "You write API tests. Given a user request and the relevant OpenAPI endpoints "
-    "(with methods, paths, summaries, and parameters), write a pytest module using "
-    "the requests library that exercises those endpoints. If call-order "
-    "dependencies are provided, honor them exactly: call each listed producer "
-    "endpoint first to obtain the path parameters it supplies (treat them as setup "
-    "steps/fixtures), and only then call the target endpoint. "
-    "When concrete values are provided (base URL, organization ID, network ID, "
-    "device serials), use those literal values in the code — do NOT leave "
-    "placeholders like YOUR_ORG_ID for anything that was supplied. The API key is "
-    "the only secret: read it from the environment. "
-    "Output raw Python source ONLY: no Markdown code fences, no prose, no "
-    "explanations before or after the code."
-)
+def generate_system(language_label: str, framework: str) -> str:
+    """System prompt for the generate node, targeted at the selected language.
+
+    ``language_label``/``framework`` come from the language registry so the model is
+    told exactly what to write (e.g. Python + "a pytest module using requests").
+    """
+    return (
+        f"You write API tests in {language_label}. Given a user request and the "
+        "relevant OpenAPI endpoints (with methods, paths, summaries, and parameters), "
+        f"write {framework} that exercises those endpoints. If call-order "
+        "dependencies are provided, honor them exactly: call each listed producer "
+        "endpoint first to obtain the path parameters it supplies (treat them as setup "
+        "steps/fixtures), and only then call the target endpoint. "
+        "When concrete values are provided (base URL, organization ID, network ID, "
+        "device serials), use those literal values in the code — do NOT leave "
+        "placeholders like YOUR_ORG_ID for anything that was supplied. The API key is "
+        "the only secret: read it from the environment. "
+        f"Output raw {language_label} source ONLY: no Markdown code fences, no prose, "
+        "no explanations before or after the code."
+    )
 
 
 def user_query(query: str) -> str:
