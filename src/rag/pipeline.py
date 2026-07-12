@@ -35,6 +35,7 @@ from rag.provider import (
     build_chat_model,
     build_embeddings,
     build_vector_store,
+    is_connection_error,
 )
 
 def _env_true(name: str) -> bool:
@@ -97,7 +98,9 @@ class AutoTestLLM:
 
         try:
             variants = [q.strip() for q in structured.invoke(msgs).queries if q.strip()]
-        except Exception:
+        except Exception as exc:
+            if is_connection_error(exc):
+                raise   # backend down — surface it, don't silently degrade
             variants = []
 
         out = [query]
@@ -130,7 +133,9 @@ class AutoTestLLM:
 
         try:
             order = structured.invoke(msgs).order
-        except Exception:
+        except Exception as exc:
+            if is_connection_error(exc):
+                raise   # backend down — surface it, don't silently degrade
             return list(docs)
         
         reranked, seen = [], set()
@@ -164,7 +169,9 @@ class AutoTestLLM:
 
         try:
             grades = structured.invoke(msgs).grades
-        except Exception:
+        except Exception as exc:
+            if is_connection_error(exc):
+                raise   # backend down — surface it, don't silently degrade
             return pool[:5], "high"
         
         kept = [d for d, ok in zip(pool, grades) if ok]
@@ -179,7 +186,9 @@ class AutoTestLLM:
         try:
             text = (self.chat.invoke(msgs).content or "").strip()
             return text or original_query
-        except Exception:
+        except Exception as exc:
+            if is_connection_error(exc):
+                raise   # backend down — surface it, don't silently degrade
             return original_query
 
     def generate_tests(self, query: str, docs, dependencies: str = "", language="python"):
