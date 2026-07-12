@@ -149,9 +149,18 @@
   function switchTab(name) {
     var panel = workspace.querySelector('.panel'); if (!panel) return;
     panel.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('active', t.dataset.tab === name); });
-    var code = panel.querySelector('#paneCode'), out = panel.querySelector('#paneOutput');
+    var prompt = panel.querySelector('#panePrompt'), code = panel.querySelector('#paneCode'), out = panel.querySelector('#paneOutput');
+    if (prompt) prompt.classList.toggle('show', name === 'prompt');
     if (code) code.classList.toggle('show', name === 'code');
     if (out) out.classList.toggle('show', name === 'output');
+  }
+  // Regenerate from the edited prompt (Prompt tab): reuses the same @device grounding.
+  function regenerate() {
+    var panel = workspace.querySelector('.panel'); if (!panel) return;
+    var ta = panel.querySelector('#promptEdit'); if (!ta) return;
+    var text = ta.value.trim(); if (!text) { ta.focus(); return; }
+    var devices = []; try { devices = JSON.parse(panel.dataset.devices || '[]'); } catch (e) { devices = []; }
+    generate(text, devices);
   }
   function downloadFile() {
     var codeEl = workspace.querySelector('#codeEl'); if (!codeEl) return;
@@ -169,6 +178,8 @@
   }
   workspace.addEventListener('click', function (e) {
     var tab = e.target.closest('.tab'); if (tab) { switchTab(tab.dataset.tab); return; }
+    if (e.target.closest('#regenBtn')) { regenerate(); return; }
+    if (e.target.closest('#promptStartOver')) { document.getElementById('newBtn').click(); return; }
     var exportBtn = e.target.closest('#exportBtn');
     if (exportBtn) { var m = workspace.querySelector('#exportMenu'); if (m) m.classList.toggle('open'); return; }
     var exp = e.target.closest('[data-export]');

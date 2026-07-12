@@ -2,9 +2,10 @@
    swapped into #workspace. States: error (pipeline unavailable), empty (nothing
    generated), or code. The Run button is present but INERT (§0.2); the Output tab
    is a placeholder — no execution. #}
-<div class="panel enter" data-file="{{ file_name|default('generated.test.py', true) }}">
+<div class="panel enter" data-file="{{ file_name|default('generated.test.py', true) }}" data-devices="{{ devices|default('[]', true) }}">
   <div class="panel-head">
     <div class="tabs">
+      <button class="tab" data-tab="prompt" type="button">Prompt</button>
       <button class="tab active" data-tab="code" type="button">Code
         {% if file_name %}<span class="ph-file mono">{{ file_name }}</span>{% endif %}</button>
       <button class="tab" data-tab="output" type="button">Output</button>
@@ -26,6 +27,18 @@
   </div>
 
   <div class="panel-body">
+    <div class="pane" id="panePrompt">
+      <div class="prompt-pane">
+        <label class="prompt-label" for="promptEdit">Your prompt</label>
+        <textarea class="prompt-edit" id="promptEdit" spellcheck="false"
+          placeholder="Describe a test — an endpoint, a feature, an edge case…">{{ prompt }}</textarea>
+        <div class="prompt-actions">
+          <button class="prompt-startover" id="promptStartOver" type="button">Delete &amp; start over</button>
+          <button class="prompt-regen" id="regenBtn" type="button">
+            <span class="rico">&#8635;</span> Regenerate</button>
+        </div>
+      </div>
+    </div>
     <div class="pane show" id="paneCode">
       {% if error %}
         <div class="gen-error">

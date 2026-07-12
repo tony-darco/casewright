@@ -266,6 +266,22 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .outline { white-space: pre-wrap; color: var(--ink-2); }
 .outline .ok, .outline .no, .outline .head { color: var(--ink); font-weight: 500; }
 .outline .muted { color: var(--ink-3); }
+
+/* Prompt tab — edit the prompt and regenerate (issue: prompt not editable). */
+.prompt-pane { display: flex; flex-direction: column; height: 100%; padding: var(--s5); gap: var(--s4); }
+.prompt-label { font-size: var(--t-micro); color: var(--ink-3); font-family: var(--font-mono); }
+.prompt-edit { flex: 1; min-height: 120px; resize: none; width: 100%; background: var(--sunken); color: var(--ink);
+  border: 1px solid var(--line-2); border-radius: var(--radius); padding: var(--s4);
+  font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.7; }
+.prompt-edit:focus { outline: none; border-color: var(--ink-3); }
+.prompt-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--s3); }
+.prompt-startover { margin-right: auto; height: 30px; padding: 0 12px; border-radius: var(--radius);
+  color: var(--ink-3); font-size: var(--t-micro); border: 1px solid transparent; transition: background .12s, color .12s; }
+.prompt-startover:hover { background: var(--sunken); color: var(--ink-2); }
+.prompt-regen { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 14px; border-radius: var(--radius);
+  background: var(--ink-solid); color: var(--paper); font-size: var(--t-micro); font-weight: 500; transition: background .15s; }
+.prompt-regen:hover { background: #33342f; }
+.prompt-regen .rico { font-size: 13px; }
 .runmeta { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--line); color: var(--ink); }
 .runmeta .sep { color: var(--line-2); padding: 0 6px; }
 .running { display: inline-flex; align-items: center; gap: 9px; color: var(--ink-2); }

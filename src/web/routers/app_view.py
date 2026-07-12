@@ -55,6 +55,7 @@ def app_generate(
 ):
     dev = generate.parse_devices(devices)
     vm = generate.build_view_model(prompt, dev, language, _gen_meta(user["id"], dev))
+    vm["devices"] = devices  # raw JSON, echoed to the panel so a regenerate reuses the same @device grounding
     # persist only real generations (not the pipeline-unavailable / empty states)
     if not vm.get("error") and not vm.get("empty"):
         vm["t"] = tests_store.create_test(
@@ -86,6 +87,7 @@ def app_generate_stream(
                 yield _sse(ev)
                 continue
             vm = ev["vm"]
+            vm["devices"] = devices  # raw JSON, echoed to the panel for regenerate (see /app/generate)
             t = None
             if not vm.get("error") and not vm.get("empty"):
                 t = tests_store.create_test(
