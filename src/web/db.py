@@ -93,6 +93,30 @@ CREATE TABLE IF NOT EXISTS test_versions (
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_test_versions ON test_versions(test_id, version_no);
+
+-- Knowledge-base embedding runs (Knowledge Base feature): one row per version, per
+-- user isolation like tests. Re-embedding creates a new row/collection rather than
+-- overwriting a prior version.
+CREATE TABLE IF NOT EXISTS kb_versions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL DEFAULT '',
+    source_kind     TEXT NOT NULL DEFAULT '',   -- 'upload' | 'link'
+    source_label    TEXT NOT NULL DEFAULT '',   -- filename or URL
+    split_method    TEXT NOT NULL DEFAULT '',   -- 'langchain' | 'custom'
+    collection_name TEXT NOT NULL DEFAULT '',
+    doc_count       INTEGER NOT NULL DEFAULT 0,
+    status          TEXT NOT NULL DEFAULT 'embedding',  -- 'embedding' | 'done' | 'error'
+    error_message   TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_kb_versions_user ON kb_versions(user_id, created_at DESC);
+
+-- Per-user active knowledge-base version pointer (mirrors provider_settings' shape).
+CREATE TABLE IF NOT EXISTS kb_settings (
+    user_id           INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    active_version_id INTEGER REFERENCES kb_versions(id) ON DELETE SET NULL
+);
 """
 
 
