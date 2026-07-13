@@ -19,7 +19,10 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from web.auth import require_user
 from web.deps import templates
-from web.services import generate, gen_registry, logs_store, provider_store, store, tests_store
+from web.services import (
+    generate, gen_registry, logs_store, provider_store, run_logs_store, runs_store,
+    store, tests_store,
+)
 
 _SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
@@ -44,6 +47,21 @@ def _gen_meta(user_id: int, devices: list) -> dict:
 
 def _sse(obj: dict) -> str:
     return "data: " + json.dumps(obj) + "\n\n"
+
+
+def _run_context(user_id: int, test: dict) -> dict:
+    """Run-configuration context for the Test Configuration tab: the account's networks
+    + default, this test's saved run config, and its most recent run (for status/logs)."""
+    runs = runs_store.list_runs_for_test(user_id, test["id"]) if test else []
+    latest = runs_store.get_run(user_id, runs[0]["id"]) if runs else None
+    return {
+        "networks": store.verified_networks(user_id),
+        "default_network_id": store.get_default_network_id(user_id),
+        "run_source": test.get("run_source", "example") if test else "example",
+        "source_network_id": test.get("source_network_id", "") if test else "",
+        "run": latest,
+        "logs": run_logs_store.logs_for_run(latest["id"]) if latest else [],
+    }
 
 
 @router.get("/app", response_class=HTMLResponse)
@@ -74,6 +92,7 @@ def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language,
             logs_store.record(uid, test_id, vm.get("_log"))
             vm["t"] = {"id": test_id, "name": name}
             vm["version_no"], vm["version_count"], vm["is_latest"] = n, n + 1, True
+            vm.update(_run_context(uid, tests_store.get_test(uid, test_id)))
             item = templates.get_template("partials/test_item.html").render(
                 {"t": {"id": test_id, "name": name, "status": "done"}})
         else:
@@ -142,6 +161,7 @@ def app_generate_attach(test_id: int, user: dict = Depends(require_user)):
             yield _sse({"type": "done", "panel_html": panel, "status": "error", "test_id": test_id})
         else:
             vm = generate.view_model_from_test(test)
+            vm.update(_run_context(uid, test))
             panel = templates.get_template("partials/workspace.html").render(vm)
             yield _sse({"type": "done", "panel_html": panel, "status": test.get("status"), "test_id": test_id})
 
@@ -163,7 +183,25 @@ def load_test(request: Request, test_id: int, user: dict = Depends(require_user)
     if not test:
         return HTMLResponse("<div class='gen-error'>Test not found.</div>", status_code=404)
     vm = _with_version_nav(generate.view_model_from_test(test), user["id"], test_id)
+    vm.update(_run_context(user["id"], test))
     return templates.TemplateResponse(request, "partials/workspace.html", vm)
+
+
+@router.post("/app/tests/{test_id}/hardware", response_class=HTMLResponse)
+def save_hardware(test_id: int, hwType: list[str] = Form(default=[]),
+                  hwCount: list[str] = Form(default=[]), user: dict = Depends(require_user)):
+    """Persist the user's edited hardware requirements from the Test Configuration tab."""
+    hardware = []
+    for t, c in zip(hwType, hwCount):
+        try:
+            count = max(1, min(4, int(c)))
+        except (TypeError, ValueError):
+            count = 1
+        hardware.append({"type": t, "count": count, "reason": ""})
+    ok = tests_store.update_hardware(user["id"], test_id, hardware)
+    if not ok:
+        return HTMLResponse("", status_code=404)
+    return HTMLResponse("<b>&#10003; Saved.</b>")
 
 
 @router.get("/app/tests/{test_id}/versions/{version_no}", response_class=HTMLResponse)
@@ -175,6 +213,7 @@ def load_version(request: Request, test_id: int, version_no: int, user: dict = D
     test = tests_store.get_test(user["id"], test_id)
     count = len(tests_store.list_versions(user["id"], test_id))
     vm = generate.view_model_from_version(version, test_id, test["name"] if test else "", count)
+    vm.update(_run_context(user["id"], test))
     return templates.TemplateResponse(request, "partials/workspace.html", vm)
 
 

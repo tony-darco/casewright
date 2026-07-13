@@ -1,0 +1,20 @@
+{# Run status + live log pane (Run feature). Rendered inside the Test Configuration
+   tab: standalone after POST /app/tests/{id}/run, and on load for the latest run.
+   When the run is non-terminal, data-run-stream drives the SSE log attach (app.js). #}
+{% set terminal = run and run.status in ('success', 'error', 'failed') %}
+{% if run %}
+<div class="run-status" data-run-id="{{ run.id }}" data-test-id="{{ run.test_id }}"
+     {% if not terminal %}data-run-stream="/app/tests/{{ run.test_id }}/runs/{{ run.id }}/stream"{% endif %}>
+  <div class="run-badge run-{{ run.status }}">
+    <span class="run-code mono">#{{ run.run_code }}</span>
+    <span class="run-state">{{ run.status }}</span>
+  </div>
+  {% if run.error_message %}<div class="gen-error"><b>&#10007;</b> {{ run.error_message }}</div>{% endif %}
+  <pre class="run-log" id="runLog">{% for e in logs or [] %}[{{ e.stage }}] {{ e.message }}
+{% endfor %}</pre>
+</div>
+{% else %}
+<div class="run-status">
+  <div class="gen-note">No runs yet. Configure hardware and a source above, then <b>Run test</b>.</div>
+</div>
+{% endif %}

@@ -223,10 +223,10 @@
   function switchTab(name) {
     var panel = workspace.querySelector('.panel'); if (!panel) return;
     panel.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('active', t.dataset.tab === name); });
-    var prompt = panel.querySelector('#panePrompt'), code = panel.querySelector('#paneCode'), out = panel.querySelector('#paneOutput');
+    var prompt = panel.querySelector('#panePrompt'), code = panel.querySelector('#paneCode'), cfg = panel.querySelector('#paneConfig');
     if (prompt) prompt.classList.toggle('show', name === 'prompt');
     if (code) code.classList.toggle('show', name === 'code');
-    if (out) out.classList.toggle('show', name === 'output');
+    if (cfg) cfg.classList.toggle('show', name === 'config');
   }
   // Regenerate from the edited prompt (Prompt tab): reuses the same @device grounding.
   function regenerate() {
@@ -302,6 +302,15 @@
 
   workspace.addEventListener('click', function (e) {
     var tab = e.target.closest('.tab'); if (tab) { switchTab(tab.dataset.tab); return; }
+    if (e.target.closest('#runBtn')) { switchTab('config'); return; }
+    // Test Configuration: add/remove hardware rows
+    if (e.target.closest('#ptHwAdd')) {
+      var rows = workspace.querySelector('#ptHwRows'), tpl = workspace.querySelector('#ptHwRowTpl');
+      if (rows && tpl) rows.appendChild(tpl.content.cloneNode(true));
+      return;
+    }
+    var hwRemove = e.target.closest('.pt-hw-remove');
+    if (hwRemove) { var row = hwRemove.closest('.pt-hw-row'); if (row) row.remove(); return; }
     if (e.target.closest('#regenBtn')) { regenerate(); return; }
     if (e.target.closest('#promptStartOver')) { document.getElementById('newBtn').click(); return; }
     var vnav = e.target.closest('[data-ver-nav]'), vlatest = e.target.closest('[data-ver-latest]');
@@ -324,6 +333,12 @@
   });
   document.addEventListener('click', function (e) {
     if (!e.target.closest('.export-wrap')) { var m = workspace.querySelector('#exportMenu'); if (m) m.classList.remove('open'); }
+  });
+  // Test Configuration: show the example-network picker only when "build from example"
+  workspace.addEventListener('change', function (e) {
+    var r = e.target.closest('input[name="runSource"]'); if (!r) return;
+    var pick = workspace.querySelector('.pt-netpick');
+    if (pick) pick.hidden = r.value !== 'example';
   });
 
   /* ---------------- sidebar / new test ---------------- */

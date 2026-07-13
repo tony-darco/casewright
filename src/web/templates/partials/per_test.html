@@ -1,0 +1,81 @@
+{# Test Configuration tab (Run feature): hardware requirements, run source, the Run
+   action, live logs, and run status. Rendered inside workspace.html's #paneConfig. #}
+<div class="pertest" data-test-id="{{ t.id if t else '' }}">
+
+  <section class="pt-section">
+    <h4>Hardware</h4>
+    <p class="gen-note">Physical Meraki devices a run claims for this test. The model
+      suggests these; edit as needed.</p>
+    <form class="pt-hardware" id="ptHardwareForm"
+          hx-post="/app/tests/{{ t.id if t else '' }}/hardware"
+          hx-target="#ptHardwareStatus" hx-swap="innerHTML">
+      <div class="pt-hw-rows" id="ptHwRows">
+        {% for h in hardware or [] %}
+        <div class="pt-hw-row">
+          <select class="set-input" name="hwType" aria-label="Hardware type">
+            <option value="wireless"{% if h.type == 'wireless' %} selected{% endif %}>Wireless AP</option>
+            <option value="security_appliance"{% if h.type == 'security_appliance' %} selected{% endif %}>Security appliance</option>
+            <option value="camera"{% if h.type == 'camera' %} selected{% endif %}>Camera</option>
+          </select>
+          <input class="set-input" type="number" name="hwCount" min="1" max="4" value="{{ h.count or 1 }}" aria-label="Count">
+          <button class="btn btn-ghost pt-hw-remove" type="button" aria-label="Remove">&#10005;</button>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="pt-hw-actions">
+        <button class="btn btn-ghost" type="button" id="ptHwAdd">+ Add hardware</button>
+        <button class="btn btn-primary" type="submit">Save hardware</button>
+        <span id="ptHardwareStatus" class="gen-note"></span>
+      </div>
+    </form>
+    {# template row cloned by JS when adding hardware #}
+    <template id="ptHwRowTpl">
+      <div class="pt-hw-row">
+        <select class="set-input" name="hwType" aria-label="Hardware type">
+          <option value="wireless">Wireless AP</option>
+          <option value="security_appliance">Security appliance</option>
+          <option value="camera">Camera</option>
+        </select>
+        <input class="set-input" type="number" name="hwCount" min="1" max="4" value="1" aria-label="Count">
+        <button class="btn btn-ghost pt-hw-remove" type="button" aria-label="Remove">&#10005;</button>
+      </div>
+    </template>
+  </section>
+
+  <section class="pt-section">
+    <h4>Run</h4>
+    <form class="pt-run" id="ptRunForm"
+          hx-post="/app/tests/{{ t.id if t else '' }}/run"
+          hx-target="#ptRunResult" hx-swap="innerHTML"
+          hx-disabled-elt="find button[type='submit']">
+      <fieldset class="pt-source">
+        <label class="pt-radio">
+          <input type="radio" name="runSource" value="example"
+                 {% if run_source != 'scratch' %}checked{% endif %}>
+          Build from an example network <span class="gen-note">(clone an existing network)</span>
+        </label>
+        <div class="gen-field pt-netpick"{% if run_source == 'scratch' %} hidden{% endif %}>
+          <label for="ptNetSelect">Example network</label>
+          <select class="set-input" id="ptNetSelect" name="networkId">
+            <option value="">{% if default_network_id %}Account default{% else %}— select a network —{% endif %}</option>
+            {% for n in networks or [] %}
+              <option value="{{ n.id }}"{% if n.id == source_network_id %} selected{% endif %}>{{ n.name }} ({{ n.orgName }})</option>
+            {% endfor %}
+          </select>
+          {% if default_network_id %}<div class="set-hint">Leave on "Account default" to clone your default example network.</div>{% endif %}
+        </div>
+        <label class="pt-radio">
+          <input type="radio" name="runSource" value="scratch"
+                 {% if run_source == 'scratch' %}checked{% endif %}>
+          Build from scratch <span class="gen-note">(an agent configures a new network)</span>
+        </label>
+      </fieldset>
+      <div class="pt-run-actions">
+        <button class="btn btn-primary" type="submit"><span class="tri">&#9654;</span> Run test</button>
+      </div>
+    </form>
+    <div id="ptRunResult">
+      {% include "partials/run_status.html" %}
+    </div>
+  </section>
+</div>
