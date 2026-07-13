@@ -110,7 +110,7 @@ def provision(user_id, run_code, org_id, hardware_reqs, source, example_network_
             configure_scratch_network(network_id, hardware_reqs, claimed, key,
                                       provider_overrides=None, on_log=on_log)
         return ProvisionResult(network_id=network_id, org_id=org_id, claimed_devices=claimed)
-    except Exception as exc:
+    except Exception:
         # Undo any partial provisioning so we never leak an ephemeral network/device.
         if network_id:
             _log(on_log, "provision", f"provisioning failed, tearing down {network_id}", "error")
