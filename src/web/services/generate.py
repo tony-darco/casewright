@@ -138,44 +138,6 @@ def _filename(prompt, endpoints, language):
     return f"{slug}.{ext}"
 
 
-def build_view_model(prompt, devices, language="py", meta=None, overrides=None):
-    """Run the pipeline for ``prompt`` and return a template context dict.
-    ``overrides`` are the user's provider settings (ProviderConfig attributes).
-
-    Never raises: a build/run failure comes back as ``{"error": ...}`` (with the cause
-    humanized) so the workspace partial can show an inline message and keep the app
-    usable. The returned ``_log`` carries the per-test log for the caller to persist.
-    """
-    prompt = (prompt or "").strip()
-    log = _GenLog()
-    log.add("start", f"prompt={prompt!r}, devices={len(devices or [])}")
-
-    pipeline, error = get_pipeline(overrides)
-    if error is not None:
-        log.add("error", f"pipeline unavailable: {error}", "error")
-        return {"error": error, "prompt": prompt, "_log": log.entries}
-
-    try:
-        state = pipeline.run(_full_prompt(prompt, devices, meta), language=language)
-    except Exception as exc:  # noqa: BLE001 — surfaced inline, not a 500
-        msg = humanize_error(exc)
-        log.add("error", msg, "error")
-        logger.exception("generation failed")
-        return {"error": msg, "prompt": prompt, "_log": log.entries}
-
-    endpoints = state.get("endpoints") or []
-    log.add("retrieve", f"grounded in {len(endpoints)} endpoint(s): {', '.join(endpoints) or '(none)'}")
-    code = (state.get("tests") or "").rstrip("\n")   # already sanitized by the graph
-    log.add("generate", f"generated {code.count(chr(10)) + 1 if code else 0} line(s)"
-            if code else "no code generated (retriever found nothing to ground)",
-            "info" if code else "error")
-
-    vm = _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints,
-                       language, state.get("validation"))
-    vm["_log"] = log.entries
-    return vm
-
-
 def _workspace_vm(prompt, code, file_name, endpoints, language="py", validation=None):
     line_count = code.count("\n") + 1 if code else 0
     return {

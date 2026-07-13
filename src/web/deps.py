@@ -5,8 +5,8 @@ embeddings + Chroma store) and needs Ollama plus ``AUTOTEST_DATA_DIR``. We build
 it *lazily on first use* and cache it — one instance per distinct set of
 per-user provider overrides (Settings → Model provider), so users on the same
 settings share a pipeline and the no-overrides default stays a singleton. We
-swallow build failures so that every non-generate view still serves and
-``/app/generate`` can render a clear inline error instead of a 500 (handoff:
+swallow build failures so that every non-generate view still serves and a
+generation can surface a clear inline error instead of a 500 (handoff:
 frontend must not hard-depend on a running model).
 """
 

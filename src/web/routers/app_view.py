@@ -1,13 +1,15 @@
 """The product app (handoff G2/G3): the working UI, real generate call, and the
 per-user test library (persisted).
 
-``GET  /app``                    composer/workspace shell + the user's saved tests.
-``POST /app/generate``           runs the pipeline, persists the test, returns the
-                                 workspace partial + an OOB sidebar item. ``def`` (not
-                                 ``async``) so the blocking pipeline runs in a thread.
-``GET  /app/tests/{id}``         loads a saved test back into the workspace.
-``POST /app/tests/{id}/rename``  renames a saved test (returns the updated item).
-``GET  /runs`` / ``/coverage``   dashboard shells (empty states).
+``GET  /app``                        composer/workspace shell + the user's saved tests.
+``POST /app/generate/start``         creates a 'generating' test and kicks off the
+                                     background run (#11), returning its id + sidebar item.
+``GET  /app/generate/{id}/stream``   attaches to a run (replay + live), or serves the
+                                     persisted result once it's finished.
+``GET  /app/tests/{id}``             loads a finished test back into the workspace.
+``POST /app/tests/{id}/code``        persists edits made in the Code tab.
+``POST /app/tests/{id}/rename``      renames a saved test (returns the updated item).
+``GET  /runs`` / ``/coverage``       dashboard shells (empty states).
 """
 
 import json
@@ -45,28 +47,6 @@ def app_home(request: Request, user: dict = Depends(require_user)):
     return templates.TemplateResponse(
         request, "app.html", {"tests": tests_store.list_tests(user["id"])}
     )
-
-
-@router.post("/app/generate", response_class=HTMLResponse)
-def app_generate(
-    request: Request,
-    prompt: str = Form(""),
-    devices: str = Form(""),
-    language: str = Form("py"),
-    user: dict = Depends(require_user),
-):
-    dev = generate.parse_devices(devices)
-    vm = generate.build_view_model(prompt, dev, language, _gen_meta(user["id"], dev),
-                                   provider_store.overrides(user["id"]))
-    vm["devices"] = devices  # raw JSON, echoed to the panel so a regenerate reuses the same @device grounding
-    # persist only real generations (not the pipeline-unavailable / empty states)
-    if not vm.get("error") and not vm.get("empty"):
-        vm["t"] = tests_store.create_test(
-            user["id"], _default_name(prompt), vm["prompt"], vm["file_name"],
-            vm["code"], language, vm["endpoints"], dev, vm.get("validation"),
-        )
-        logs_store.record(user["id"], vm["t"]["id"], vm.get("_log"))
-    return templates.TemplateResponse(request, "partials/generate_result.html", vm)
 
 
 def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language, meta, prov):
