@@ -34,7 +34,7 @@ def test_custom_split_embeds_and_marks_done():
     v = kb_store.create_embedding(u["id"], "S", "upload", "custom", "spec.json")
     job = _StubJob()
 
-    with mock.patch("web.services.kb_ingest.embed_documents", return_value=2) as embed_mock:
+    with mock.patch("rag.ingest.embed.embed_documents", return_value=2) as embed_mock:
         kb_ingest.run_ingest(job, u["id"], v["id"], json.dumps(_FAKE_SPEC).encode(),
                             "custom", "spec.json", {})
 
@@ -54,7 +54,7 @@ def test_langchain_split_embeds_and_marks_done():
     v = kb_store.create_embedding(u["id"], "S", "link", "langchain", "http://x/doc.txt")
     job = _StubJob()
 
-    with mock.patch("web.services.kb_ingest.embed_documents", return_value=3):
+    with mock.patch("rag.ingest.embed.embed_documents", return_value=3):
         kb_ingest.run_ingest(job, u["id"], v["id"], (b"hello world " * 500),
                             "langchain", "http://x/doc.txt", {})
 
@@ -82,7 +82,7 @@ def test_embed_failure_marks_error_not_raised():
     v = kb_store.create_embedding(u["id"], "S", "upload", "custom", "spec.json")
     job = _StubJob()
 
-    with mock.patch("web.services.kb_ingest.embed_documents", side_effect=RuntimeError("chroma down")):
+    with mock.patch("rag.ingest.embed.embed_documents", side_effect=RuntimeError("chroma down")):
         kb_ingest.run_ingest(job, u["id"], v["id"], json.dumps(_FAKE_SPEC).encode(),
                             "custom", "spec.json", {})
 
@@ -97,7 +97,7 @@ def test_stage_events_emitted_in_order():
     v = kb_store.create_embedding(u["id"], "S", "upload", "custom", "spec.json")
     job = _StubJob()
 
-    with mock.patch("web.services.kb_ingest.embed_documents", return_value=2):
+    with mock.patch("rag.ingest.embed.embed_documents", return_value=2):
         kb_ingest.run_ingest(job, u["id"], v["id"], json.dumps(_FAKE_SPEC).encode(),
                             "custom", "spec.json", {})
 

@@ -146,5 +146,46 @@
       if (el) el.textContent = count ? (count + ' network' + (count > 1 ? 's' : '')) : '';
     });
     refreshOrgEmpty();
+    refreshKbEmpty();
+    attachKbStreams();
   });
+
+  /* ---- Knowledge base: source-kind toggle (link URL field vs. upload file field) ---- */
+  document.body.addEventListener('change', function (e) {
+    var r = e.target.closest('#kbStartForm input[name="sourceKind"]'); if (!r) return;
+    var form = r.closest('form');
+    var urlField = form.querySelector('.kb-url-field'), fileField = form.querySelector('.kb-file-field');
+    if (urlField) urlField.hidden = r.value !== 'link';
+    if (fileField) fileField.hidden = r.value !== 'upload';
+  });
+
+  function refreshKbEmpty() {
+    var empty = document.getElementById('kbEmpty'); if (!empty) return;
+    var list = document.getElementById('kbVersionList');
+    empty.hidden = !!(list && list.querySelector('.kb-version'));
+  }
+  refreshKbEmpty();
+
+  /* ---- Knowledge base: live ingest progress over SSE ---- */
+  function attachKbStreams() {
+    document.querySelectorAll('.kb-version[data-kb-stream]').forEach(function (row) {
+      if (row.dataset.attached === '1') return;
+      row.dataset.attached = '1';
+      var es = new EventSource(row.dataset.kbStream);
+      var badge = row.querySelector('.kb-badge'), stage = row.querySelector('.kb-stage');
+      es.onmessage = function (e) {
+        var ev; try { ev = JSON.parse(e.data); } catch (_) { return; }
+        if (ev.type === 'stage') {
+          if (stage) { stage.hidden = false; stage.textContent = 'Stage: ' + ev.stage
+            + (ev.doc_count ? ' (' + ev.doc_count + ' docs)' : ''); }
+        } else if (ev.type === 'done') {
+          es.close();
+          // re-render this row (and the version list) cleanly from the server
+          if (window.htmx) htmx.ajax('GET', '/settings/knowledgebase', { target: '#kbContent', swap: 'innerHTML' });
+        }
+      };
+      es.onerror = function () { es.close(); };
+    });
+  }
+  attachKbStreams();
 })();

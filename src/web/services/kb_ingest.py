@@ -4,6 +4,12 @@ Parses the fetched/uploaded content, splits it (custom OpenAPI split or generic
 LangChain split), embeds it into a per-version Chroma collection, and records the
 outcome — emitting stage events onto a kb_registry Job as it goes so the Settings UI
 can show live progress over SSE.
+
+The ``rag`` package (LangChain/Chroma/Ollama) is imported lazily inside
+``run_ingest``, not at module level — mirroring ``web.deps.get_pipeline`` — so that
+importing this module (and therefore ``web.routers.settings``) never requires the
+RAG stack to be installed. A deployment without it simply gets a clear per-run
+error the first time someone tries to ingest, not a startup crash.
 """
 
 import json
@@ -11,10 +17,6 @@ import logging
 
 import yaml
 
-from rag.ingest.embed import embed_documents
-from rag.ingest.langchain_split import split_langchain
-from rag.ingest.split import split_openapi_custom
-from rag.provider import ProviderConfig
 from web.services import kb_store
 
 logger = logging.getLogger("web.kb_ingest")
@@ -36,6 +38,11 @@ def run_ingest(job, user_id, version_id, content: bytes, split_method: str,
         job.emit({"type": "stage", "stage": name, **extra})
 
     try:
+        from rag.ingest.embed import embed_documents
+        from rag.ingest.langchain_split import split_langchain
+        from rag.ingest.split import split_openapi_custom
+        from rag.provider import ProviderConfig
+
         stage("parsing")
         text = content.decode("utf-8", errors="replace")
 

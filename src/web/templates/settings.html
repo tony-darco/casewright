@@ -19,6 +19,8 @@
       <button class="set-nav-item" data-cat="meraki">Meraki integration</button>
       <button class="set-nav-item" data-cat="language">Output language</button>
       <button class="set-nav-item" data-cat="provider">Model provider</button>
+      <button class="set-nav-item" data-cat="knowledgebase"
+              hx-get="/settings/knowledgebase" hx-target="#kbContent" hx-swap="innerHTML">Knowledge base</button>
       <button class="set-nav-item" data-cat="logs"
               hx-get="/settings/logs" hx-target="#logsContent" hx-swap="innerHTML">Logs</button>
       <button class="set-nav-item" data-cat="general">General</button>
@@ -162,6 +164,17 @@
           </div>
           <div id="providerResult"></div>
         </form>
+      </section>
+
+      <!-- Knowledge base -->
+      <section class="set-cat cat-knowledgebase">
+        <div class="set-head">
+          <span class="eyebrow">Knowledge base</span>
+          <h1>Knowledge base</h1>
+          <p>Add an API spec (by link or upload), choose how it's chunked, and pick which
+            embedded version test generation retrieves against.</p>
+        </div>
+        <div id="kbContent"><div class="gen-note">Select <b>Knowledge base</b> to load…</div></div>
       </section>
 
       <!-- Logs (issue #8) -->

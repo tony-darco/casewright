@@ -397,6 +397,7 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 #setBody[data-cat="meraki"] .cat-meraki,
 #setBody[data-cat="language"] .cat-language,
 #setBody[data-cat="provider"] .cat-provider,
+#setBody[data-cat="knowledgebase"] .cat-knowledgebase,
 #setBody[data-cat="logs"] .cat-logs,
 #setBody[data-cat="general"] .cat-general { display: block; }
 /* Logs page (issue #8) */
@@ -573,6 +574,21 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .stat-pill .g { font-weight: 500; color: var(--ink); }
 .org-meta { display: flex; gap: var(--s5); margin-top: var(--s3); font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
 .org-meta b { color: var(--ink-2); font-weight: 500; }
+
+/* Knowledge base (Knowledge Base feature) */
+.kb-fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.kb-radio { display: flex; align-items: center; gap: var(--s2); font-size: var(--t-micro); }
+.kb-radio .gen-note { margin: 0; }
+.kb-url-field, .kb-file-field { margin-top: 0; margin-left: var(--s6); max-width: 420px; }
+.kb-version { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+  padding: var(--s5); margin-bottom: var(--s4); animation: pfade .25s ease both; }
+.kb-badge { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  border: 1px solid var(--line-2); border-radius: var(--radius); padding: 2px 8px; color: var(--ink-2); }
+.kb-embedding { color: var(--ink-2); }
+.kb-done { color: #2f7d32; }
+.kb-error { color: #b3261e; }
+.kb-stage { margin-top: var(--s3); }
+.kb-activate-btn { margin-top: var(--s3); }
 
 .nested { margin-top: var(--s5); padding-top: var(--s4); padding-left: var(--s5);
   border-top: 1px solid var(--line); border-left: 2px solid var(--line); margin-left: 2px; }
