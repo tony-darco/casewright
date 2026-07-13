@@ -15,6 +15,14 @@ def _db():
     db.init()
 
 
+@pytest.fixture(autouse=True)
+def _allow_any_ollama_host(monkeypatch):
+    # These tests exercise the admin client's check/list/pull + URL-normalization
+    # mechanics, not the SSRF host policy (#16 — covered by tests/test_ssrf_ollama.py).
+    # Disable the default loopback restriction so their arbitrary test hostnames pass.
+    monkeypatch.setenv("AUTOTEST_OLLAMA_ALLOWED_HOSTS", "*")
+
+
 def _user(name):
     return db.create_user(name, "x")["id"]
 
