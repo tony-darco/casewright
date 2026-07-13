@@ -86,32 +86,6 @@ Visit `http://localhost:8000`, sign up, and:
 
 ### Architecture
 
-```mermaid
-flowchart TB
-    UI["Browser<br/>HTMX + Jinja2"]
-
-    subgraph FastAPI["src/web — FastAPI app"]
-        ROUTERS["Routers<br/>app_view, settings, auth, account"]
-        SERVICES["Services<br/>generate.py, tests_store, meraki client, logs_store"]
-        DB[("SQLite<br/>users, tests, versions, logs")]
-    end
-
-    subgraph RAG["src/rag — generation engine"]
-        PIPE["AutoTestLLM pipeline<br/>(LangGraph — see below)"]
-        VSTORE[("Chroma vector store<br/>data/chroma")]
-    end
-
-    OLLAMA[["Ollama<br/>chat + embedding models"]]
-    MERAKI[["Meraki Dashboard API"]]
-
-    UI -- "HTTP + SSE" --> ROUTERS
-    ROUTERS --- SERVICES
-    SERVICES --- DB
-    SERVICES --> PIPE
-    PIPE --- VSTORE
-    PIPE --- OLLAMA
-    SERVICES --- MERAKI
-```
 
 The web layer never talks to Ollama or Chroma directly — every prompt goes through
 `rag.pipeline.AutoTestLLM`, which owns the model and vector-store clients. The web
@@ -125,7 +99,7 @@ confident in what it kept, the query gets rewritten and re-retrieved (bounded, s
 can't loop forever) before generation ever runs.
 
 ```mermaid
-flowchart LR
+flowchart TD
     START(["prompt"]) --> GQ["generate_queries<br/>(RAG-Fusion)"]
     GQ --> RET["retrieve<br/>(RRF across query variants)"]
     RET --> RANK["rerank<br/>(LLM)"]
