@@ -37,15 +37,42 @@ def create_generating(user_id, name, prompt, language, devices):
     return {"id": test_id, "name": name.strip(), "status": "generating"}
 
 
-def finish_test(user_id, test_id, file_name, code, endpoints, validation, status="done"):
-    """Fill in a generating row with the generated result and flip its status."""
+def finish_test(user_id, test_id, file_name, code, endpoints, validation, status="done",
+                hardware=None, gen_meta=None):
+    """Fill in a generating row with the generated result and flip its status. Also
+    stores the LLM-decided hardware requirements and the generation-time identifiers
+    (org/base URL/network ids) the runner later substitutes (Run feature)."""
     with db.cursor() as conn:
         cur = conn.execute(
             "UPDATE tests SET file_name = ?, code = ?, endpoints_json = ?, "
-            "validation_json = ?, status = ?, updated_at = datetime('now') "
-            "WHERE id = ? AND user_id = ?",
+            "validation_json = ?, hardware_json = ?, gen_meta_json = ?, status = ?, "
+            "updated_at = datetime('now') WHERE id = ? AND user_id = ?",
             (file_name, code, json.dumps(endpoints or []),
-             json.dumps(validation) if validation else "", status, test_id, user_id),
+             json.dumps(validation) if validation else "", json.dumps(hardware or []),
+             json.dumps(gen_meta or {}), status, test_id, user_id),
+        )
+        return cur.rowcount > 0
+
+
+def update_hardware(user_id, test_id, hardware):
+    """Persist the user's edits to a test's hardware requirements (Test Configuration
+    tab). Returns True if the test exists and belongs to the user."""
+    with db.cursor() as conn:
+        cur = conn.execute(
+            "UPDATE tests SET hardware_json = ?, updated_at = datetime('now') "
+            "WHERE id = ? AND user_id = ?",
+            (json.dumps(hardware or []), test_id, user_id),
+        )
+        return cur.rowcount > 0
+
+
+def set_run_config(user_id, test_id, run_source, source_network_id):
+    """Persist a test's per-run configuration (build source + chosen example network)."""
+    with db.cursor() as conn:
+        cur = conn.execute(
+            "UPDATE tests SET run_source = ?, source_network_id = ?, "
+            "updated_at = datetime('now') WHERE id = ? AND user_id = ?",
+            (run_source, source_network_id, test_id, user_id),
         )
         return cur.rowcount > 0
 

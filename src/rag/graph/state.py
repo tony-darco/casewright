@@ -27,3 +27,4 @@ class PipelineState(TypedDict, total=False):
     language: str                                # target language for generation/sanitization
     tests: str                                   # first-pass generated test code (sanitized)
     validation: dict                             # {ok, method, detail, language} for the code
+    hardware: list                               # [{type, count, reason}] physical Meraki hardware the run needs

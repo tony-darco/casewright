@@ -33,9 +33,13 @@ def _default_name(prompt: str) -> str:
 
 def _gen_meta(user_id: int, devices: list) -> dict:
     """Concrete identifiers to inject into the generated test (issue #9): base URL and
-    the org that owns the first referenced device's network."""
-    net_id = next((d.get("networkId") for d in devices if isinstance(d, dict) and d.get("networkId")), "")
-    return {"base_url": None, "org_id": store.org_id_for_network(user_id, net_id)}
+    the org that owns the first referenced device's network. The Run feature also
+    persists this (plus the referenced network ids) so the runner can substitute the
+    literals baked into the code for each run's ephemeral network/serials."""
+    net_ids = [d["networkId"] for d in devices
+               if isinstance(d, dict) and d.get("networkId")]
+    return {"base_url": None, "org_id": store.org_id_for_network(user_id, net_ids[0] if net_ids else ""),
+            "network_ids": list(dict.fromkeys(net_ids))}
 
 
 def _sse(obj: dict) -> str:
@@ -62,7 +66,8 @@ def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language,
         ok = not vm.get("error") and not vm.get("empty")
         if ok:
             tests_store.finish_test(uid, test_id, vm["file_name"], vm["code"],
-                                    vm["endpoints"], vm.get("validation"), "done")
+                                    vm["endpoints"], vm.get("validation"), "done",
+                                    hardware=vm.get("hardware"), gen_meta=meta)
             # snapshot this result as the next version (#12)
             n = tests_store.add_version(test_id, vm["prompt"], vm["file_name"], vm["code"],
                                         language, vm["endpoints"], vm.get("validation"))
