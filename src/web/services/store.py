@@ -104,6 +104,19 @@ def add_network(user_id: int, org_id: str, net: dict, devices: list) -> dict:
     return entry
 
 
+def set_network_devices(user_id: int, network_id: str, devices: list) -> None:
+    """Attach a freshly-fetched device list to an already-stored network (used by the
+    lazy per-network device load, so the @-mention picker gets populated on demand)."""
+    row = _row(user_id)
+    orgs = json.loads(row["orgs_json"] or "[]")
+    for org in orgs:
+        for net in org.get("networks", []):
+            if net.get("id") == network_id:
+                net["devices"] = devices
+                _save(user_id, row["api_key_enc"], orgs)
+                return
+
+
 def org_id_for_network(user_id: int, network_id: str) -> str:
     """The org that owns ``network_id`` for this user, or the first connected org as
     a fallback (used to inject a concrete organization ID into generated tests)."""

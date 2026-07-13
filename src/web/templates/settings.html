@@ -19,6 +19,7 @@
       <button class="set-nav-item" data-cat="meraki">Meraki integration</button>
       <button class="set-nav-item" data-cat="language">Output language</button>
       <button class="set-nav-item" data-cat="provider">Model provider</button>
+      <button class="set-nav-item" data-cat="run">Run / Containers</button>
       <button class="set-nav-item" data-cat="logs"
               hx-get="/settings/logs" hx-target="#logsContent" hx-swap="innerHTML">Logs</button>
       <button class="set-nav-item" data-cat="general">General</button>
@@ -77,6 +78,13 @@
         <div class="org-list" id="orgList">
           {% for org in orgs %}{% include "partials/org_card.html" %}{% endfor %}
         </div>
+
+        <div class="org-head" style="margin-top:var(--s8)">
+          <h2>Default example network</h2>
+        </div>
+        <p class="apikey-lead">When a test runs and builds from an example, its ephemeral network is
+          cloned from this network unless the test overrides it.</p>
+        {% include "partials/default_network.html" %}
       </section>
 
       <!-- Output language (G12) -->
@@ -161,6 +169,62 @@
             <span class="spinner htmx-indicator" aria-hidden="true"></span>
           </div>
           <div id="providerResult"></div>
+        </form>
+      </section>
+
+      <!-- Run / Containers (Run feature) -->
+      <section class="set-cat cat-run">
+        <div class="set-head">
+          <span class="eyebrow">Run / Containers</span>
+          <h1>Ephemeral containers</h1>
+          <p>Each test run executes its generated code in a short-lived Docker container.
+            These settings control the base image per language and the resource/time limits.</p>
+        </div>
+        <form id="runForm" hx-post="/settings/run" hx-target="#runResult" hx-swap="innerHTML"
+              hx-disabled-elt="find button[type='submit']">
+          <div class="gen-field">
+            <label for="runPyImg">Python image</label>
+            <input class="set-input mono" id="runPyImg" name="pythonImage" value="{{ run.python_image }}"
+                   autocomplete="off" spellcheck="false" aria-label="Python container image">
+          </div>
+          <div class="gen-field">
+            <label for="runGoImg">Go image</label>
+            <input class="set-input mono" id="runGoImg" name="goImage" value="{{ run.go_image }}"
+                   autocomplete="off" spellcheck="false" aria-label="Go container image">
+          </div>
+          <div class="gen-field">
+            <label for="runScriptImg">Script image</label>
+            <input class="set-input mono" id="runScriptImg" name="scriptImage" value="{{ run.script_image }}"
+                   autocomplete="off" spellcheck="false" aria-label="Script container image">
+          </div>
+          <div class="gen-field">
+            <label for="runTimeout">Timeout (seconds)</label>
+            <input class="set-input mono" id="runTimeout" name="timeoutSeconds" type="number" min="1"
+                   value="{{ run.timeout_seconds }}" aria-label="Run timeout in seconds">
+          </div>
+          <div class="gen-field">
+            <label for="runCpu">CPU limit (cores)</label>
+            <input class="set-input mono" id="runCpu" name="cpuLimit" type="number" step="0.1" min="0.1"
+                   value="{{ run.cpu_limit }}" aria-label="CPU limit in cores">
+          </div>
+          <div class="gen-field">
+            <label for="runMem">Memory limit (MB)</label>
+            <input class="set-input mono" id="runMem" name="memoryLimitMb" type="number" min="1"
+                   value="{{ run.memory_limit_mb }}" aria-label="Memory limit in megabytes">
+          </div>
+          <div class="gen-field">
+            <label for="runCleanup">Cleanup policy</label>
+            <select class="set-input" id="runCleanup" name="cleanupPolicy" aria-label="Container cleanup policy">
+              <option value="always"{% if run.cleanup_policy == 'always' %} selected{% endif %}>Always remove</option>
+              <option value="on_success"{% if run.cleanup_policy == 'on_success' %} selected{% endif %}>Remove on success only</option>
+              <option value="never"{% if run.cleanup_policy == 'never' %} selected{% endif %}>Never remove (debug)</option>
+            </select>
+          </div>
+          <div class="set-error" id="runError"></div>
+          <div class="prov-actions">
+            <button class="btn btn-primary" type="submit">Save</button>
+          </div>
+          <div id="runResult"></div>
         </form>
       </section>
 

@@ -1,12 +1,20 @@
 {# Verified Meraki network (handoff G10), nested under its org. Persisted server-side;
-   the app reads devices from GET /api/networks (no client-side copy). #}
+   the app reads devices from GET /api/networks. Devices are fetched lazily the first
+   time this row is revealed (so org-add doesn't do an N+1 device fetch). #}
 <div class="net-card" data-net-id="{{ net.id }}">
   <div class="org-row">
     <span class="org-id">#{{ net.id }}</span>
     <a class="org-name" href="{{ net.url }}" target="_blank" rel="noopener">{{ net.name }}</a>
   </div>
   <div class="nested">
-    <div class="nested-head"><h3>Devices</h3><span class="dev-count">{{ devices|length }} found</span></div>
-    {% include "partials/dev_table.html" %}
+    <div class="nested-head"><h3>Devices</h3><span class="dev-count">{{ (devices or [])|length }} found</span></div>
+    {% if devices %}
+      {% include "partials/dev_table.html" %}
+    {% else %}
+      <div hx-get="/settings/meraki/networks/{{ net.id }}/devices"
+           hx-trigger="revealed" hx-swap="outerHTML">
+        <div class="gen-note">Loading devices…</div>
+      </div>
+    {% endif %}
   </div>
 </div>

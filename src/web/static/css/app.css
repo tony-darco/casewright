@@ -397,6 +397,7 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 #setBody[data-cat="meraki"] .cat-meraki,
 #setBody[data-cat="language"] .cat-language,
 #setBody[data-cat="provider"] .cat-provider,
+#setBody[data-cat="run"] .cat-run,
 #setBody[data-cat="logs"] .cat-logs,
 #setBody[data-cat="general"] .cat-general { display: block; }
 /* Logs page (issue #8) */
@@ -456,7 +457,8 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .lang-opt.active .chk { opacity: 1; }
 
 /* Model provider (Settings) */
-.cat-provider .gen-field .set-input { width: 100%; }
+.cat-provider .gen-field .set-input,
+.cat-run .gen-field .set-input { width: 100%; }
 .cat-provider .prov-temp { max-width: 120px; }
 .prov-row { display: flex; gap: var(--s3); }
 .prov-row .set-input { flex: 1; width: auto; }
