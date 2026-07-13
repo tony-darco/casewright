@@ -63,8 +63,12 @@ def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language,
         if ok:
             tests_store.finish_test(uid, test_id, vm["file_name"], vm["code"],
                                     vm["endpoints"], vm.get("validation"), "done")
+            # snapshot this result as the next version (#12)
+            n = tests_store.add_version(test_id, vm["prompt"], vm["file_name"], vm["code"],
+                                        language, vm["endpoints"], vm.get("validation"))
             logs_store.record(uid, test_id, vm.get("_log"))
             vm["t"] = {"id": test_id, "name": name}
+            vm["version_no"], vm["version_count"], vm["is_latest"] = n, n + 1, True
             item = templates.get_template("partials/test_item.html").render(
                 {"t": {"id": test_id, "name": name, "status": "done"}})
         else:
@@ -80,17 +84,24 @@ def app_generate_start(
     prompt: str = Form(""),
     devices: str = Form(""),
     language: str = Form("py"),
+    regen_of: str = Form(""),
     user: dict = Depends(require_user),
 ):
-    """Kick off a generation in the background and return the new (generating) test id
-    plus its sidebar item. The client then attaches to ``/app/generate/{id}/stream``."""
+    """Kick off a generation in the background and return the (generating) test id plus
+    its sidebar item. ``regen_of`` regenerates into an existing test as a new version
+    (#12); otherwise a fresh test is created. The client then attaches to the stream."""
     dev = generate.parse_devices(devices)
     uid = user["id"]
     name = _default_name(prompt)
     meta = _gen_meta(uid, dev)
     prov = provider_store.overrides(uid)
-    t = tests_store.create_generating(uid, name, prompt, language, dev)
-    test_id = t["id"]
+
+    t = None
+    if regen_of.strip().isdigit():
+        t = tests_store.restart_generation(uid, int(regen_of), prompt, language)
+    if t is None:                                    # new test (or regen target not found)
+        t = tests_store.create_generating(uid, name, prompt, language, dev)
+    test_id, name = t["id"], t["name"]
 
     gen_registry.start(test_id, uid, lambda job: _run_generation(
         job, uid, test_id, name, prompt, dev, devices, language, meta, prov))
@@ -132,14 +143,34 @@ def app_generate_attach(test_id: int, user: dict = Depends(require_user)):
     return StreamingResponse(fallback(), media_type="text/event-stream", headers=_SSE_HEADERS)
 
 
+def _with_version_nav(vm, user_id, test_id):
+    """Add version-history fields (#12) to a latest-version view model."""
+    count = len(tests_store.list_versions(user_id, test_id))
+    vm["version_count"] = count
+    vm["version_no"] = count - 1        # the tests row mirrors the latest version
+    vm["is_latest"] = True
+    return vm
+
+
 @router.get("/app/tests/{test_id}", response_class=HTMLResponse)
 def load_test(request: Request, test_id: int, user: dict = Depends(require_user)):
     test = tests_store.get_test(user["id"], test_id)
     if not test:
         return HTMLResponse("<div class='gen-error'>Test not found.</div>", status_code=404)
-    return templates.TemplateResponse(
-        request, "partials/workspace.html", generate.view_model_from_test(test)
-    )
+    vm = _with_version_nav(generate.view_model_from_test(test), user["id"], test_id)
+    return templates.TemplateResponse(request, "partials/workspace.html", vm)
+
+
+@router.get("/app/tests/{test_id}/versions/{version_no}", response_class=HTMLResponse)
+def load_version(request: Request, test_id: int, version_no: int, user: dict = Depends(require_user)):
+    """Load a historical version of a test (#12), read-only unless it's the latest."""
+    version = tests_store.get_version(user["id"], test_id, version_no)
+    if not version:
+        return HTMLResponse("<div class='gen-error'>Version not found.</div>", status_code=404)
+    test = tests_store.get_test(user["id"], test_id)
+    count = len(tests_store.list_versions(user["id"], test_id))
+    vm = generate.view_model_from_version(version, test_id, test["name"] if test else "", count)
+    return templates.TemplateResponse(request, "partials/workspace.html", vm)
 
 
 @router.post("/app/tests/{test_id}/code")

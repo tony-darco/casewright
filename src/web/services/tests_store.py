@@ -59,6 +59,61 @@ def delete_test(user_id, test_id):
         return cur.rowcount > 0
 
 
+def restart_generation(user_id, test_id, prompt, language):
+    """Reuse an existing test row for a regenerate (#12): flip it back to 'generating'
+    and update the prompt/language. Returns the row stub, or None if not the user's."""
+    with db.cursor() as conn:
+        cur = conn.execute(
+            "UPDATE tests SET status = 'generating', prompt = ?, language = ?, "
+            "updated_at = datetime('now') WHERE id = ? AND user_id = ?",
+            (prompt, language, test_id, user_id),
+        )
+        if cur.rowcount == 0:
+            return None
+        name = conn.execute("SELECT name FROM tests WHERE id = ?", (test_id,)).fetchone()[0]
+    return {"id": test_id, "name": name, "status": "generating"}
+
+
+# --- version history (#12) -------------------------------------------------------
+
+def add_version(test_id, prompt, file_name, code, language, endpoints, validation):
+    """Append a snapshot as the next version of a test; returns its 0-based version_no."""
+    with db.cursor() as conn:
+        (n,) = conn.execute(
+            "SELECT COUNT(*) FROM test_versions WHERE test_id = ?", (test_id,)
+        ).fetchone()
+        conn.execute(
+            "INSERT INTO test_versions (test_id, version_no, prompt, file_name, code, "
+            "language, endpoints_json, validation_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (test_id, n, prompt, file_name, code, language,
+             json.dumps(endpoints or []), json.dumps(validation) if validation else ""),
+        )
+    return n
+
+
+def list_versions(user_id, test_id):
+    """version_no + created_at for each version of the user's test, oldest first."""
+    with db.cursor() as conn:
+        rows = conn.execute(
+            "SELECT v.version_no, v.created_at FROM test_versions v "
+            "JOIN tests t ON t.id = v.test_id "
+            "WHERE v.test_id = ? AND t.user_id = ? ORDER BY v.version_no",
+            (test_id, user_id),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_version(user_id, test_id, version_no):
+    """A single version snapshot (scoped to the owner), or None."""
+    with db.cursor() as conn:
+        row = conn.execute(
+            "SELECT v.* FROM test_versions v JOIN tests t ON t.id = v.test_id "
+            "WHERE v.test_id = ? AND v.version_no = ? AND t.user_id = ?",
+            (test_id, version_no, user_id),
+        ).fetchone()
+    return dict(row) if row else None
+
+
 def list_tests(user_id):
     """Lightweight rows for the sidebar (no code payload), newest first."""
     with db.cursor() as conn:

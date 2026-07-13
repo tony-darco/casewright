@@ -157,18 +157,21 @@
 
   // Start a new generation (or regenerate): create it server-side, then attach.
   // `language` is the per-test choice; it falls back to the Settings default.
-  function generate(text, devices, language) {
+  // regenOf (optional): regenerate into an existing test as a new version (#12).
+  function generate(text, devices, language, regenOf) {
     app.dataset.view = 'work';
     topTitle.innerHTML = '<b>' + esc(trunc(text, 60)) + '</b>';
     var le = document.getElementById('libEmpty'); if (le) le.hidden = true;
     app.dataset.viewing = '';                 // no test id yet; set on attach
     workspace.innerHTML = STREAM_SHELL;
-    var body = new URLSearchParams({
+    var params = {
       prompt: text, devices: JSON.stringify(devices || []),
       language: language || localStorage.getItem('cw.language') || 'py'
-    });
+    };
+    if (regenOf) params.regen_of = regenOf;
     fetch('/app/generate/start', {
-      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString()
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(params).toString()
     }).then(function (resp) {
       if (resp.status === 401) { window.location = '/login'; return null; }
       if (!resp.ok) { streamError(); return null; }
@@ -176,10 +179,12 @@
     }).then(function (d) {
       if (!d) return;
       var list = document.getElementById('testList');
-      if (list && d.item_html) {
-        list.insertAdjacentHTML('afterbegin', d.item_html);
-        var first = list.firstElementChild;
-        if (window.htmx && first) htmx.process(first);
+      if (d.item_html) {
+        var existing = document.getElementById('test-' + d.test_id);
+        if (existing) existing.outerHTML = d.item_html;      // regenerate: reuse the item
+        else if (list) list.insertAdjacentHTML('afterbegin', d.item_html);
+        var el = document.getElementById('test-' + d.test_id);
+        if (window.htmx && el) htmx.process(el);
       }
       attachStream(d.test_id, true);
     }).catch(streamError);
@@ -230,7 +235,17 @@
     var text = ta.value.trim(); if (!text) { ta.focus(); return; }
     var devices = []; try { devices = JSON.parse(panel.dataset.devices || '[]'); } catch (e) { devices = []; }
     var langSel = panel.querySelector('#regenLang');
-    generate(text, devices, langSel ? langSel.value : null);
+    generate(text, devices, langSel ? langSel.value : null, panel.dataset.testId || null);  // new version (#12)
+  }
+
+  // Load a specific version of a test into the workspace (#12). The latest version is
+  // the editable test itself; older ones are read-only.
+  function loadVersion(testId, versionNo, count) {
+    app.dataset.viewing = String(testId);
+    var url = (versionNo >= count - 1) ? ('/app/tests/' + testId)
+                                       : ('/app/tests/' + testId + '/versions/' + versionNo);
+    workspace.innerHTML = GENNING;
+    htmx.ajax('GET', url, { target: '#workspace', swap: 'innerHTML' });
   }
   function downloadFile() {
     var codeEl = workspace.querySelector('#codeEl'); if (!codeEl) return;
@@ -289,6 +304,15 @@
     var tab = e.target.closest('.tab'); if (tab) { switchTab(tab.dataset.tab); return; }
     if (e.target.closest('#regenBtn')) { regenerate(); return; }
     if (e.target.closest('#promptStartOver')) { document.getElementById('newBtn').click(); return; }
+    var vnav = e.target.closest('[data-ver-nav]'), vlatest = e.target.closest('[data-ver-latest]');
+    if (vnav || vlatest) {
+      var panel = workspace.querySelector('.panel'); var bar = workspace.querySelector('.version-bar');
+      if (!panel || !bar) return;
+      var testId = panel.dataset.testId, cur = Number(bar.dataset.version), count = Number(bar.dataset.count);
+      var target = vlatest ? (count - 1) : (vnav.dataset.verNav === 'prev' ? cur - 1 : cur + 1);
+      if (target >= 0 && target < count) loadVersion(testId, target, count);
+      return;
+    }
     var exportBtn = e.target.closest('#exportBtn');
     if (exportBtn) { var m = workspace.querySelector('#exportMenu'); if (m) m.classList.toggle('open'); return; }
     var exp = e.target.closest('[data-export]');

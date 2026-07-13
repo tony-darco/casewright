@@ -171,6 +171,26 @@ def view_model_from_test(test):
     return vm
 
 
+def view_model_from_version(version, test_id, name, version_count):
+    """Read-only workspace view model for a historical version snapshot (#12)."""
+    endpoints = parse_devices(version.get("endpoints_json"))
+    validation = None
+    raw = version.get("validation_json")
+    if raw:
+        try:
+            validation = json.loads(raw)
+        except (ValueError, TypeError):
+            validation = None
+    vm = _workspace_vm(version.get("prompt", ""), version.get("code") or "",
+                       version.get("file_name") or "", endpoints, version.get("language") or "py", validation)
+    vm["t"] = {"id": test_id, "name": name}
+    vm["version_no"] = version["version_no"]
+    vm["version_count"] = version_count
+    vm["is_latest"] = version["version_no"] == version_count - 1
+    vm["readonly"] = not vm["is_latest"]   # only the latest is editable / regeneratable
+    return vm
+
+
 # Graph node -> the status line the user sees while that stage runs (live generation).
 STAGE_LABELS = {
     "generate_queries": "Expanding your prompt into search queries…",
