@@ -84,16 +84,60 @@ Visit `http://localhost:8000`, sign up, and:
 
 ## How It Works
 
-```text
-prompt (+ @device context)
-  -> RAG-Fusion query expansion
-  -> vector retrieval, fused across query variants
-  -> LLM rerank
-  -> CRAG relevance grading (rewrite + re-retrieve on low confidence)
-  -> call-order dependency resolution
-  -> test generation, targeted at the requested language/framework
-  -> deterministic sanitize (strip fences/prose down to pure source)
-  -> validation (does it parse/compile as that language?)
+### Architecture
+
+```mermaid
+flowchart TB
+    UI["Browser<br/>HTMX + Jinja2"]
+
+    subgraph FastAPI["src/web — FastAPI app"]
+        ROUTERS["Routers<br/>app_view, settings, auth, account"]
+        SERVICES["Services<br/>generate.py, tests_store, meraki client, logs_store"]
+        DB[("SQLite<br/>users, tests, versions, logs")]
+    end
+
+    subgraph RAG["src/rag — generation engine"]
+        PIPE["AutoTestLLM pipeline<br/>(LangGraph — see below)"]
+        VSTORE[("Chroma vector store<br/>data/chroma")]
+    end
+
+    OLLAMA[["Ollama<br/>chat + embedding models"]]
+    MERAKI[["Meraki Dashboard API"]]
+
+    UI -- "HTTP + SSE" --> ROUTERS
+    ROUTERS --- SERVICES
+    SERVICES --- DB
+    SERVICES --> PIPE
+    PIPE --- VSTORE
+    PIPE --- OLLAMA
+    SERVICES --- MERAKI
+```
+
+The web layer never talks to Ollama or Chroma directly — every prompt goes through
+`rag.pipeline.AutoTestLLM`, which owns the model and vector-store clients. The web
+layer's own services handle persistence (SQLite), the Meraki proxy, and per-user
+logs.
+
+### The generation pipeline
+
+Each prompt runs through a LangGraph with a correction loop: if the grader isn't
+confident in what it kept, the query gets rewritten and re-retrieved (bounded, so it
+can't loop forever) before generation ever runs.
+
+```mermaid
+flowchart LR
+    START(["prompt"]) --> GQ["generate_queries<br/>(RAG-Fusion)"]
+    GQ --> RET["retrieve<br/>(RRF across query variants)"]
+    RET --> RANK["rerank<br/>(LLM)"]
+    RANK --> GRADE["grade<br/>(CRAG relevance)"]
+    GRADE -- "low confidence,<br/>attempts left" --> REWRITE["rewrite"]
+    REWRITE --> GQ
+    GRADE -- "confident, or<br/>attempts exhausted" --> FIN["finalize<br/>(endpoint ids)"]
+    FIN --> DEPS["dependencies<br/>(call-order graph)"]
+    DEPS --> GEN["generate<br/>(target language/framework)"]
+    GEN --> SAN["sanitize<br/>(strip fences/prose)"]
+    SAN --> VAL["validate<br/>(parses/compiles?)"]
+    VAL --> DONE(["done"])
 ```
 
 Retrieval nodes degrade gracefully on a bad model response (e.g. fall back to the
