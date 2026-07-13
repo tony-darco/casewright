@@ -27,6 +27,8 @@ dependencies = [
     "bcrypt>=4.1,<5",
     # encryption at rest for stored secrets (Meraki API key)
     "cryptography>=42,<47",
+    # ephemeral container execution for the Run feature (test runners)
+    "docker>=7,<8",
 ]
 
 [project.optional-dependencies]
