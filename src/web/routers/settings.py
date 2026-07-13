@@ -193,12 +193,3 @@ def add_network(
 def api_networks(user: dict = Depends(require_user)):
     """This user's verified networks + devices for the app's @-mention / device picker."""
     return store.verified_networks(user["id"])
-
-
-@router.get("/settings/meraki/networks/{network_id}/devices", response_class=HTMLResponse)
-def network_devices(request: Request, network_id: str, user: dict = Depends(require_user)):
-    try:
-        devices = meraki.list_devices(network_id, store.get_meraki_key(user["id"]))
-    except meraki.MerakiError as exc:
-        return _error(request, str(exc))
-    return templates.TemplateResponse(request, "partials/dev_table.html", {"devices": devices})
