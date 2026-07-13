@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from web import config, db
 from web.auth import AuthRedirect, require_user
-from web.routers import account_routes, app_view, auth_routes, settings, site
+from web.routers import account_routes, app_view, auth_routes, runs, settings, site
 from web.services import logs_store
 
 # Fail closed on insecure secrets before doing anything else (issue #10): outside
@@ -49,5 +49,6 @@ app.include_router(site.router)
 app.include_router(auth_routes.router)
 # protected — a logged-in user is required for every route in these routers
 app.include_router(app_view.router, dependencies=[Depends(require_user)])
+app.include_router(runs.router, dependencies=[Depends(require_user)])
 app.include_router(settings.router, dependencies=[Depends(require_user)])
 app.include_router(account_routes.router, dependencies=[Depends(require_user)])

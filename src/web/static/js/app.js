@@ -117,7 +117,7 @@
       } else if (existing) {
         existing.remove();
       }
-      if (isViewing) workspace.innerHTML = ev.panel_html;
+      if (isViewing) { workspace.innerHTML = ev.panel_html; attachRunStreams(workspace); }
       delete activeGens[testId];
     }
   }
@@ -339,6 +339,36 @@
     var r = e.target.closest('input[name="runSource"]'); if (!r) return;
     var pick = workspace.querySelector('.pt-netpick');
     if (pick) pick.hidden = r.value !== 'example';
+  });
+
+  /* ---------------- run stream (Run feature): live logs + status over SSE ---------------- */
+  function attachRunStreams(root) {
+    var boxes = (root || workspace).querySelectorAll('.run-status[data-run-stream]');
+    boxes.forEach(function (box) {
+      if (box.dataset.attached === '1') return;   // already streaming
+      box.dataset.attached = '1';
+      var es = new EventSource(box.dataset.runStream);
+      var log = box.querySelector('#runLog'), badge = box.querySelector('.run-badge'),
+          state = box.querySelector('.run-state');
+      es.onmessage = function (e) {
+        var ev; try { ev = JSON.parse(e.data); } catch (_) { return; }
+        if (ev.type === 'log') {
+          if (log) { log.textContent += '[' + ev.stage + '] ' + ev.message + '\n'; log.scrollTop = log.scrollHeight; }
+        } else if (ev.type === 'status') {
+          if (state) state.textContent = ev.status;
+          if (badge) badge.className = 'run-badge run-' + ev.status;
+        } else if (ev.type === 'done') {
+          es.close();
+          // re-render the final terminal state (status + any error) cleanly from the server
+          if (window.htmx) htmx.ajax('GET', '/app/tests/' + box.dataset.testId + '/runs/' + box.dataset.runId,
+                                     { target: box, swap: 'outerHTML' });
+        }
+      };
+      es.onerror = function () { es.close(); };
+    });
+  }
+  document.body.addEventListener('htmx:afterSwap', function (e) {
+    if (e.target && e.target.querySelector) attachRunStreams(e.target);
   });
 
   /* ---------------- sidebar / new test ---------------- */
