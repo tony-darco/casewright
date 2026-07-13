@@ -4,7 +4,8 @@
    is a placeholder — no execution. #}
 {% import "_macros.html" as ui %}
 <div class="panel enter" data-file="{{ file_name|default('generated.test.py', true) }}" data-devices="{{ devices|default('[]', true) }}"
-  data-test-id="{{ t.id if t else '' }}" data-language="{{ language|default('py', true) }}">
+  data-test-id="{{ t.id if t else '' }}" data-language="{{ language|default('py', true) }}"
+  {% if readonly %}data-readonly="1"{% endif %}>
   <div class="panel-head">
     <div class="tabs">
       <button class="tab" data-tab="prompt" type="button">Prompt</button>
@@ -28,16 +29,25 @@
     </div>
   </div>
 
+  {% if version_count and version_count > 1 %}
+  <div class="version-bar" data-version="{{ version_no }}" data-count="{{ version_count }}">
+    <button class="ver-nav" data-ver-nav="prev" type="button"{% if version_no <= 0 %} disabled{% endif %}>&#8592;</button>
+    <span class="ver-label">v{{ version_no }}{% if is_latest %} · latest{% else %} · of {{ version_count }}{% endif %}</span>
+    <button class="ver-nav" data-ver-nav="next" type="button"{% if is_latest %} disabled{% endif %}>&#8594;</button>
+    {% if not is_latest %}<button class="ver-latest" data-ver-latest type="button">Jump to latest &#8594;</button>{% endif %}
+  </div>
+  {% endif %}
+
   <div class="panel-body">
     <div class="pane" id="panePrompt">
       <div class="prompt-pane">
         <label class="prompt-label" for="promptEdit">Your prompt</label>
-        <textarea class="prompt-edit" id="promptEdit" spellcheck="false"
+        <textarea class="prompt-edit" id="promptEdit" spellcheck="false"{% if readonly %} readonly{% endif %}
           placeholder="Describe a test — an endpoint, a feature, an edge case…">{{ prompt }}</textarea>
         <div class="prompt-actions">
           <button class="prompt-startover" id="promptStartOver" type="button">Delete &amp; start over</button>
           <label class="lang-field">Language {{ ui.lang_select('regenLang', language|default('py', true)) }}</label>
-          <button class="prompt-regen" id="regenBtn" type="button">
+          <button class="prompt-regen" id="regenBtn" type="button"{% if readonly %} disabled title="Viewing an old version — jump to latest to regenerate"{% endif %}>
             <span class="rico">&#8635;</span> Regenerate</button>
         </div>
       </div>
@@ -57,8 +67,8 @@
       {% else %}
         <div class="codearea">
           <div class="gutter" aria-hidden="true">{{ gutter }}</div>
-          <pre class="code" id="codeEl" contenteditable="plaintext-only" spellcheck="false"
-            aria-label="Generated test code (editable)">{{ code }}</pre>
+          <pre class="code" id="codeEl"{% if not readonly %} contenteditable="plaintext-only"{% endif %} spellcheck="false"
+            aria-label="Generated test code{% if not readonly %} (editable){% endif %}">{{ code }}</pre>
         </div>
         <div class="code-status" id="codeStatus" aria-live="polite"></div>
       {% endif %}

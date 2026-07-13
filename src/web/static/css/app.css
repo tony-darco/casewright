@@ -327,6 +327,20 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .code-validate.unknown { color: var(--ink-3); }
 .code-validate.bad { color: var(--ink); background: var(--sunken); font-weight: 500; }
 .code-validate .vmeth { color: var(--ink-3); }
+
+/* Version history bar (#12) */
+.version-bar { display: flex; align-items: center; gap: var(--s3); padding: 6px var(--s3);
+  border-bottom: 1px solid var(--line); background: var(--sunken);
+  font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-2); }
+.ver-nav { width: 24px; height: 22px; border-radius: var(--radius); color: var(--ink-2);
+  border: 1px solid var(--line-2); background: var(--surface); }
+.ver-nav:hover:not(:disabled) { border-color: var(--ink-3); color: var(--ink); }
+.ver-nav:disabled { opacity: 0.4; cursor: default; }
+.ver-label { letter-spacing: 0.03em; }
+.ver-latest { margin-left: auto; color: var(--ink-2); font-family: var(--font-mono); font-size: var(--t-eyebrow); }
+.ver-latest:hover { color: var(--ink); }
+/* read-only (older) version: dim the disabled regenerate + non-editable code */
+.panel[data-readonly] .prompt-regen:disabled { opacity: 0.5; cursor: default; }
 .runmeta { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--line); color: var(--ink); }
 .runmeta .sep { color: var(--line-2); padding: 0 6px; }
 .running { display: inline-flex; align-items: center; gap: 9px; color: var(--ink-2); }

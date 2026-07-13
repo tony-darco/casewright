@@ -76,6 +76,23 @@ CREATE TABLE IF NOT EXISTS test_logs (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_test_logs_test ON test_logs(test_id, id);
+
+-- Version history for a test (#12): a snapshot (prompt + code + metadata) is appended
+-- on every successful generation, so regenerating preserves the prior prompt and code.
+-- version_no is 0-based within a test. The tests row mirrors the latest version.
+CREATE TABLE IF NOT EXISTS test_versions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    test_id         INTEGER NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+    version_no      INTEGER NOT NULL,
+    prompt          TEXT NOT NULL DEFAULT '',
+    file_name       TEXT NOT NULL DEFAULT '',
+    code            TEXT NOT NULL DEFAULT '',
+    language        TEXT NOT NULL DEFAULT '',
+    endpoints_json  TEXT NOT NULL DEFAULT '[]',
+    validation_json TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_test_versions ON test_versions(test_id, version_no);
 """
 
 
