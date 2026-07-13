@@ -159,6 +159,13 @@
     if (fileField) fileField.hidden = r.value !== 'upload';
   });
 
+  /* ---- Knowledge base: storage-kind toggle (local vs. remote Chroma URL) ---- */
+  document.body.addEventListener('change', function (e) {
+    var r = e.target.closest('#kbStorageForm input[name="storageKind"]'); if (!r) return;
+    var field = r.closest('form').querySelector('.kb-storage-url-field');
+    if (field) field.hidden = r.value !== 'remote';
+  });
+
   function refreshKbEmpty() {
     var empty = document.getElementById('kbEmpty'); if (!empty) return;
     var list = document.getElementById('kbVersionList');

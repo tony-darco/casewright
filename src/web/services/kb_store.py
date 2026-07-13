@@ -91,3 +91,24 @@ def set_active(user_id, version_id) -> bool:
             (user_id, version_id),
         )
     return True
+
+
+def get_storage(user_id) -> dict:
+    """Where this user's vector store lives: {'storage_kind': 'local'|'remote',
+    'storage_url': ...}. 'local' (the default) means the shared AUTOTEST_DATA_DIR
+    persist directory; 'remote' means a Chroma server URL."""
+    with db.cursor() as conn:
+        row = conn.execute(
+            "SELECT storage_kind, storage_url FROM kb_settings WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    return dict(row) if row else {"storage_kind": "local", "storage_url": ""}
+
+
+def set_storage(user_id, storage_kind, storage_url) -> None:
+    with db.cursor() as conn:
+        conn.execute(
+            "INSERT INTO kb_settings (user_id, storage_kind, storage_url) VALUES (?, ?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET storage_kind = excluded.storage_kind, "
+            "storage_url = excluded.storage_url",
+            (user_id, storage_kind, storage_url.strip()),
+        )

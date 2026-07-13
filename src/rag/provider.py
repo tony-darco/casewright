@@ -45,16 +45,21 @@ class ProviderConfig:
     base_url: str = field(default_factory=lambda: os.environ.get("AUTOTEST_OLLAMA_URL"))
 
 
-    # AUTOTEST_DATA_DIR is the single source of truth; no default (fail fast).
+    # AUTOTEST_DATA_DIR is the single source of truth; no default (fail fast) unless
+    # chroma_url points the store at a remote Chroma server instead (Knowledge Base
+    # feature — a Docker-hosted Chroma or any other client/server deployment).
     persist_dir: str = field(default_factory=lambda: os.environ.get("AUTOTEST_DATA_DIR"))
+    chroma_url: str = field(default_factory=lambda: os.environ.get("AUTOTEST_CHROMA_URL", ""))
     collection_name: str = DEFAULT_COLLECTION
     temperature: float = 0.0
 
-    # Disable model "thinking" by default. 
+    # Disable model "thinking" by default.
     # AUTOTEST_CHAT_REASONING=1 to re-enable
     reasoning: bool = field(default_factory=lambda: os.environ.get("AUTOTEST_CHAT_REASONING", "").strip().lower() in ("1", "true", "yes", "on"))
 
     def __post_init__(self):
+        if self.chroma_url:
+            return   # remote store — persist_dir is irrelevant, skip the local-path checks
         if not self.persist_dir:
             raise ValueError(
                 "AUTOTEST_DATA_DIR is not set. Point it at the Chroma store directory "
@@ -83,14 +88,26 @@ def build_embeddings(cfg: ProviderConfig) -> Embeddings:
 
 
 def build_vector_store(cfg: ProviderConfig, embeddings=None):
-    """Chroma store bound to cfg's collection + persist dir. Both ingest and
+    """Chroma store bound to cfg's collection + storage location. Both ingest and
     retrieval build it from one ProviderConfig, so they cannot diverge on store
     location or embedding space. Reuses `embeddings` if given, else builds them
-    from the same cfg (guaranteeing ingest and query share an embedding model)."""
+    from the same cfg (guaranteeing ingest and query share an embedding model).
+
+    ``cfg.chroma_url`` (Knowledge Base feature), when set, connects to a remote
+    Chroma server (client/server mode — e.g. a Docker-hosted ``chroma run``)
+    instead of a local persist directory."""
     from langchain_chroma import Chroma
 
     if embeddings is None:
         embeddings = build_embeddings(cfg)
+    if cfg.chroma_url:
+        import chromadb
+        from urllib.parse import urlparse
+
+        parts = urlparse(cfg.chroma_url)
+        client = chromadb.HttpClient(host=parts.hostname, port=parts.port or 8000,
+                                     ssl=parts.scheme == "https")
+        return Chroma(client=client, collection_name=cfg.collection_name, embedding_function=embeddings)
     return Chroma(
         collection_name=cfg.collection_name,
         embedding_function=embeddings,

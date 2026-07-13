@@ -113,9 +113,14 @@ CREATE TABLE IF NOT EXISTS kb_versions (
 CREATE INDEX IF NOT EXISTS idx_kb_versions_user ON kb_versions(user_id, created_at DESC);
 
 -- Per-user active knowledge-base version pointer (mirrors provider_settings' shape).
+-- storage_kind/storage_url pick where the vector store itself lives: 'local' (the
+-- shared AUTOTEST_DATA_DIR persist directory, the default) or 'remote' (a Chroma
+-- server URL — e.g. a Docker-hosted `chroma run`, or any other client/server Chroma).
 CREATE TABLE IF NOT EXISTS kb_settings (
     user_id           INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    active_version_id INTEGER REFERENCES kb_versions(id) ON DELETE SET NULL
+    active_version_id INTEGER REFERENCES kb_versions(id) ON DELETE SET NULL,
+    storage_kind      TEXT NOT NULL DEFAULT 'local',   -- 'local' | 'remote'
+    storage_url       TEXT NOT NULL DEFAULT ''
 );
 """
 
@@ -161,6 +166,12 @@ def init() -> None:
             conn.execute("ALTER TABLE tests ADD COLUMN validation_json TEXT NOT NULL DEFAULT ''")
         if "status" not in test_cols:
             conn.execute("ALTER TABLE tests ADD COLUMN status TEXT NOT NULL DEFAULT 'done'")
+        # add-column migrations for kb_settings (storage location, Knowledge Base feature)
+        kb_settings_cols = {row[1] for row in conn.execute("PRAGMA table_info(kb_settings)").fetchall()}
+        for name, ddl in (("storage_kind", "TEXT NOT NULL DEFAULT 'local'"),
+                          ("storage_url", "TEXT NOT NULL DEFAULT ''")):
+            if name not in kb_settings_cols:
+                conn.execute(f"ALTER TABLE kb_settings ADD COLUMN {name} {ddl}")
         _repair_meraki_data_fk(conn)
         conn.execute("PRAGMA foreign_keys=ON")
 

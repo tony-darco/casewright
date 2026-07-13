@@ -212,6 +212,28 @@ def settings_kb(request: Request, user: dict = Depends(require_user)):
     """Knowledge base page: loaded on demand (HTMX), same as Logs."""
     return templates.TemplateResponse(request, "partials/knowledgebase.html", {
         "versions": kb_store.list_versions(user["id"]),
+        "storage": kb_store.get_storage(user["id"]),
+    })
+
+
+@router.post("/settings/knowledgebase/storage", response_class=HTMLResponse)
+def kb_set_storage(request: Request, storageKind: str = Form("local"),
+                   storageUrl: str = Form(""), user: dict = Depends(require_user)):
+    """Where this user's vector store lives: the shared local persist directory
+    (default), or a remote Chroma server (client/server mode — e.g. a Docker-hosted
+    `chroma run`, or any other host). Reuses the same loopback-by-default SSRF guard
+    as the Ollama server URL, since both are a backend-initiated connection to a
+    user-supplied server."""
+    if storageKind == "remote":
+        try:
+            storageUrl = ollama_admin.normalize_url(storageUrl)
+        except ollama_admin.OllamaError as exc:
+            return _error(request, str(exc), retarget="#kbStorageError")
+    else:
+        storageKind, storageUrl = "local", ""
+    kb_store.set_storage(user["id"], storageKind, storageUrl)
+    return templates.TemplateResponse(request, "partials/kb_storage.html", {
+        "storage": kb_store.get_storage(user["id"]), "saved": True,
     })
 
 

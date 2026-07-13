@@ -1,0 +1,28 @@
+{# Vector-store storage location (Knowledge Base feature): local persist directory
+   (default) vs. a remote Chroma server URL (e.g. a Docker-hosted `chroma run`).
+   Replaces itself on save. #}
+<form class="set-form" id="kbStorageForm"
+      hx-post="/settings/knowledgebase/storage" hx-target="this" hx-swap="outerHTML"
+      hx-disabled-elt="find button[type='submit']">
+  <fieldset class="kb-fieldset">
+    <label class="kb-radio">
+      <input type="radio" name="storageKind" value="local"
+             {% if storage.storage_kind != 'remote' %}checked{% endif %}> Local
+      <span class="gen-note">the shared persist directory (default)</span>
+    </label>
+    <label class="kb-radio">
+      <input type="radio" name="storageKind" value="remote"
+             {% if storage.storage_kind == 'remote' %}checked{% endif %}> Remote
+      <span class="gen-note">a Chroma server URL — e.g. a container running <span class="mono">chroma run</span></span>
+    </label>
+    <div class="gen-field kb-storage-url-field"{% if storage.storage_kind != 'remote' %} hidden{% endif %}>
+      <input class="set-input mono" name="storageUrl" placeholder="http://localhost:8000"
+             value="{{ storage.storage_url }}" autocomplete="off" spellcheck="false" aria-label="Chroma server URL">
+    </div>
+  </fieldset>
+  <div class="set-error" id="kbStorageError"></div>
+  <div class="prov-actions">
+    <button class="btn btn-primary" type="submit">Save</button>
+    {% if saved %}<span class="gen-note">&#10003; Saved.</span>{% endif %}
+  </div>
+</form>
