@@ -6,18 +6,19 @@ interfaces. Today they build Ollama models; adding OpenAI/Anthropic later is one
 extra branch each. Everything downstream (the pipeline, the graph nodes) depends
 only on the returned interfaces, never on a concrete provider.
 
-Model names, base URL, and provider are overridable via environment variables so
-different local models can be popped in without editing code:
+Every field has a working default, so a fresh checkout — or a container — runs with
+no configuration at all. The env vars below only *override* those defaults, and the
+app's Settings UI overrides them per-user on top of that (web.services.provider_store
+and kb_store map user settings onto these same field names):
 
     AUTOTEST_PROVIDER, AUTOTEST_CHAT_MODEL, AUTOTEST_EMBED_MODEL, AUTOTEST_OLLAMA_URL,
-    AUTOTEST_DATA_DIR
-
-AUTOTEST_DATA_DIR (the Chroma store directory) is required and has no default; the
-rest fall back to sensible defaults.
+    AUTOTEST_CHAT_REASONING, AUTOTEST_DATA_DIR, AUTOTEST_CHROMA_URL
 
 Both ingest (rag.ingest.embed) and retrieval (rag.pipeline) build their vector store
 from one ProviderConfig, so they can never diverge on store location or embedding
-space (a divergence would silently return garbage with no error).
+space (a divergence would silently return garbage with no error). That's also why
+persist_dir defaults rather than being read from two places: ingest and retrieval
+resolve the same default, so an unset env can't split them.
 """
 
 import os
@@ -34,6 +35,9 @@ from rag import REPO_ROOT
 DEFAULT_CHAT_MODEL = "qwen3.5:latest"   # tool-capable, non-thinking -> reliable structured output
 DEFAULT_EMBED_MODEL = "nomic-embed-text:latest"
 DEFAULT_COLLECTION = "meraki_openapi"
+# Relative on purpose: resolved against REPO_ROOT in __post_init__, so "local" storage
+# lives inside the app/container rather than at some absolute path on the host.
+DEFAULT_PERSIST_DIR = "data/chroma"
 
 
 @dataclass
@@ -45,26 +49,27 @@ class ProviderConfig:
     base_url: str = field(default_factory=lambda: os.environ.get("AUTOTEST_OLLAMA_URL"))
 
 
-    # AUTOTEST_DATA_DIR is the single source of truth; no default (fail fast).
-    persist_dir: str = field(default_factory=lambda: os.environ.get("AUTOTEST_DATA_DIR"))
+    # Where a *local* Chroma store lives — inside the app itself by default (see
+    # DEFAULT_PERSIST_DIR), so no configuration is needed and a container keeps its
+    # store in the container. Ignored entirely when chroma_url points the store at a
+    # remote Chroma server instead (Knowledge Base feature).
+    persist_dir: str = field(
+        default_factory=lambda: os.environ.get("AUTOTEST_DATA_DIR") or DEFAULT_PERSIST_DIR)
+    chroma_url: str = field(default_factory=lambda: os.environ.get("AUTOTEST_CHROMA_URL", ""))
     collection_name: str = DEFAULT_COLLECTION
     temperature: float = 0.0
 
-    # Disable model "thinking" by default. 
+    # Disable model "thinking" by default.
     # AUTOTEST_CHAT_REASONING=1 to re-enable
     reasoning: bool = field(default_factory=lambda: os.environ.get("AUTOTEST_CHAT_REASONING", "").strip().lower() in ("1", "true", "yes", "on"))
 
     def __post_init__(self):
-        if not self.persist_dir:
-            raise ValueError(
-                "AUTOTEST_DATA_DIR is not set. Point it at the Chroma store directory "
-                "(e.g. add it to .env, then `set -a; source .env; set +a`), or pass "
-                "ProviderConfig(persist_dir=...)."
-            )
+        if self.chroma_url:
+            return   # remote store — persist_dir is irrelevant, skip the local-path checks
         # Resolve a relative persist_dir against the repo root (see rag/__init__.py)
         # so the store location never depends on the process CWD -- promptfoo runs
         # providers from another directory.
-        persist = Path(self.persist_dir)
+        persist = Path(self.persist_dir or DEFAULT_PERSIST_DIR)
         if not persist.is_absolute():
             persist = REPO_ROOT / persist
         self.persist_dir = str(persist)
@@ -83,14 +88,26 @@ def build_embeddings(cfg: ProviderConfig) -> Embeddings:
 
 
 def build_vector_store(cfg: ProviderConfig, embeddings=None):
-    """Chroma store bound to cfg's collection + persist dir. Both ingest and
+    """Chroma store bound to cfg's collection + storage location. Both ingest and
     retrieval build it from one ProviderConfig, so they cannot diverge on store
     location or embedding space. Reuses `embeddings` if given, else builds them
-    from the same cfg (guaranteeing ingest and query share an embedding model)."""
+    from the same cfg (guaranteeing ingest and query share an embedding model).
+
+    ``cfg.chroma_url`` (Knowledge Base feature), when set, connects to a remote
+    Chroma server (client/server mode — e.g. a Docker-hosted ``chroma run``)
+    instead of a local persist directory."""
     from langchain_chroma import Chroma
 
     if embeddings is None:
         embeddings = build_embeddings(cfg)
+    if cfg.chroma_url:
+        import chromadb
+        from urllib.parse import urlparse
+
+        parts = urlparse(cfg.chroma_url)
+        client = chromadb.HttpClient(host=parts.hostname, port=parts.port or 8000,
+                                     ssl=parts.scheme == "https")
+        return Chroma(client=client, collection_name=cfg.collection_name, embedding_function=embeddings)
     return Chroma(
         collection_name=cfg.collection_name,
         embedding_function=embeddings,

@@ -19,7 +19,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from web.auth import require_user
 from web.deps import templates
-from web.services import generate, gen_registry, logs_store, provider_store, store, tests_store
+from web.services import generate, gen_registry, kb_store, logs_store, provider_store, store, tests_store
 
 _SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
@@ -95,6 +95,12 @@ def app_generate_start(
     name = _default_name(prompt)
     meta = _gen_meta(uid, dev)
     prov = provider_store.overrides(uid)
+    active_kb = kb_store.get_active(uid)   # only ever a 'done' version (see kb_store.get_active)
+    if active_kb:
+        prov = {**prov, "collection_name": active_kb["collection_name"]}
+        storage = kb_store.get_storage(uid)
+        if storage["storage_kind"] == "remote" and storage["storage_url"]:
+            prov["chroma_url"] = storage["storage_url"]
 
     t = None
     if regen_of.strip().isdigit():

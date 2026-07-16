@@ -31,16 +31,18 @@ CREATE TABLE IF NOT EXISTS meraki_data (
     orgs_json   TEXT NOT NULL DEFAULT '[]'
 );
 
--- Per-user model-provider settings (Settings → Model provider). Blank/NULL fields
--- mean "use the backend default" (the .env / ProviderConfig defaults keep working
--- untouched — see web.services.provider_store).
+-- Per-user model-provider settings (Settings → Model provider). Blank/NULL text
+-- fields mean "use the backend default" (the ProviderConfig defaults keep working
+-- untouched — see web.services.provider_store). reasoning is nullable for the same
+-- reason temperature is: NULL = unset = keep the backend default.
 CREATE TABLE IF NOT EXISTS provider_settings (
     user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     provider    TEXT NOT NULL DEFAULT 'ollama',
     ollama_url  TEXT NOT NULL DEFAULT '',
     chat_model  TEXT NOT NULL DEFAULT '',
     embed_model TEXT NOT NULL DEFAULT '',
-    temperature REAL
+    temperature REAL,
+    reasoning   INTEGER
 );
 
 -- Persisted generated tests (per user). Relational identifiers + a JSON column for
@@ -93,6 +95,35 @@ CREATE TABLE IF NOT EXISTS test_versions (
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_test_versions ON test_versions(test_id, version_no);
+
+-- Knowledge-base embedding runs (Knowledge Base feature): one row per version, per
+-- user isolation like tests. Re-embedding creates a new row/collection rather than
+-- overwriting a prior version.
+CREATE TABLE IF NOT EXISTS kb_versions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL DEFAULT '',
+    source_kind     TEXT NOT NULL DEFAULT '',   -- 'upload' | 'link'
+    source_label    TEXT NOT NULL DEFAULT '',   -- filename or URL
+    split_method    TEXT NOT NULL DEFAULT '',   -- 'langchain' | 'custom'
+    collection_name TEXT NOT NULL DEFAULT '',
+    doc_count       INTEGER NOT NULL DEFAULT 0,
+    status          TEXT NOT NULL DEFAULT 'embedding',  -- 'embedding' | 'done' | 'error'
+    error_message   TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_kb_versions_user ON kb_versions(user_id, created_at DESC);
+
+-- Per-user active knowledge-base version pointer (mirrors provider_settings' shape).
+-- storage_kind/storage_url pick where the vector store itself lives: 'local' (inside
+-- the application itself — ProviderConfig.persist_dir, default data/chroma) or
+-- 'remote' (a Chroma server URL, wherever it happens to be hosted).
+CREATE TABLE IF NOT EXISTS kb_settings (
+    user_id           INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    active_version_id INTEGER REFERENCES kb_versions(id) ON DELETE SET NULL,
+    storage_kind      TEXT NOT NULL DEFAULT 'local',   -- 'local' | 'remote'
+    storage_url       TEXT NOT NULL DEFAULT ''
+);
 """
 
 
@@ -137,6 +168,16 @@ def init() -> None:
             conn.execute("ALTER TABLE tests ADD COLUMN validation_json TEXT NOT NULL DEFAULT ''")
         if "status" not in test_cols:
             conn.execute("ALTER TABLE tests ADD COLUMN status TEXT NOT NULL DEFAULT 'done'")
+        # add-column migration for provider_settings (model "thinking" toggle)
+        prov_cols = {row[1] for row in conn.execute("PRAGMA table_info(provider_settings)").fetchall()}
+        if "reasoning" not in prov_cols:
+            conn.execute("ALTER TABLE provider_settings ADD COLUMN reasoning INTEGER")
+        # add-column migrations for kb_settings (storage location, Knowledge Base feature)
+        kb_settings_cols = {row[1] for row in conn.execute("PRAGMA table_info(kb_settings)").fetchall()}
+        for name, ddl in (("storage_kind", "TEXT NOT NULL DEFAULT 'local'"),
+                          ("storage_url", "TEXT NOT NULL DEFAULT ''")):
+            if name not in kb_settings_cols:
+                conn.execute(f"ALTER TABLE kb_settings ADD COLUMN {name} {ddl}")
         _repair_meraki_data_fk(conn)
         conn.execute("PRAGMA foreign_keys=ON")
 

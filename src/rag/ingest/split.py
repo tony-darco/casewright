@@ -62,6 +62,29 @@ def write_one(item):
     return input_texts
 
 
+def split_openapi_custom(spec: dict, source_label: str) -> list:
+    """Pure custom split (Knowledge Base feature): one Document per HTTP method/
+    operation, mirroring write_one's chunking exactly, but taking an already-parsed
+    OpenAPI dict and a caller-supplied source label instead of the module's own
+    hardcoded spec load — no OUT_DIR file writes, no dependency on SPEC_SOURCE/
+    LOCAL_SPEC/SPEC_URL. Assumes an OpenAPI-shaped document (paths -> methods ->
+    operations); a non-OpenAPI document will simply yield no documents."""
+    docs = []
+    for path_name, path_doc in (spec.get("paths") or {}).items():
+        for method, operation in (path_doc or {}).items():
+            if method.lower() not in HTTP_METHODS:
+                continue  # skip path-level "parameters" and vendor extensions
+            docs.append(Document(
+                page_content=json.dumps(operation, indent=2),
+                metadata={
+                    "source": source_label,
+                    "method": method.upper(),
+                    "path": path_name,
+                    "endpoint_id": f"{method.upper()} {path_name}",
+                },
+            ))
+    return docs
+
 
 if __name__ == "__main__":
     with ThreadPoolExecutor(max_workers=8) as pool:

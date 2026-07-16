@@ -1,0 +1,29 @@
+{# One knowledge-base version row. Rendered standalone by POST .../start (inserted
+   at the top of the list) and inside knowledgebase.html's version list. While a
+   version is still embedding, data-kb-stream drives the SSE live-progress attach
+   (static/js/settings.js). #}
+<div class="kb-version" data-version-id="{{ v.id }}"
+     {% if v.status == 'embedding' %}data-kb-stream="/settings/knowledgebase/{{ v.id }}/stream"{% endif %}>
+  <div class="org-row">
+    <span class="org-name">{{ v.name }}</span>
+    <span class="kb-badge kb-{{ v.status }}">{{ v.status }}</span>
+    {% if v.is_active %}<span class="stat-pill"><span class="g">&#10003;</span>active</span>{% endif %}
+  </div>
+  <div class="org-meta">
+    <span>{{ v.source_kind }} &#183; {{ v.split_method }} split</span>
+    <span>{{ v.doc_count }} doc{{ '' if v.doc_count == 1 else 's' }}</span>
+    <span class="mono">{{ v.created_at }}</span>
+  </div>
+  {% if v.status == 'error' %}
+    {% if v.error_message %}<div class="gen-error"><b>&#10007;</b> {{ v.error_message }}</div>{% endif %}
+    <button class="btn btn-ghost kb-activate-btn" type="button"
+            hx-post="/settings/knowledgebase/{{ v.id }}/delete"
+            hx-target="#kbContent" hx-swap="innerHTML">Remove</button>
+  {% endif %}
+  <div class="kb-stage gen-note" hidden></div>
+  {% if v.status == 'done' and not v.is_active %}
+    <button class="btn btn-ghost kb-activate-btn" type="button"
+            hx-post="/settings/knowledgebase/{{ v.id }}/activate"
+            hx-target="#kbContent" hx-swap="innerHTML">Activate</button>
+  {% endif %}
+</div>

@@ -19,6 +19,8 @@
       <button class="set-nav-item" data-cat="meraki">Meraki integration</button>
       <button class="set-nav-item" data-cat="language">Output language</button>
       <button class="set-nav-item" data-cat="provider">Model provider</button>
+      <button class="set-nav-item" data-cat="knowledgebase"
+              hx-get="/settings/knowledgebase" hx-target="#kbContent" hx-swap="innerHTML">Knowledge base</button>
       <button class="set-nav-item" data-cat="logs"
               hx-get="/settings/logs" hx-target="#logsContent" hx-swap="innerHTML">Logs</button>
       <button class="set-nav-item" data-cat="general">General</button>
@@ -156,12 +158,34 @@
                    aria-label="Temperature">
           </div>
 
+          <div class="gen-field">
+            <label for="provReasoning">Model reasoning</label>
+            <select class="set-input" id="provReasoning" name="reasoning" aria-label="Model reasoning">
+              <option value=""{% if provider.reasoning is none %} selected{% endif %}>Server default</option>
+              <option value="1"{% if provider.reasoning == 1 %} selected{% endif %}>On</option>
+              <option value="0"{% if provider.reasoning == 0 %} selected{% endif %}>Off</option>
+            </select>
+            <div class="set-hint">let the model "think" before answering — slower, and less reliable
+              at the structured output the pipeline depends on, so it's off unless you need it</div>
+          </div>
+
           <div class="prov-actions">
             <button class="btn btn-primary" type="submit">Save</button>
             <span class="spinner htmx-indicator" aria-hidden="true"></span>
           </div>
           <div id="providerResult"></div>
         </form>
+      </section>
+
+      <!-- Knowledge base -->
+      <section class="set-cat cat-knowledgebase">
+        <div class="set-head">
+          <span class="eyebrow">Knowledge base</span>
+          <h1>Knowledge base</h1>
+          <p>Add an API spec (by link or upload), choose how it's chunked, and pick which
+            embedded version test generation retrieves against.</p>
+        </div>
+        <div id="kbContent"><div class="gen-note">Select <b>Knowledge base</b> to load…</div></div>
       </section>
 
       <!-- Logs (issue #8) -->
