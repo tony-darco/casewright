@@ -36,34 +36,39 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-Create a `.env` file in the repo root with at least:
+No configuration is required for development — every setting has a working default,
+and the model provider, vector store, and Meraki integration are all configured from the
+**Settings** page at runtime rather than from a config file.
+
+For development, the only thing worth setting is:
 
 ```bash
-AUTOTEST_DATA_DIR=data/chroma        # where the vector store lives
-AUTOTEST_PROVIDER=ollama
-AUTOTEST_OLLAMA_URL=http://localhost:11434
-AUTOTEST_CHAT_MODEL=<a chat model you've pulled>
-AUTOTEST_EMBED_MODEL=<an embedding model you've pulled>
-
-JWT_SECRET=<a real secret>
-CASEWRIGHT_ENC_KEY=<a real Fernet key>   # encrypts the stored Meraki API key at rest
+export CASEWRIGHT_DEV=1   # skip the production secret check, use dev-only defaults
 ```
 
-For local development only, set `CASEWRIGHT_DEV=1` to skip the production secret checks
-and run on generated dev-only defaults.
+In production, two secrets are required (they're bootstrap config — the app needs them
+before it can read its own database, so they can't live in Settings):
+
+```bash
+export JWT_SECRET=<a real secret>          # signs session cookies
+export CASEWRIGHT_ENC_KEY=<a Fernet key>   # encrypts the stored Meraki API key at rest
+```
+
+See [.env.example](.env.example) for the full list of optional overrides.
 
 ### Build the knowledge base
 
-casewright generates tests against an OpenAPI spec corpus, split into per-endpoint chunks
-and embedded into a local Chroma vector store:
+Go to **Settings → Knowledge base**, add an API spec (paste a URL or upload the file),
+pick a split method, and start the embedding. Each run becomes a new, selectable version,
+so you can switch which corpus generation retrieves against. The store lives inside the
+app by default, or you can point it at a remote Chroma server.
+
+There's also a CLI path that ingests the pinned Meraki spec snapshot:
 
 ```bash
-python -m rag.ingest.split    # fetch/snapshot the spec, split it into per-endpoint docs
-python -m rag.ingest.embed    # embed those docs into the Chroma store at AUTOTEST_DATA_DIR
+python -m rag.ingest.split    # split the spec into per-endpoint docs
+python -m rag.ingest.embed    # embed those docs into the local Chroma store
 ```
-
-The pinned snapshot (`AUTOTEST_SPEC_SOURCE=local`, the default) is reproducible; set it to
-`live` to pull the latest spec instead.
 
 ### Run it
 
@@ -154,9 +159,12 @@ than a silent empty result, so a down model backend never looks like "nothing fo
 - **Meraki integration**: connect organizations, verify networks, and reference real
   devices in a prompt via `@device-name` mentions.
 - **Export**: copy generated code to the clipboard or download it as a file.
+- A **Knowledge base** you build from the UI: add an API spec by URL or upload, chunk it
+  per-endpoint or with generic recursive splitting, and switch between embedded versions.
+  Stored inside the app, or in a remote Chroma server.
 - A **Settings** area covering account, Meraki integration, output language, model
-  provider (Ollama endpoint/models/temperature), and logs (app-wide + per-test
-  generation stages and errors).
+  provider (Ollama endpoint/models/temperature/reasoning), the knowledge base, and logs
+  (app-wide + per-test generation stages and errors) — no config file needed.
 - Placeholder **Runs** and **Coverage** dashboards, ready for real data as those land.
 
 ## Repository Map

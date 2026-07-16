@@ -31,16 +31,18 @@ CREATE TABLE IF NOT EXISTS meraki_data (
     orgs_json   TEXT NOT NULL DEFAULT '[]'
 );
 
--- Per-user model-provider settings (Settings → Model provider). Blank/NULL fields
--- mean "use the backend default" (the .env / ProviderConfig defaults keep working
--- untouched — see web.services.provider_store).
+-- Per-user model-provider settings (Settings → Model provider). Blank/NULL text
+-- fields mean "use the backend default" (the ProviderConfig defaults keep working
+-- untouched — see web.services.provider_store). reasoning is nullable for the same
+-- reason temperature is: NULL = unset = keep the backend default.
 CREATE TABLE IF NOT EXISTS provider_settings (
     user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     provider    TEXT NOT NULL DEFAULT 'ollama',
     ollama_url  TEXT NOT NULL DEFAULT '',
     chat_model  TEXT NOT NULL DEFAULT '',
     embed_model TEXT NOT NULL DEFAULT '',
-    temperature REAL
+    temperature REAL,
+    reasoning   INTEGER
 );
 
 -- Persisted generated tests (per user). Relational identifiers + a JSON column for
@@ -113,9 +115,9 @@ CREATE TABLE IF NOT EXISTS kb_versions (
 CREATE INDEX IF NOT EXISTS idx_kb_versions_user ON kb_versions(user_id, created_at DESC);
 
 -- Per-user active knowledge-base version pointer (mirrors provider_settings' shape).
--- storage_kind/storage_url pick where the vector store itself lives: 'local' (the
--- shared AUTOTEST_DATA_DIR persist directory, the default) or 'remote' (a Chroma
--- server URL — e.g. a Docker-hosted `chroma run`, or any other client/server Chroma).
+-- storage_kind/storage_url pick where the vector store itself lives: 'local' (inside
+-- the application itself — ProviderConfig.persist_dir, default data/chroma) or
+-- 'remote' (a Chroma server URL, wherever it happens to be hosted).
 CREATE TABLE IF NOT EXISTS kb_settings (
     user_id           INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     active_version_id INTEGER REFERENCES kb_versions(id) ON DELETE SET NULL,
@@ -166,6 +168,10 @@ def init() -> None:
             conn.execute("ALTER TABLE tests ADD COLUMN validation_json TEXT NOT NULL DEFAULT ''")
         if "status" not in test_cols:
             conn.execute("ALTER TABLE tests ADD COLUMN status TEXT NOT NULL DEFAULT 'done'")
+        # add-column migration for provider_settings (model "thinking" toggle)
+        prov_cols = {row[1] for row in conn.execute("PRAGMA table_info(provider_settings)").fetchall()}
+        if "reasoning" not in prov_cols:
+            conn.execute("ALTER TABLE provider_settings ADD COLUMN reasoning INTEGER")
         # add-column migrations for kb_settings (storage location, Knowledge Base feature)
         kb_settings_cols = {row[1] for row in conn.execute("PRAGMA table_info(kb_settings)").fetchall()}
         for name, ddl in (("storage_kind", "TEXT NOT NULL DEFAULT 'local'"),

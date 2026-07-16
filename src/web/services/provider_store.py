@@ -9,29 +9,32 @@ empty settings row leaves the pipeline exactly on its defaults.
 
 from web import db
 
-DEFAULTS = {"provider": "ollama", "ollama_url": "", "chat_model": "", "embed_model": "", "temperature": None}
+DEFAULTS = {"provider": "ollama", "ollama_url": "", "chat_model": "", "embed_model": "",
+            "temperature": None, "reasoning": None}
 
 
 def get_settings(user_id: int) -> dict:
     with db.cursor() as conn:
         r = conn.execute(
-            "SELECT provider, ollama_url, chat_model, embed_model, temperature "
+            "SELECT provider, ollama_url, chat_model, embed_model, temperature, reasoning "
             "FROM provider_settings WHERE user_id = ?", (user_id,)
         ).fetchone()
     return dict(r) if r else dict(DEFAULTS)
 
 
 def save_settings(user_id: int, provider: str, ollama_url: str, chat_model: str,
-                  embed_model: str, temperature) -> None:
+                  embed_model: str, temperature, reasoning=None) -> None:
     with db.cursor() as conn:
         conn.execute(
-            "INSERT INTO provider_settings (user_id, provider, ollama_url, chat_model, embed_model, temperature) "
-            "VALUES (?, ?, ?, ?, ?, ?) "
+            "INSERT INTO provider_settings (user_id, provider, ollama_url, chat_model, "
+            "embed_model, temperature, reasoning) VALUES (?, ?, ?, ?, ?, ?, ?) "
             "ON CONFLICT(user_id) DO UPDATE SET provider = excluded.provider, "
             "ollama_url = excluded.ollama_url, chat_model = excluded.chat_model, "
-            "embed_model = excluded.embed_model, temperature = excluded.temperature",
+            "embed_model = excluded.embed_model, temperature = excluded.temperature, "
+            "reasoning = excluded.reasoning",
             (user_id, provider.strip(), ollama_url.strip(), chat_model.strip(),
-             embed_model.strip(), temperature),
+             embed_model.strip(), temperature,
+             None if reasoning is None else (1 if reasoning else 0)),
         )
 
 
@@ -49,4 +52,6 @@ def overrides(user_id: int) -> dict:
         out["embed_model"] = s["embed_model"]
     if s["temperature"] is not None:
         out["temperature"] = float(s["temperature"])
+    if s["reasoning"] is not None:
+        out["reasoning"] = bool(s["reasoning"])
     return out

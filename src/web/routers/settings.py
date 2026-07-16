@@ -118,6 +118,7 @@ def save_provider(
     chatModel: str = Form(""),
     embedModel: str = Form(""),
     temperature: str = Form(""),
+    reasoning: str = Form(""),
     pull: str = Form(""),
     user: dict = Depends(require_user),
 ):
@@ -153,7 +154,10 @@ def save_provider(
         except ollama_admin.OllamaError as exc:
             return _provider_result(request, error=str(exc))
 
-    provider_store.save_settings(user["id"], provider, url, chat_model, embed_model, temp)
+    # "" = unset (keep the backend default), "1"/"0" = an explicit user choice
+    reason = None if not reasoning.strip() else reasoning.strip() == "1"
+    provider_store.save_settings(user["id"], provider, url, chat_model, embed_model, temp,
+                                 reasoning=reason)
     forget_failed_pipelines()  # the new settings may fix a previously failed pipeline build
     return _provider_result(request, saved=provider_store.get_settings(user["id"]), pulled=missing)
 

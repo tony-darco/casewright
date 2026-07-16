@@ -130,3 +130,19 @@ def test_pull_model_server_lost_mid_stream():
     with mock.patch.object(ollama_admin.requests, "post", side_effect=requests.ConnectionError()):
         with pytest.raises(ollama_admin.OllamaError, match="lost the Ollama server"):
             ollama_admin.pull_model("http://box:11434", "some-model")
+
+
+def test_reasoning_tristate_unset_on_off():
+    """reasoning follows temperature's contract: NULL/unset = keep the backend
+    default (absent from overrides), while On/Off are explicit user choices."""
+    uid = _user("prov_reasoning")
+
+    provider_store.save_settings(uid, "ollama", "http://box:11434", "", "", None, reasoning=None)
+    assert provider_store.get_settings(uid)["reasoning"] is None
+    assert "reasoning" not in provider_store.overrides(uid)
+
+    provider_store.save_settings(uid, "ollama", "http://box:11434", "", "", None, reasoning=True)
+    assert provider_store.overrides(uid)["reasoning"] is True
+
+    provider_store.save_settings(uid, "ollama", "http://box:11434", "", "", None, reasoning=False)
+    assert provider_store.overrides(uid)["reasoning"] is False

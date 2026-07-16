@@ -158,6 +158,17 @@
                    aria-label="Temperature">
           </div>
 
+          <div class="gen-field">
+            <label for="provReasoning">Model reasoning</label>
+            <select class="set-input" id="provReasoning" name="reasoning" aria-label="Model reasoning">
+              <option value=""{% if provider.reasoning is none %} selected{% endif %}>Server default</option>
+              <option value="1"{% if provider.reasoning == 1 %} selected{% endif %}>On</option>
+              <option value="0"{% if provider.reasoning == 0 %} selected{% endif %}>Off</option>
+            </select>
+            <div class="set-hint">let the model "think" before answering — slower, and less reliable
+              at the structured output the pipeline depends on, so it's off unless you need it</div>
+          </div>
+
           <div class="prov-actions">
             <button class="btn btn-primary" type="submit">Save</button>
             <span class="spinner htmx-indicator" aria-hidden="true"></span>
