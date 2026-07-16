@@ -37,6 +37,21 @@ REWRITE_SYSTEM = (
     "explicit. Return only the rewritten query."
 )
 
+HARDWARE_SYSTEM = (
+    "Given the user's request and the grounded API endpoints, decide what physical "
+    "Meraki hardware — if any — a live run of this test would need to exercise "
+    "realistically. A wireless test needs an access point (type 'wireless'); a "
+    "firewall/VLAN/security test needs a security appliance (type 'security_appliance'); "
+    "a camera test needs a camera (type 'camera'). Return an empty list if the test "
+    "only touches organization/network endpoints with no device-specific hardware. "
+    "Give a count of 1 unless the test clearly needs more, and a short reason each."
+)
+
+
+def user_hardware(query: str, endpoints: str) -> str:
+    return f"Request: {query}\n\nGrounded endpoints:\n{endpoints}"
+
+
 def generate_system(language_label: str, framework: str) -> str:
     """System prompt for the generate node, targeted at the selected language.
 

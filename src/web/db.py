@@ -26,9 +26,10 @@ CREATE TABLE IF NOT EXISTS users (
 -- api_key_enc is Fernet-encrypted (never plaintext); orgs_json holds the connected
 -- orgs -> networks -> devices tree for that user.
 CREATE TABLE IF NOT EXISTS meraki_data (
-    user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    api_key_enc TEXT,
-    orgs_json   TEXT NOT NULL DEFAULT '[]'
+    user_id            INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    api_key_enc        TEXT,
+    orgs_json          TEXT NOT NULL DEFAULT '[]',
+    default_network_id TEXT NOT NULL DEFAULT ''
 );
 
 -- Per-user model-provider settings (Settings → Model provider). Blank/NULL text
@@ -60,6 +61,10 @@ CREATE TABLE IF NOT EXISTS tests (
     devices_json   TEXT NOT NULL DEFAULT '[]',
     validation_json TEXT NOT NULL DEFAULT '',
     status         TEXT NOT NULL DEFAULT 'done',
+    hardware_json  TEXT NOT NULL DEFAULT '[]',
+    run_source     TEXT NOT NULL DEFAULT 'example',
+    source_network_id TEXT NOT NULL DEFAULT '',
+    gen_meta_json  TEXT NOT NULL DEFAULT '{}',
     created_at     TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -124,6 +129,53 @@ CREATE TABLE IF NOT EXISTS kb_settings (
     storage_kind      TEXT NOT NULL DEFAULT 'local',   -- 'local' | 'remote'
     storage_url       TEXT NOT NULL DEFAULT ''
 );
+
+-- One row per invocation of a test's code (Run feature). A test can be run many
+-- times; each run gets its own ephemeral Meraki network + claimed hardware,
+-- identified by an 8-digit run_code used to name the network (``run-{run_code}``).
+CREATE TABLE IF NOT EXISTS runs (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_code             TEXT NOT NULL UNIQUE,
+    user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    test_id              INTEGER NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+    status               TEXT NOT NULL DEFAULT 'queued',   -- queued|provisioning|running|success|error|failed
+    source               TEXT NOT NULL DEFAULT 'example',  -- example|scratch
+    example_network_id   TEXT NOT NULL DEFAULT '',
+    org_id               TEXT NOT NULL DEFAULT '',
+    network_id           TEXT NOT NULL DEFAULT '',         -- the ephemeral network, once provisioned
+    claimed_devices_json TEXT NOT NULL DEFAULT '[]',       -- [{serial, model, hardwareType, originalSerial}]
+    error_message        TEXT NOT NULL DEFAULT '',
+    started_at           TEXT,
+    finished_at          TEXT,
+    created_at           TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_runs_test ON runs(test_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_runs_user ON runs(user_id, created_at DESC);
+
+-- Durable per-run logs (mirrors test_logs' role): the live push is SSE + an
+-- in-memory queue (web.services.run_events); this table is the persistent/replay copy.
+CREATE TABLE IF NOT EXISTS run_logs (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id     INTEGER NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+    stage      TEXT NOT NULL DEFAULT '',
+    level      TEXT NOT NULL DEFAULT 'info',
+    message    TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_run_logs_run ON run_logs(run_id, id);
+
+-- Per-user ephemeral-container settings (Settings → Run / Containers). One row per
+-- user, same pattern as provider_settings.
+CREATE TABLE IF NOT EXISTS run_settings (
+    user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    python_image    TEXT NOT NULL DEFAULT 'python:3.12-slim',
+    go_image        TEXT NOT NULL DEFAULT 'golang:1.22-alpine',
+    script_image    TEXT NOT NULL DEFAULT 'ubuntu:24.04',
+    timeout_seconds INTEGER NOT NULL DEFAULT 120,
+    cpu_limit       REAL NOT NULL DEFAULT 1.0,
+    memory_limit_mb INTEGER NOT NULL DEFAULT 512,
+    cleanup_policy  TEXT NOT NULL DEFAULT 'always'         -- always|on_success|never
+);
 """
 
 
@@ -178,6 +230,17 @@ def init() -> None:
                           ("storage_url", "TEXT NOT NULL DEFAULT ''")):
             if name not in kb_settings_cols:
                 conn.execute(f"ALTER TABLE kb_settings ADD COLUMN {name} {ddl}")
+        # add-column migrations for the tests table (Run feature: hardware + run config)
+        for name, ddl in (("hardware_json", "TEXT NOT NULL DEFAULT '[]'"),
+                          ("run_source", "TEXT NOT NULL DEFAULT 'example'"),
+                          ("source_network_id", "TEXT NOT NULL DEFAULT ''"),
+                          ("gen_meta_json", "TEXT NOT NULL DEFAULT '{}'")):
+            if name not in test_cols:
+                conn.execute(f"ALTER TABLE tests ADD COLUMN {name} {ddl}")
+        # meraki_data gains a default example network for the Run feature
+        meraki_cols = {row[1] for row in conn.execute("PRAGMA table_info(meraki_data)").fetchall()}
+        if "default_network_id" not in meraki_cols:
+            conn.execute("ALTER TABLE meraki_data ADD COLUMN default_network_id TEXT NOT NULL DEFAULT ''")
         _repair_meraki_data_fk(conn)
         conn.execute("PRAGMA foreign_keys=ON")
 
@@ -220,8 +283,8 @@ def _repair_meraki_data_fk(conn) -> None:
     conn.execute("ALTER TABLE meraki_data RENAME TO meraki_data_old")
     conn.executescript(_SCHEMA)
     conn.execute(
-        "INSERT INTO meraki_data (user_id, api_key_enc, orgs_json) "
-        "SELECT user_id, api_key_enc, orgs_json FROM meraki_data_old"
+        "INSERT INTO meraki_data (user_id, api_key_enc, orgs_json, default_network_id) "
+        "SELECT user_id, api_key_enc, orgs_json, default_network_id FROM meraki_data_old"
     )
     conn.execute("DROP TABLE meraki_data_old")
 

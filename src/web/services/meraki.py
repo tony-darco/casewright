@@ -25,7 +25,7 @@ class MerakiError(Exception):
     """A verify/fetch failed; the message is safe to show inline."""
 
 
-def _get(path, key):
+def _request(method, path, key, body=None):
     # The key is never logged and never returned to the client.
     if not key:
         raise MerakiError("Meraki integration is not configured (add an API key in Settings).")
@@ -35,7 +35,7 @@ def _get(path, key):
         "Accept": "application/json",
     }
     try:
-        resp = requests.get(url, headers=headers, timeout=_TIMEOUT)
+        resp = requests.request(method, url, headers=headers, json=body, timeout=_TIMEOUT)
     except requests.RequestException as exc:
         raise MerakiError(f"Could not reach the Meraki Dashboard API ({exc.__class__.__name__}).")
     if resp.status_code == 404:
@@ -44,10 +44,16 @@ def _get(path, key):
         raise MerakiError("Meraki rejected the API key (401/403).")
     if resp.status_code >= 400:
         raise MerakiError(f"Meraki returned HTTP {resp.status_code}.")
+    if resp.status_code == 204 or not resp.content:
+        return None
     try:
         return resp.json()
     except ValueError:
         raise MerakiError("Unexpected (non-JSON) response from Meraki.")
+
+
+def _get(path, key):
+    return _request("GET", path, key)
 
 
 def _map_org(data):
@@ -111,3 +117,90 @@ def validate_key(key):
     if not isinstance(data, dict):
         raise MerakiError("Unexpected response validating the API key.")
     return data.get("name") or data.get("email") or "your account"
+
+
+# --- Run feature: network + device lifecycle -------------------------------------
+
+def _map_inventory_device(data):
+    serial = data.get("serial", "") or ""
+    return {
+        "serial": serial,
+        "name": data.get("name") or serial or "(unnamed)",
+        "model": data.get("model", "") or "",
+        "mac": data.get("mac", "") or "",
+        "productType": data.get("productType", "") or "",
+        # networkId is null/blank for an unclaimed device still in org inventory.
+        "networkId": str(data.get("networkId") or ""),
+        "claimed": bool(data.get("networkId")),
+    }
+
+
+def list_networks(org_id, key):
+    """All networks under an org (used to auto-populate Settings instead of manual
+    per-ID entry)."""
+    data = _get(f"/organizations/{org_id}/networks", key)
+    if not isinstance(data, list):
+        raise MerakiError("Unexpected network list from Meraki.")
+    return [_map_network(d) for d in data if isinstance(d, dict)]
+
+
+def list_org_inventory(org_id, key, unclaimed_only=True):
+    """Devices in the org's inventory. With ``unclaimed_only`` (default) only devices
+    not assigned to any network are returned — the pool a run can claim from."""
+    q = "?usedState=unused" if unclaimed_only else ""
+    data = _get(f"/organizations/{org_id}/inventoryDevices{q}", key)
+    if not isinstance(data, list):
+        raise MerakiError("Unexpected inventory list from Meraki.")
+    return [_map_inventory_device(d) for d in data if isinstance(d, dict)]
+
+
+def create_network(org_id, name, product_types, key, copy_from_network_id=None):
+    """Create a network under an org. When ``copy_from_network_id`` is given, Meraki
+    clones that network's configuration (build-from-example)."""
+    body = {"name": name, "productTypes": list(product_types or [])}
+    if copy_from_network_id:
+        body["copyFromNetworkId"] = copy_from_network_id
+    data = _request("POST", f"/organizations/{org_id}/networks", key, body)
+    if not isinstance(data, dict):
+        raise MerakiError("Unexpected response creating the network.")
+    return _map_network(data)
+
+
+def delete_network(network_id, key):
+    """Delete an ephemeral network (teardown)."""
+    _request("DELETE", f"/networks/{network_id}", key)
+
+
+def claim_device(network_id, serials, key):
+    """Claim one or more devices (by serial) from org inventory into a network."""
+    return _request("POST", f"/networks/{network_id}/devices/claim", key,
+                    {"serials": list(serials)})
+
+
+def remove_device(network_id, serial, key):
+    """Release a device from a network back to org inventory (teardown)."""
+    _request("POST", f"/networks/{network_id}/devices/remove", key, {"serial": serial})
+
+
+# --- Run feature: per-hardware-type configuration writes (scratch-build agent) ----
+
+def update_ssid(network_id, number, config_body, key):
+    """Configure a wireless SSID (e.g. name, auth, enabled)."""
+    return _request("PUT", f"/networks/{network_id}/wireless/ssids/{number}", key, config_body)
+
+
+def create_appliance_vlan(network_id, config_body, key):
+    """Create a security-appliance VLAN."""
+    return _request("POST", f"/networks/{network_id}/appliance/vlans", key, config_body)
+
+
+def update_appliance_firewall_rules(network_id, rules, key):
+    """Replace the security appliance's L3 firewall rules."""
+    return _request("PUT", f"/networks/{network_id}/appliance/firewall/l3FirewallRules", key,
+                    {"rules": rules})
+
+
+def update_camera_quality_retention(network_id, config_body, key):
+    """Create/update a camera quality-and-retention profile."""
+    return _request("POST", f"/networks/{network_id}/camera/qualityRetentionProfiles", key,
+                    config_body)

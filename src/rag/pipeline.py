@@ -64,6 +64,16 @@ class RelevanceGrades(BaseModel):
     grades: list[bool] = Field(description="relevant flag per candidate, in input order")
 
 
+class HardwareRequirement(BaseModel):
+    type: Literal["wireless", "security_appliance", "camera"]
+    count: int = Field(default=1, ge=1, le=4, description="how many of this device the run needs")
+    reason: str = Field(default="", description="why the test needs this hardware")
+
+
+class HardwareRequirements(BaseModel):
+    devices: list[HardwareRequirement] = Field(default_factory=list)
+
+
 class AutoTestLLM:
     def __init__(self, config: Optional[ProviderConfig] = None, eval_mode: Optional[bool] = None):
         self.config = config or ProviderConfig()
@@ -192,6 +202,25 @@ class AutoTestLLM:
                 raise   # backend down — surface it, don't silently degrade
             return original_query
 
+    def decide_hardware(self, query: str, docs):
+        """Decide what physical Meraki hardware a live run of this test would need.
+        Returns ``[{type, count, reason}]`` (empty when none). Graceful fallback to
+        "no hardware" on a bad/unavailable structured response, except a backend
+        connection error, which surfaces like the other nodes."""
+        endpoints = "\n".join(f"- {e}" for e in self._endpoint_ids(docs)) or "(none)"
+        structured = self.chat.with_structured_output(HardwareRequirements)
+        msgs = [
+            SystemMessage(prompts.HARDWARE_SYSTEM),
+            HumanMessage(prompts.user_hardware(query, endpoints)),
+        ]
+        try:
+            reqs = structured.invoke(msgs).devices
+        except Exception as exc:
+            if is_connection_error(exc):
+                raise
+            return []
+        return [{"type": r.type, "count": r.count, "reason": r.reason} for r in reqs]
+
     def generate_tests(self, query: str, docs, dependencies: str = "", language="python"):
         if not docs:
             return ""
@@ -287,6 +316,11 @@ class AutoTestLLM:
             docs = state.get("graded") or state.get("ranked", [])[:FALLBACK_TOP_N]
             return {"endpoints": self._endpoint_ids(docs)}
 
+        def hardware_node(state):
+            docs = state.get("graded") or state.get("ranked") or []
+            question = state.get("original_query", state["query"])
+            return {"hardware": self.decide_hardware(question, docs)}
+
         def dependencies_node(state):
             eps = state.get("endpoints", [])
             return {
@@ -323,6 +357,7 @@ class AutoTestLLM:
         builder.add_node("finalize", finalize_node)
         builder.add_node("dependencies", dependencies_node)   # runs in eval + full mode
         if not self.eval_mode:
+            builder.add_node("hardware", hardware_node)   # decide physical hardware the run needs
             builder.add_node("generate", generate_node)
             builder.add_node("sanitize", sanitize_node)
             builder.add_node("validate", validate_node)
@@ -338,7 +373,8 @@ class AutoTestLLM:
         if self.eval_mode:
             builder.add_edge("dependencies", END)         # eval: stop after targets + prerequisites
         else:
-            builder.add_edge("dependencies", "generate")
+            builder.add_edge("dependencies", "hardware")  # decide hardware after endpoints are final
+            builder.add_edge("hardware", "generate")
             builder.add_edge("generate", "sanitize")   # deterministic fence/prose strip
             builder.add_edge("sanitize", "validate")   # check output is the selected language
             builder.add_edge("validate", END)

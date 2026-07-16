@@ -16,9 +16,10 @@ from web.services import crypto
 def _row(user_id: int) -> dict:
     with db.cursor() as conn:
         r = conn.execute(
-            "SELECT api_key_enc, orgs_json FROM meraki_data WHERE user_id = ?", (user_id,)
+            "SELECT api_key_enc, orgs_json, default_network_id FROM meraki_data WHERE user_id = ?",
+            (user_id,),
         ).fetchone()
-    return dict(r) if r else {"api_key_enc": None, "orgs_json": "[]"}
+    return dict(r) if r else {"api_key_enc": None, "orgs_json": "[]", "default_network_id": ""}
 
 
 def _save(user_id: int, api_key_enc, orgs: list) -> None:
@@ -103,6 +104,19 @@ def add_network(user_id: int, org_id: str, net: dict, devices: list) -> dict:
     return entry
 
 
+def set_network_devices(user_id: int, network_id: str, devices: list) -> None:
+    """Attach a freshly-fetched device list to an already-stored network (used by the
+    lazy per-network device load, so the @-mention picker gets populated on demand)."""
+    row = _row(user_id)
+    orgs = json.loads(row["orgs_json"] or "[]")
+    for org in orgs:
+        for net in org.get("networks", []):
+            if net.get("id") == network_id:
+                net["devices"] = devices
+                _save(user_id, row["api_key_enc"], orgs)
+                return
+
+
 def org_id_for_network(user_id: int, network_id: str) -> str:
     """The org that owns ``network_id`` for this user, or the first connected org as
     a fallback (used to inject a concrete organization ID into generated tests)."""
@@ -126,3 +140,34 @@ def verified_networks(user_id: int) -> list:
                 "devices": net.get("devices", []),
             })
     return out
+
+
+# --- default example network (Run feature) ---------------------------------------
+
+def get_default_network_id(user_id: int) -> str:
+    return _row(user_id)["default_network_id"] or ""
+
+
+def set_default_network_id(user_id: int, network_id: str) -> None:
+    """Set the account's default example network (targeted update that leaves the
+    api key / orgs tree untouched)."""
+    with db.cursor() as conn:
+        conn.execute(
+            "INSERT INTO meraki_data (user_id, default_network_id) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET default_network_id = excluded.default_network_id",
+            (user_id, network_id.strip()),
+        )
+
+
+def set_networks_for_org(user_id: int, org_id: str, networks: list) -> None:
+    """Replace the network list under ``org_id`` with ``networks`` (each a mapped
+    network dict), preserving any devices already fetched for networks that persist.
+    Used when auto-listing / refreshing an org's networks from the Meraki API."""
+    row = _row(user_id)
+    orgs = json.loads(row["orgs_json"] or "[]")
+    for org in orgs:
+        if org.get("id") == org_id:
+            existing = {n.get("id"): n.get("devices", []) for n in org.get("networks", [])}
+            org["networks"] = [{**net, "devices": existing.get(net.get("id"), [])} for net in networks]
+            break
+    _save(user_id, row["api_key_enc"], orgs)

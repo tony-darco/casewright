@@ -1,5 +1,5 @@
 /* casewright settings — client interactions (handoff G9/G10/G12).
-   Category nav + mobile drawer, the language picker, and the Meraki add-network
+   Category nav + mobile drawer, the language picker, and the "New organization"
    reveal. The Meraki verify/fetch round-trips themselves are HTMX (declared in the
    templates); this file handles the pure-client bits and syncs verified networks
    to localStorage so the app page can offer their devices for @-mentions (G11).
@@ -81,25 +81,6 @@
   });
   refreshOrgEmpty();
 
-  /* ---- Meraki add-network reveal / cancel (cards are added dynamically) ---- */
-  var orgList = document.getElementById('orgList');
-  if (orgList) {
-    orgList.addEventListener('click', function (e) {
-      var add = e.target.closest('.addnet-btn');
-      if (add) {
-        var form = add.closest('.org-card').querySelector('.net-form');
-        if (form) { form.hidden = false; var inp = form.querySelector('.net-input'); if (inp) inp.focus(); }
-        return;
-      }
-      var cancel = e.target.closest('.netcancel');
-      if (cancel) {
-        var f = cancel.closest('.net-form');
-        if (f) { f.hidden = true; var i = f.querySelector('.net-input'); if (i) i.value = ''; }
-        var err = cancel.closest('.nested').querySelector('.net-error'); if (err) err.innerHTML = '';
-      }
-    });
-  }
-
   document.body.addEventListener('htmx:beforeRequest', function (e) {
     var form = e.detail.elt.closest && e.detail.elt.closest('form');
     var host = form && form.parentElement;
@@ -131,10 +112,9 @@
     var retargeted = xhr.getResponseHeader && xhr.getResponseHeader('HX-Retarget'); // errors are retargeted
     var form = e.detail.elt.closest && e.detail.elt.closest('form');
     if (form && form.id === 'providerForm') return; // provider settings stay filled after save
-    if (xhr.status >= 200 && xhr.status < 300 && !retargeted && form) {
+    if (xhr.status >= 200 && xhr.status < 300 && !retargeted && form && form.id === 'orgForm') {
       form.querySelectorAll('input').forEach(function (i) { if (i.type !== 'hidden') i.value = ''; });
-      if (form.classList.contains('net-form')) form.hidden = true;
-      if (form.id === 'orgForm') showOrgForm(false);
+      showOrgForm(false);
       orgToggle();
     }
   });

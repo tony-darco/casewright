@@ -1,7 +1,7 @@
 {# Generated-test workspace panel (handoff G2). Returned by POST /app/generate and
    swapped into #workspace. States: error (pipeline unavailable), empty (nothing
-   generated), or code. The Run button is present but INERT (§0.2); the Output tab
-   is a placeholder — no execution. #}
+   generated), or code. The Run button opens the Test Configuration tab, where a run
+   provisions an ephemeral network and executes the code (Run feature). #}
 {% import "_macros.html" as ui %}
 <div class="panel enter" data-file="{{ file_name|default('generated.test.py', true) }}" data-devices="{{ devices|default('[]', true) }}"
   data-test-id="{{ t.id if t else '' }}" data-language="{{ language|default('py', true) }}"
@@ -11,7 +11,7 @@
       <button class="tab" data-tab="prompt" type="button">Prompt</button>
       <button class="tab active" data-tab="code" type="button">Code
         {% if file_name %}<span class="ph-file mono">{{ file_name }}</span>{% endif %}</button>
-      <button class="tab" data-tab="output" type="button">Output</button>
+      <button class="tab" data-tab="config" type="button">Test Configuration</button>
     </div>
     <div class="head-right">
       {% if not error and not empty %}
@@ -23,9 +23,10 @@
         </div>
       </div>
       {% endif %}
-      <button class="runbtn" disabled aria-disabled="true" title="Running isn't available yet">
+      {% if not error and not empty and t %}
+      <button class="runbtn" type="button" id="runBtn" title="Configure and run this test">
         <span class="tri">&#9654;</span> Run</button>
-      <span class="run-note">execution isn't available yet</span>
+      {% endif %}
     </div>
   </div>
 
@@ -73,8 +74,12 @@
         <div class="code-status" id="codeStatus" aria-live="polite"></div>
       {% endif %}
     </div>
-    <div class="pane" id="paneOutput">
-      <div class="out-empty"><span class="big">&#9654;</span> Test execution isn't available yet.</div>
+    <div class="pane" id="paneConfig">
+      {% if error or empty or not t %}
+        <div class="out-empty"><span class="big">&#9654;</span> Generate a test first to configure and run it.</div>
+      {% else %}
+        {% include "partials/per_test.html" %}
+      {% endif %}
     </div>
   </div>
 

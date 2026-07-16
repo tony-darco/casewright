@@ -280,6 +280,28 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .outline .ok, .outline .no, .outline .head { color: var(--ink); font-weight: 500; }
 .outline .muted { color: var(--ink-3); }
 
+/* Test Configuration tab (Run feature) */
+.pertest { padding: var(--s5); overflow-y: auto; height: 100%; }
+.pt-section { margin-bottom: var(--s6); }
+.pt-section h4 { margin: 0 0 var(--s2); font-size: var(--t-small); }
+.pt-hw-row { display: flex; gap: var(--s2); align-items: center; margin-bottom: var(--s2); }
+.pt-hw-row .set-input[name="hwType"] { flex: 1; }
+.pt-hw-row .set-input[name="hwCount"] { width: 70px; }
+.pt-hw-actions { display: flex; gap: var(--s2); align-items: center; margin-top: var(--s2); }
+.pt-source { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--s3); margin-bottom: var(--s3); }
+.pt-radio { display: block; margin: var(--s2) 0; }
+.pt-netpick { margin: var(--s2) 0 var(--s3) var(--s5); }
+.run-status { margin-top: var(--s3); }
+.run-badge { display: inline-flex; gap: var(--s2); align-items: center; padding: 3px 10px; border-radius: var(--radius);
+  font-family: var(--font-mono); font-size: var(--t-micro); background: var(--sunken); }
+.run-badge .run-state { text-transform: uppercase; letter-spacing: .04em; }
+.run-queued, .run-provisioning, .run-running { color: var(--ink-2); }
+.run-success { color: #2f7d32; }
+.run-error, .run-failed { color: #b3261e; }
+.run-log { margin-top: var(--s3); padding: var(--s3); background: var(--sunken); border-radius: var(--radius);
+  font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.6; white-space: pre-wrap;
+  max-height: 320px; overflow-y: auto; }
+
 /* Prompt tab — edit the prompt and regenerate (issue: prompt not editable). */
 .prompt-pane { display: flex; flex-direction: column; height: 100%; padding: var(--s5); gap: var(--s4); }
 .prompt-label { font-size: var(--t-micro); color: var(--ink-3); font-family: var(--font-mono); }
@@ -398,6 +420,7 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 #setBody[data-cat="language"] .cat-language,
 #setBody[data-cat="provider"] .cat-provider,
 #setBody[data-cat="knowledgebase"] .cat-knowledgebase,
+#setBody[data-cat="run"] .cat-run,
 #setBody[data-cat="logs"] .cat-logs,
 #setBody[data-cat="general"] .cat-general { display: block; }
 /* Logs page (issue #8) */
@@ -457,7 +480,8 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .lang-opt.active .chk { opacity: 1; }
 
 /* Model provider (Settings) */
-.cat-provider .gen-field .set-input { width: 100%; }
+.cat-provider .gen-field .set-input,
+.cat-run .gen-field .set-input { width: 100%; }
 .cat-provider .prov-temp { max-width: 120px; }
 .prov-row { display: flex; gap: var(--s3); }
 .prov-row .set-input { flex: 1; width: auto; }

@@ -30,6 +30,8 @@ dependencies = [
     # generic recursive-character chunking for the Knowledge Base feature's
     # "LangChain split" option (custom split reuses rag.ingest.split directly)
     "langchain-text-splitters>=1.0,<2",
+    # ephemeral container execution for the Run feature (test runners)
+    "docker>=7,<8",
 ]
 
 [project.optional-dependencies]

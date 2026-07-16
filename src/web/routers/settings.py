@@ -17,7 +17,7 @@ from web.auth import require_user
 from web.deps import forget_failed_pipelines, templates
 from web.services import (
     kb_ingest, kb_registry, kb_store, logs_store, meraki, ollama_admin, provider_store,
-    store, url_fetch,
+    run_settings_store, store, url_fetch,
 )
 
 _SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
@@ -53,6 +53,9 @@ def settings_home(request: Request, user: dict = Depends(require_user)):
     ctx["orgs"] = store.list_orgs(user["id"])  # this user's persisted orgs/networks/devices
     ctx["account"] = user  # id, username, email, first_name, last_name
     ctx["provider"] = provider_store.get_settings(user["id"])  # model-provider overrides
+    ctx["run"] = run_settings_store.get_settings(user["id"])  # ephemeral-container config
+    ctx["default_network_id"] = store.get_default_network_id(user["id"])
+    ctx["networks"] = store.verified_networks(user["id"])  # for the default-network picker
     return templates.TemplateResponse(request, "settings.html", ctx)
 
 
@@ -176,32 +179,90 @@ def add_org(request: Request, orgId: str = Form(""), user: dict = Depends(requir
     if not org_id:
         return _error(request, "Enter an organization ID.", retarget="#orgError")
     try:
-        org = meraki.verify_org(org_id, store.get_meraki_key(user["id"]))
+        key = store.get_meraki_key(user["id"])
+        org = meraki.verify_org(org_id, key)
+        networks = meraki.list_networks(org_id, key)  # auto-list, no manual per-network entry
     except meraki.MerakiError as exc:
         return _error(request, str(exc), retarget="#orgError")
-    org = store.save_org(user["id"], org)  # persist under this user
+    store.save_org(user["id"], org)  # persist under this user
+    store.set_networks_for_org(user["id"], org["id"], networks)  # bulk-store (devices load lazily)
+    org = next((o for o in store.list_orgs(user["id"]) if o["id"] == org["id"]), org)
     return templates.TemplateResponse(request, "partials/org_card.html", {"org": org})
 
 
-@router.post("/settings/meraki/orgs/{org_id}/networks", response_class=HTMLResponse)
-def add_network(
-    request: Request, org_id: str, networkId: str = Form(""), orgName: str = Form(""),
-    user: dict = Depends(require_user),
-):
-    net_id = networkId.strip()
+@router.post("/settings/meraki/orgs/{org_id}/networks/refresh", response_class=HTMLResponse)
+def refresh_networks(request: Request, org_id: str, user: dict = Depends(require_user)):
+    """Re-list an org's networks from Meraki (picks up newly-added ones) and re-render
+    the org card. Preserves devices already fetched for networks that still exist."""
     slot = f"#neterr-{org_id}"
-    if not net_id:
-        return _error(request, "Enter a network ID.", retarget=slot)
     try:
-        key = store.get_meraki_key(user["id"])
-        net = meraki.verify_network(net_id, key)
-        devices = meraki.list_devices(net_id, key)
+        networks = meraki.list_networks(org_id, store.get_meraki_key(user["id"]))
     except meraki.MerakiError as exc:
         return _error(request, str(exc), retarget=slot)
-    store.add_network(user["id"], org_id, net, devices)  # persist under this user
-    return templates.TemplateResponse(
-        request, "partials/net_card.html", {"net": net, "devices": devices, "org_name": orgName}
+    store.set_networks_for_org(user["id"], org_id, networks)
+    org = next((o for o in store.list_orgs(user["id"]) if o["id"] == org_id), None)
+    if org is None:
+        return _error(request, "Organization is no longer connected.", retarget=slot)
+    return templates.TemplateResponse(request, "partials/org_card.html", {"org": org})
+
+
+@router.get("/settings/meraki/networks/{network_id}/devices", response_class=HTMLResponse)
+def network_devices(request: Request, network_id: str, user: dict = Depends(require_user)):
+    """Lazily fetch (and persist) a network's devices — triggered as each network row is
+    revealed — so we avoid an N+1 device fetch on org-add while still populating the
+    @-mention picker."""
+    try:
+        devices = meraki.list_devices(network_id, store.get_meraki_key(user["id"]))
+    except meraki.MerakiError:
+        devices = []  # a single network's device fetch failing shouldn't break the page
+    store.set_network_devices(user["id"], network_id, devices)
+    return templates.TemplateResponse(request, "partials/dev_table.html", {"devices": devices})
+
+
+@router.get("/settings/meraki/orgs/{org_id}/inventory", response_class=HTMLResponse)
+def org_inventory(request: Request, org_id: str, user: dict = Depends(require_user)):
+    """Unclaimed device inventory for an org — the pool a run can claim hardware from.
+    Loaded on demand (it's an extra Meraki call the page doesn't always need)."""
+    try:
+        devices = meraki.list_org_inventory(org_id, store.get_meraki_key(user["id"]), unclaimed_only=True)
+    except meraki.MerakiError as exc:
+        return _error(request, str(exc), retarget=f"#inverr-{org_id}")
+    return templates.TemplateResponse(request, "partials/inventory_table.html", {"devices": devices})
+
+
+@router.post("/settings/meraki/default-network", response_class=HTMLResponse)
+def set_default_network(request: Request, networkId: str = Form(""), user: dict = Depends(require_user)):
+    """Set the account's default example network (used to prefill per-test run config)."""
+    store.set_default_network_id(user["id"], networkId.strip())
+    return templates.TemplateResponse(request, "partials/default_network.html", {
+        "default_network_id": networkId.strip(),
+        "networks": store.verified_networks(user["id"]),
+        "saved": True,
+    })
+
+
+@router.post("/settings/run", response_class=HTMLResponse)
+def save_run_settings(
+    request: Request,
+    pythonImage: str = Form(""), goImage: str = Form(""), scriptImage: str = Form(""),
+    timeoutSeconds: str = Form("120"), cpuLimit: str = Form("1.0"),
+    memoryLimitMb: str = Form("512"), cleanupPolicy: str = Form("always"),
+    user: dict = Depends(require_user),
+):
+    d = run_settings_store.DEFAULTS
+    try:
+        timeout = int(timeoutSeconds or d["timeout_seconds"])
+        cpu = float(cpuLimit or d["cpu_limit"])
+        mem = int(memoryLimitMb or d["memory_limit_mb"])
+    except ValueError:
+        return _error(request, "Timeout, CPU, and memory must be numbers.", retarget="#runError")
+    if timeout <= 0 or cpu <= 0 or mem <= 0:
+        return _error(request, "Timeout, CPU, and memory must be positive.", retarget="#runError")
+    run_settings_store.save_settings(
+        user["id"], pythonImage or d["python_image"], goImage or d["go_image"],
+        scriptImage or d["script_image"], timeout, cpu, mem, cleanupPolicy or d["cleanup_policy"],
     )
+    return templates.TemplateResponse(request, "partials/run_settings_saved.html", {})
 
 
 @router.get("/api/networks", response_class=JSONResponse)

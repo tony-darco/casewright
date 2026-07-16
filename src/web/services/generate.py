@@ -138,7 +138,7 @@ def _filename(prompt, endpoints, language):
     return f"{slug}.{ext}"
 
 
-def _workspace_vm(prompt, code, file_name, endpoints, language="py", validation=None):
+def _workspace_vm(prompt, code, file_name, endpoints, language="py", validation=None, hardware=None):
     line_count = code.count("\n") + 1 if code else 0
     return {
         "prompt": prompt,
@@ -150,6 +150,7 @@ def _workspace_vm(prompt, code, file_name, endpoints, language="py", validation=
         "endpoints": endpoints,
         "language": language,   # the test's language — preselects the Prompt-tab selector
         "validation": validation,  # {ok, method, detail, language} from the graph's validate node
+        "hardware": hardware or [],  # [{type, count, reason}] physical hardware a run would need
         "empty": not code,
     }
 
@@ -164,8 +165,10 @@ def view_model_from_test(test):
             validation = json.loads(raw)
         except (ValueError, TypeError):
             validation = None
+    hardware = parse_devices(test.get("hardware_json"))  # forgiving JSON parse (same shape)
     vm = _workspace_vm(test.get("prompt", ""), test.get("code") or "",
-                       test.get("file_name") or "", endpoints, test.get("language") or "py", validation)
+                       test.get("file_name") or "", endpoints, test.get("language") or "py",
+                       validation, hardware)
     vm["devices"] = test.get("devices_json") or "[]"  # raw JSON for regenerate to reuse
     vm["t"] = {"id": test["id"], "name": test["name"]}
     return vm
@@ -200,6 +203,7 @@ STAGE_LABELS = {
     "rewrite": "Refining the search…",
     "finalize": "Selecting endpoints…",
     "dependencies": "Resolving call-order dependencies…",
+    "hardware": "Deciding what hardware the test needs…",
     "generate": "Writing the test…",
     "sanitize": "Cleaning up the generated code…",
 }
@@ -254,6 +258,6 @@ def stream_events(prompt, devices, language="py", meta=None, overrides=None):
             "info" if code else "error")
 
     vm = _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints,
-                       language, final.get("validation"))
+                       language, final.get("validation"), final.get("hardware"))
     vm["_log"] = log.entries
     yield {"type": "final", "vm": vm}
