@@ -46,12 +46,18 @@ For development, the only thing worth setting is:
 export CASEWRIGHT_DEV=1   # skip the production secret check, use dev-only defaults
 ```
 
-In production, two secrets are required (they're bootstrap config — the app needs them
-before it can read its own database, so they can't live in Settings):
+In production, two secrets are required. They're bootstrap config — the app needs them
+before it can read its own database, so they can't live in Settings. In dev they're
+generated for you and persisted to `~/.config/casewright/`; production must supply them
+explicitly, so they can come from a real secret store and so a redeployed container
+doesn't invent a new signing key and log everyone out:
 
 ```bash
-export JWT_SECRET=<a real secret>          # signs session cookies
-export CASEWRIGHT_ENC_KEY=<a Fernet key>   # encrypts the stored Meraki API key at rest
+# signs session cookies
+export JWT_SECRET=$(python -c "import secrets; print(secrets.token_urlsafe(32))")
+# encrypts the stored Meraki API key at rest
+export CASEWRIGHT_ENC_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+export CASEWRIGHT_DEV=0
 ```
 
 See [.env.example](.env.example) for the full list of optional overrides.

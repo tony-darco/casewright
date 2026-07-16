@@ -5,6 +5,7 @@ renaming is a one-line change, never a find-and-replace across templates.
 """
 
 import os
+import secrets
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -40,11 +41,38 @@ def _config_dir() -> Path:
 # sentinel secret rather than signing forgeable session cookies (issue #10).
 DEV_MODE = os.environ.get("CASEWRIGHT_DEV", "").strip().lower() in ("1", "true", "yes", "on")
 
-# Signing secret for JWTs. MUST be set in production (env var / Docker secret). The
-# dev fallback below is a known, source-controlled value — anyone could forge a
-# session with it — so outside DEV_MODE the app refuses to start while it's in use.
+def _dev_jwt_secret() -> str:
+    """A stable, machine-local JWT signing secret for development.
+
+    Mirrors how the at-rest encryption key is handled (web.services.crypto): generate
+    once, persist to a 0600 file outside the repo, reuse forever. Stable across
+    restarts, so dev sessions survive a reload — but unlike a source-controlled
+    sentinel, it isn't knowable by anyone who can read the repo.
+
+    Only ever called in DEV_MODE. Production must supply JWT_SECRET explicitly: we
+    deliberately do NOT auto-generate there, both so the secret can live in a real
+    secret store and because a container inventing its own key would silently log
+    every user out each time it was recreated. See validate_startup_secrets.
+    """
+    path = _config_dir() / "jwt.key"
+    if path.exists():
+        return path.read_text().strip()
+    secret = secrets.token_urlsafe(32)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(secret)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+    return secret
+
+
+# Signing secret for JWTs. MUST be set in production (env var / Docker secret); in
+# DEV_MODE we generate and persist a real random one rather than shipping a known
+# value. The sentinel is retained only so an explicitly-configured legacy value is
+# still refused in production.
 JWT_DEV_SENTINEL = "dev-insecure-change-me"
-JWT_SECRET = os.environ.get("JWT_SECRET", JWT_DEV_SENTINEL)
+JWT_SECRET = os.environ.get("JWT_SECRET", "").strip() or (_dev_jwt_secret() if DEV_MODE else "")
 JWT_ALG = "HS256"
 TOKEN_TTL_SECONDS = int(os.environ.get("TOKEN_TTL_SECONDS", str(7 * 24 * 3600)))  # 7 days
 COOKIE_NAME = "cw_session"

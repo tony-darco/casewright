@@ -11,6 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 os.environ["CASEWRIGHT_DB_PATH"] = str(Path(tempfile.gettempdir()) / f"cw_test_{uuid.uuid4().hex}.db")
+# Point the per-user config dir at a throwaway too: in dev mode web.config generates
+# a jwt.key (and crypto an enc.key) on import, and tests must not touch ~/.config.
+os.environ["XDG_CONFIG_HOME"] = str(Path(tempfile.gettempdir()) / f"cw_cfg_{uuid.uuid4().hex}")
 os.environ.setdefault("AUTOTEST_DATA_DIR", str(ROOT / "data" / "chroma"))
 # Tests run in dev mode so the fail-closed secret check (issue #10) doesn't abort
 # importing web.main; the check itself is exercised directly in test_config_secrets.
