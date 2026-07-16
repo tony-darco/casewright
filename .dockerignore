@@ -1,0 +1,35 @@
+# The host's .env holds absolute macOS paths (AUTOTEST_DATA_DIR=/Users/...), and
+# rag/__init__.py load_dotenv()s the repo-root .env on import — copying it in would
+# silently point the container's vector store at a path that doesn't exist there.
+# Container config comes from compose/environment instead.
+.env
+
+# Virtualenvs / vendored libs — the image installs its own.
+.venv
+.preview_libs
+
+.git
+.gitignore
+.github
+
+__pycache__
+**/__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.ruff_cache
+
+# Generated artifacts, not sources. The vector store is built at runtime (Settings →
+# Knowledge base); path_docs are debug output from the CLI splitter.
+data/chroma
+data/specs/path_docs
+
+.DS_Store
+.vscode
+.idea
+.claude
+temp.txt
+
+# Not needed to run the app.
+tests
+docs

@@ -70,7 +70,38 @@ python -m rag.ingest.split    # split the spec into per-endpoint docs
 python -m rag.ingest.embed    # embed those docs into the local Chroma store
 ```
 
-### Run it
+### Run it with Docker
+
+```bash
+docker compose up --build     # -> http://localhost:8000
+```
+
+Everything else is configured from the Settings page once it's running. Two notes:
+
+- **Reaching Ollama.** Inside a container `localhost` is the container itself, and the
+  app only dials allow-listed hosts (an SSRF guard that covers both the Ollama URL and
+  a remote Chroma URL). Compose defaults the allowlist to `host.docker.internal:11434`
+  — Ollama on your machine. For Ollama elsewhere, list that host too:
+
+  ```bash
+  AUTOTEST_OLLAMA_ALLOWED_HOSTS=gpu-box:11434 docker compose up --build
+  ```
+
+- **Secrets.** Compose runs in dev mode by default so it starts with no setup. For
+  anything real, set `JWT_SECRET` and `CASEWRIGHT_ENC_KEY` and `CASEWRIGHT_DEV=0`.
+
+The SQLite database and the local vector store are named volumes, so users, tests, and
+embedded knowledge-base versions survive a rebuild. To run Chroma as its own service
+instead of storing vectors in the app container:
+
+```bash
+docker compose --profile remote-chroma up --build
+```
+
+then add `chroma:8000` to the allowlist and point **Settings → Knowledge base → Remote**
+at `http://chroma:8000`.
+
+### Run it locally
 
 ```bash
 uvicorn web.main:app --reload

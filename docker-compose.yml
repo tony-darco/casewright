@@ -1,0 +1,52 @@
+# Spin up casewright:  docker compose up --build   ->  http://localhost:8000
+#
+# Note there is deliberately no `env_file: .env` here: the repo's .env holds absolute
+# host paths that are wrong inside a container. Compose still reads .env for ${VAR}
+# substitution below, so JWT_SECRET etc. can live there without leaking the rest in.
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Dev mode by default so `docker compose up` just works. For anything real,
+      # set JWT_SECRET + CASEWRIGHT_ENC_KEY and set CASEWRIGHT_DEV=0.
+      CASEWRIGHT_DEV: "${CASEWRIGHT_DEV:-1}"
+      JWT_SECRET: "${JWT_SECRET:-}"
+      CASEWRIGHT_ENC_KEY: "${CASEWRIGHT_ENC_KEY:-}"
+
+      # Hosts the backend is allowed to dial. This gates BOTH the Ollama server URL
+      # and a remote Chroma URL — they share one loopback-by-default SSRF guard
+      # (web/services/ollama_admin.py), so the name is narrower than the behaviour.
+      # It matters here because inside a container "localhost" is the container
+      # itself: reaching Ollama on your machine (host.docker.internal) or on another
+      # box means listing it. Comma-separated host or host:port; "*" disables the
+      # restriction entirely (don't, on anything exposed).
+      AUTOTEST_OLLAMA_ALLOWED_HOSTS: "${AUTOTEST_OLLAMA_ALLOWED_HOSTS:-host.docker.internal:11434}"
+    extra_hosts:
+      # Lets the container reach a service on the host (Ollama) on Linux too; on
+      # Docker Desktop host.docker.internal already resolves.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - casewright-db:/data                  # SQLite: users, tests, KB versions
+      - casewright-chroma:/app/data/chroma   # the "local" vector store
+    restart: unless-stopped
+
+  # Optional: run Chroma as its own service instead of storing vectors in the app.
+  #   docker compose --profile remote-chroma up --build
+  # Then add "chroma:8000" to AUTOTEST_OLLAMA_ALLOWED_HOSTS and set
+  # Settings -> Knowledge base -> Remote -> http://chroma:8000
+  chroma:
+    image: chromadb/chroma:latest
+    profiles: ["remote-chroma"]
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma-server:/data
+    restart: unless-stopped
+
+volumes:
+  casewright-db:
+  casewright-chroma:
+  chroma-server:
