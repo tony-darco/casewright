@@ -723,12 +723,61 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
   color: var(--ink-3); font-family: var(--font-mono); font-size: var(--t-micro); text-align: center; }
 .empty-state .big { font-size: 22px; color: var(--ink-2); }
 
-/* traceability matrix (coverage) */
-.matrix { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow-x: auto; }
-.matrix-row { display: grid; grid-template-columns: 2fr 1.4fr 1fr; gap: var(--s3); padding: 10px var(--s5); align-items: center; border-top: 1px solid var(--line); }
-.matrix-row:first-child { border-top: 0; }
-.matrix-head { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
-.matrix-row .st { font-family: var(--font-mono); color: var(--ink-3); }
+/* endpoint coverage (coverage) — tree left, detail panel right */
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.cov-summary-bar { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; margin-bottom: var(--s4); }
+.cov-total { font-size: var(--t-h3); color: var(--ink); }
+.cov-total-label { color: var(--ink-2); font-size: var(--t-micro); }
+.cov-legend { display: flex; gap: var(--s3); margin-left: auto; font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-3); }
+
+.cov-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--s4); align-items: start; }
+@media (max-width: 860px) { .cov-grid { grid-template-columns: 1fr; } }
+
+/* tree. Collapse is pure CSS off aria-expanded — the JS only flips the attribute. */
+.tv-list { list-style: none; margin: 0; padding: 0; }
+.tv-root { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+  padding: var(--s2); max-height: 70vh; overflow: auto; }
+.tv-item[aria-expanded="false"] > .tv-list { display: none; }
+.tv-item[aria-expanded="true"] > .tv-node .tv-toggle { transform: rotate(90deg); }
+.tv-list .tv-list { padding-left: var(--s4); border-left: 1px solid var(--line); margin-left: 10px; }
+
+.tv-node { display: flex; align-items: center; gap: var(--s2); width: 100%; text-align: left;
+  padding: 4px var(--s2); border-radius: var(--radius); color: var(--ink-2); }
+.tv-node:hover { background: var(--sunken); color: var(--ink); }
+.tv-node:focus-visible { outline: 1px solid var(--line-2); outline-offset: -1px; }
+.tv-toggle { display: inline-block; width: 12px; flex: none; font-size: 11px; color: var(--ink-3);
+  transition: transform .12s ease; }
+.tv-node:hover .tv-toggle { color: var(--ink-2); }
+.tv-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tv-count { flex: none; font-size: var(--t-eyebrow); color: var(--ink-3); }
+.tv-leaf .tv-label { font-size: var(--t-micro); }
+.tv-leaf.is-current { background: var(--sunken); color: var(--ink); font-weight: 500; }
+
+/* status glyphs — grayscale only, weight carries the signal (see the header note) */
+.tv-dot { flex: none; width: 12px; text-align: center; font-family: var(--font-mono); color: var(--ink-3); }
+.tv-dot[data-st="pass"], .tv-dot[data-st="fail"] { color: var(--ink); }
+.tv-dot[data-st="fail"] { font-weight: 700; }
+.tv-dot[data-st="covered"] { color: var(--ink-2); }
+
+/* detail panel */
+.cov-panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+  padding: var(--s5); min-height: 220px; display: flex; flex-direction: column; position: sticky; top: var(--s4); }
+.cov-detail { display: flex; flex-direction: column; gap: var(--s2); }
+.cov-ep { font-size: var(--t-micro); font-weight: 500; word-break: break-all; }
+.cov-summary { color: var(--ink-2); font-size: var(--t-micro); }
+.cov-tests { display: flex; flex-direction: column; margin-top: var(--s3); }
+.cov-test { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--line); }
+.cov-test:hover .cov-test-name { text-decoration: underline; }
+.cov-test-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-micro); }
+.cov-role { flex: none; font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink-3); border: 1px solid var(--line); border-radius: var(--radius); padding: 1px 6px; }
+.cov-role[data-role="target"] { color: var(--ink-2); border-color: var(--line-2); }
+.cov-run { flex: none; font-size: var(--t-eyebrow); color: var(--ink-3); }
+.cov-run[data-run="success"], .cov-run[data-run="failed"], .cov-run[data-run="error"] { color: var(--ink-2); }
+.cov-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--s2); text-align: center; color: var(--ink-3); font-size: var(--t-micro); }
+.cov-empty .big { font-size: 22px; color: var(--ink-2); }
 
 /* roadmap stubs (P3) */
 .roadmap { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s5); }

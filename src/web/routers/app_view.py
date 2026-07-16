@@ -9,7 +9,9 @@ per-user test library (persisted).
 ``GET  /app/tests/{id}``             loads a finished test back into the workspace.
 ``POST /app/tests/{id}/code``        persists edits made in the Code tab.
 ``POST /app/tests/{id}/rename``      renames a saved test (returns the updated item).
-``GET  /runs`` / ``/coverage``       dashboard shells (empty states).
+``GET  /runs``                       dashboard shell (empty state).
+``GET  /coverage``                   the spec's endpoints as a tree, with per-user coverage.
+``GET  /coverage/endpoint``          the tests using one endpoint (detail panel).
 """
 
 import json
@@ -20,8 +22,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from web.auth import require_user
 from web.deps import templates
 from web.services import (
-    generate, gen_registry, kb_store, logs_store, provider_store, run_logs_store,
-    runs_store, store, tests_store,
+    coverage, generate, gen_registry, kb_store, logs_store, provider_store,
+    run_logs_store, runs_store, store, tests_store,
 )
 
 _SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
@@ -85,7 +87,8 @@ def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language,
         if ok:
             tests_store.finish_test(uid, test_id, vm["file_name"], vm["code"],
                                     vm["endpoints"], vm.get("validation"), "done",
-                                    hardware=vm.get("hardware"), gen_meta=meta)
+                                    hardware=vm.get("hardware"), gen_meta=meta,
+                                    dep_endpoints=vm.get("dep_endpoints"))
             # snapshot this result as the next version (#12)
             n = tests_store.add_version(test_id, vm["prompt"], vm["file_name"], vm["code"],
                                         language, vm["endpoints"], vm.get("validation"))
@@ -244,5 +247,15 @@ def runs_dashboard(request: Request):
 
 
 @router.get("/coverage", response_class=HTMLResponse)
-def coverage_matrix(request: Request):
-    return templates.TemplateResponse(request, "coverage.html")
+def coverage_matrix(request: Request, user: dict = Depends(require_user)):
+    return templates.TemplateResponse(request, "coverage.html", coverage.tree_view(user["id"]))
+
+
+@router.get("/coverage/endpoint", response_class=HTMLResponse)
+def coverage_endpoint(request: Request, ep: str, user: dict = Depends(require_user)):
+    """The tests using one endpoint. ``ep`` is a query param, not a path segment:
+    endpoint ids are "METHOD /path" and carry their own slashes and braces."""
+    vm = coverage.endpoint_detail(user["id"], ep)
+    if vm is None:
+        return HTMLResponse("<div class='cov-empty'>Unknown endpoint.</div>", status_code=404)
+    return templates.TemplateResponse(request, "partials/coverage_detail.html", vm)

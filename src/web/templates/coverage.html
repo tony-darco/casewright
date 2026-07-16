@@ -13,24 +13,41 @@
     <div class="shell-head">
       <span class="eyebrow">Dashboard</span>
       <h1>Spec coverage</h1>
-      <p>A traceability matrix mapping <b>specifications → generated tests → status</b>, so you can see
-        which specs are covered and proven. {{ WORDMARK|capitalize }} is spec-first — this is where that pays off.
-        Data model TBD with the backend.</p>
+      <p>Every endpoint in the spec, mapped to the tests that use it and how they last ran.
+        {{ WORDMARK|capitalize }} is spec-first — this is where that pays off. Pick an endpoint
+        to see which tests reach it.</p>
     </div>
 
-    <div class="matrix">
-      <div class="matrix-row matrix-head">
-        <span>Specification</span><span>Generated tests</span><span>Status</span>
-      </div>
-      <div class="matrix-row">
-        <span class="mono" style="color:var(--ink-3)">—</span>
-        <span class="mono" style="color:var(--ink-3)">—</span>
-        <span class="st">—</span>
+    {% if total %}
+    <div class="cov-summary-bar">
+      <span class="mono cov-total">{{ covered }}/{{ total }}</span>
+      <span class="cov-total-label">endpoints covered by at least one test</span>
+      <span class="cov-legend">
+        <span data-st="none">&middot; none</span>
+        <span data-st="covered">&#9675; not run</span>
+        <span data-st="pass">&#10003; passing</span>
+        <span data-st="fail">&#10007; failing</span>
+      </span>
+    </div>
+
+    <div class="cov-grid">
+      {% include "partials/coverage_tree.html" %}
+      <div id="covDetail" class="cov-panel">
+        <div class="cov-empty">
+          <span class="big">&#9656;</span>
+          Select an endpoint.<br>Its tests and their latest runs appear here.
+        </div>
       </div>
     </div>
+    {% else %}
     <div class="empty-state" style="min-height:160px">
-      <span class="big">▦</span> No specs mapped yet.<br>Add specs and generate tests to populate the matrix.
+      <span class="big">▦</span> No spec loaded.<br>The OpenAPI spec could not be read, so there is nothing to map.
     </div>
+    {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/coverage.js') }}"></script>
 {% endblock %}

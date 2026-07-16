@@ -260,4 +260,8 @@ def stream_events(prompt, devices, language="py", meta=None, overrides=None):
     vm = _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints,
                        language, final.get("validation"), final.get("hardware"))
     vm["_log"] = log.entries
+    # Prerequisite endpoints the test calls to set up (upstream producers from the
+    # dependency graph). Not part of the workspace view — carried for the coverage
+    # tree, which counts them as usage so shared setup calls read as covered.
+    vm["dep_endpoints"] = final.get("dependency_endpoints") or []
     yield {"type": "final", "vm": vm}

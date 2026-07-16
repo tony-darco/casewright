@@ -28,6 +28,14 @@ WORDMARK = "casewright"
 # web.services.crypto), set via Settings and never returned to the browser.
 MERAKI_BASE_URL = os.environ.get("MERAKI_BASE_URL", "https://api.meraki.com/api/v1").rstrip("/")
 
+# The pinned Meraki OpenAPI snapshot, read by the coverage tree (web.services.coverage).
+# Anchored on the repo root, not CWD — same idiom as the .env load above. Shares
+# AUTOTEST_SPECS_DIR with rag.ingest.split so both resolve to one place.
+SPECS_DIR = Path(
+    os.environ.get("AUTOTEST_SPECS_DIR", str(WEB_DIR.parents[1] / "data" / "specs"))
+).expanduser()
+SPEC_PATH = SPECS_DIR / "meraki_open_api_spec.json"
+
 
 def _config_dir() -> Path:
     base = os.environ.get("XDG_CONFIG_HOME") or (Path.home() / ".config")

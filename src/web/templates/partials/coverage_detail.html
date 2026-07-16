@@ -1,0 +1,29 @@
+{# Detail panel for one endpoint: every test that reaches it, and how each one last ran.
+   Swapped into #covDetail by coverage.js. #}
+<div class="cov-detail">
+  <span class="eyebrow">Endpoint</span>
+  <h3 class="mono cov-ep">{{ endpoint }}</h3>
+  {% if summary %}<p class="cov-summary">{{ summary }}</p>{% endif %}
+
+  {% if tests %}
+  <div class="cov-tests">
+    {% for t in tests %}
+    <a class="cov-test" href="/app/tests/{{ t.test_id }}">
+      <span class="cov-test-name">{{ t.name or "Untitled test" }}</span>
+      <span class="cov-role" data-role="{{ t.role }}">{{ "target" if t.role == "target" else "prerequisite" }}</span>
+      <span class="cov-run mono" data-run="{{ t.run_status or 'none' }}">
+        {%- if t.run_status == 'success' %}passed
+        {%- elif t.run_status == 'failed' %}failed
+        {%- elif t.run_status == 'error' %}errored
+        {%- else %}never run{% endif -%}
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="cov-empty">
+    <span class="big">&middot;</span>
+    No test uses this endpoint yet.<br>Generate one from the app to cover it.
+  </div>
+  {% endif %}
+</div>

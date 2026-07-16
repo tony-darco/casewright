@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS tests (
     run_source     TEXT NOT NULL DEFAULT 'example',
     source_network_id TEXT NOT NULL DEFAULT '',
     gen_meta_json  TEXT NOT NULL DEFAULT '{}',
+    dep_endpoints_json TEXT NOT NULL DEFAULT '[]',
     created_at     TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -234,7 +235,8 @@ def init() -> None:
         for name, ddl in (("hardware_json", "TEXT NOT NULL DEFAULT '[]'"),
                           ("run_source", "TEXT NOT NULL DEFAULT 'example'"),
                           ("source_network_id", "TEXT NOT NULL DEFAULT ''"),
-                          ("gen_meta_json", "TEXT NOT NULL DEFAULT '{}'")):
+                          ("gen_meta_json", "TEXT NOT NULL DEFAULT '{}'"),
+                          ("dep_endpoints_json", "TEXT NOT NULL DEFAULT '[]'")):
             if name not in test_cols:
                 conn.execute(f"ALTER TABLE tests ADD COLUMN {name} {ddl}")
         # meraki_data gains a default example network for the Run feature

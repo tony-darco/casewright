@@ -38,16 +38,21 @@ def create_generating(user_id, name, prompt, language, devices):
 
 
 def finish_test(user_id, test_id, file_name, code, endpoints, validation, status="done",
-                hardware=None, gen_meta=None):
+                hardware=None, gen_meta=None, dep_endpoints=None):
     """Fill in a generating row with the generated result and flip its status. Also
     stores the LLM-decided hardware requirements and the generation-time identifiers
-    (org/base URL/network ids) the runner later substitutes (Run feature)."""
+    (org/base URL/network ids) the runner later substitutes (Run feature).
+
+    ``endpoints`` are the test's targets; ``dep_endpoints`` are the prerequisites it
+    calls to set them up. Both count as usage in the coverage tree, kept apart so the
+    tree can say which role an endpoint plays in a given test."""
     with db.cursor() as conn:
         cur = conn.execute(
             "UPDATE tests SET file_name = ?, code = ?, endpoints_json = ?, "
-            "validation_json = ?, hardware_json = ?, gen_meta_json = ?, status = ?, "
-            "updated_at = datetime('now') WHERE id = ? AND user_id = ?",
-            (file_name, code, json.dumps(endpoints or []),
+            "dep_endpoints_json = ?, validation_json = ?, hardware_json = ?, "
+            "gen_meta_json = ?, status = ?, updated_at = datetime('now') "
+            "WHERE id = ? AND user_id = ?",
+            (file_name, code, json.dumps(endpoints or []), json.dumps(dep_endpoints or []),
              json.dumps(validation) if validation else "", json.dumps(hardware or []),
              json.dumps(gen_meta or {}), status, test_id, user_id),
         )
@@ -147,6 +152,19 @@ def list_tests(user_id):
         rows = conn.execute(
             "SELECT id, name, status, created_at FROM tests WHERE user_id = ? "
             "ORDER BY created_at DESC, id DESC",
+            (user_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_endpoint_usage(user_id):
+    """Each finished test's id/name plus the endpoint ids it uses — the source the
+    coverage tree inverts into an endpoint -> tests index. Generating rows are skipped:
+    their endpoint lists aren't filled in yet."""
+    with db.cursor() as conn:
+        rows = conn.execute(
+            "SELECT id, name, endpoints_json, dep_endpoints_json FROM tests "
+            "WHERE user_id = ? AND status = 'done' ORDER BY name",
             (user_id,),
         ).fetchall()
     return [dict(r) for r in rows]

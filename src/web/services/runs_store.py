@@ -61,6 +61,21 @@ def list_runs_for_test(user_id, test_id) -> list:
     return [dict(r) for r in rows]
 
 
+def latest_status_by_test(user_id) -> dict:
+    """test_id -> the status of that test's most recent *finished* run, for the
+    coverage tree. Only terminal statuses count: an in-flight run says nothing about
+    the endpoint yet, and letting it win would flip a passing test back to never-run.
+    A bare column alongside MAX() comes from the matching row (a SQLite guarantee)."""
+    with db.cursor() as conn:
+        rows = conn.execute(
+            "SELECT test_id, status, MAX(id) FROM runs "
+            "WHERE user_id = ? AND status IN ('success', 'error', 'failed') "
+            "GROUP BY test_id",
+            (user_id,),
+        ).fetchall()
+    return {r["test_id"]: r["status"] for r in rows}
+
+
 def update_status(run_id, status, error_message=None) -> None:
     """Advance a run's status. Stamps started_at on entering 'running' and
     finished_at on any terminal status."""
