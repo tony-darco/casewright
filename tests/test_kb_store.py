@@ -60,6 +60,20 @@ def test_get_active_only_returns_done_version():
     assert active["id"] == v["id"]
 
 
+def test_delete_version_errored_only_and_user_scoped():
+    db.init()
+    u, other = db.create_user("kbdel1", "h"), db.create_user("kbdel2", "h")
+    done = kb_store.create_embedding(u["id"], "D", "upload", "custom", "a.json")
+    kb_store.mark_done(u["id"], done["id"], 1)
+    bad = kb_store.create_embedding(u["id"], "B", "upload", "custom", "b.json")
+    kb_store.mark_error(u["id"], bad["id"], "boom")
+
+    assert kb_store.delete_version(u["id"], done["id"]) is False   # done: kept
+    assert kb_store.delete_version(other["id"], bad["id"]) is False  # not theirs
+    assert kb_store.delete_version(u["id"], bad["id"]) is True
+    assert kb_store.get_version(u["id"], bad["id"]) is None
+
+
 def test_versions_and_activation_are_user_scoped():
     db.init()
     owner, other = db.create_user("kbowner", "h"), db.create_user("kbother", "h")

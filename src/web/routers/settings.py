@@ -8,6 +8,7 @@ with ``HX-Retarget`` so it lands in the right error slot.
 
 import json
 import logging
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
@@ -207,28 +208,37 @@ def api_networks(user: dict = Depends(require_user)):
 
 # --- knowledge base (Settings → Knowledge base) -----------------------------------
 
+def _kb_page(request: Request, user_id: int):
+    """The full Knowledge base page partial (storage + form + version list)."""
+    return templates.TemplateResponse(request, "partials/knowledgebase.html", {
+        "versions": kb_store.list_versions(user_id),
+        "storage": kb_store.get_storage(user_id),
+    })
+
+
 @router.get("/settings/knowledgebase", response_class=HTMLResponse)
 def settings_kb(request: Request, user: dict = Depends(require_user)):
     """Knowledge base page: loaded on demand (HTMX), same as Logs."""
-    return templates.TemplateResponse(request, "partials/knowledgebase.html", {
-        "versions": kb_store.list_versions(user["id"]),
-        "storage": kb_store.get_storage(user["id"]),
-    })
+    return _kb_page(request, user["id"])
 
 
 @router.post("/settings/knowledgebase/storage", response_class=HTMLResponse)
 def kb_set_storage(request: Request, storageKind: str = Form("local"),
                    storageUrl: str = Form(""), user: dict = Depends(require_user)):
-    """Where this user's vector store lives: the shared local persist directory
-    (default), or a remote Chroma server (client/server mode — e.g. a Docker-hosted
-    `chroma run`, or any other host). Reuses the same loopback-by-default SSRF guard
-    as the Ollama server URL, since both are a backend-initiated connection to a
-    user-supplied server."""
+    """Where this user's vector store lives: local — inside this application
+    (default) — or a remote Chroma server URL, wherever it's hosted. The URL is an
+    infrastructure setting like the Ollama URL, but unlike Ollama (localhost by
+    design) a remote Chroma may live anywhere, so only the URL's shape is validated
+    — no host restriction."""
     if storageKind == "remote":
-        try:
-            storageUrl = ollama_admin.normalize_url(storageUrl)
-        except ollama_admin.OllamaError as exc:
-            return _error(request, str(exc), retarget="#kbStorageError")
+        storageUrl = (storageUrl or "").strip().rstrip("/")
+        if storageUrl and not storageUrl.startswith(("http://", "https://")):
+            storageUrl = "http://" + storageUrl
+        parts = urlparse(storageUrl)
+        if parts.scheme not in ("http", "https") or not parts.hostname:
+            return _error(request, "Enter a valid Chroma server URL.", retarget="#kbStorageError")
+        if parts.username or parts.password:
+            return _error(request, "Credentials aren't allowed in the URL.", retarget="#kbStorageError")
     else:
         storageKind, storageUrl = "local", ""
     kb_store.set_storage(user["id"], storageKind, storageUrl)
@@ -308,6 +318,12 @@ def kb_activate(request: Request, version_id: int, user: dict = Depends(require_
     if not ok:
         return _error(request, "Can't activate that version (not found, or still embedding).",
                       retarget="#kbError")
-    return templates.TemplateResponse(request, "partials/knowledgebase.html", {
-        "versions": kb_store.list_versions(user["id"]),
-    })
+    return _kb_page(request, user["id"])
+
+
+@router.post("/settings/knowledgebase/{version_id}/delete", response_class=HTMLResponse)
+def kb_delete(request: Request, version_id: int, user: dict = Depends(require_user)):
+    """Remove a failed version from the list (errored versions only — nothing was
+    embedded for them, so there's no collection to clean up)."""
+    kb_store.delete_version(user["id"], version_id)
+    return _kb_page(request, user["id"])

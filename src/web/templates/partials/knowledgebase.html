@@ -2,15 +2,26 @@
    choose a split method, start embedding, and pick which version is active.
    Loaded on demand into #kbContent by the Knowledge base nav item. #}
 <div class="org-head"><h2>Vector store location</h2></div>
-<p class="apikey-lead">Where the embedded knowledge base is stored: the shared local
-  persist directory, or a remote Chroma server (e.g. one running in its own container).</p>
+<p class="apikey-lead">Where the embedded knowledge base is stored: locally, inside this
+  application, or on a remote Chroma server.</p>
 {% include "partials/kb_storage.html" %}
 
 <div class="org-head" style="margin-top:var(--s8)"><h2>Add a spec</h2></div>
-<form class="set-form kb-start-form" id="kbStartForm"
+<form class="set-form kb-form" id="kbStartForm"
       hx-post="/settings/knowledgebase/start" hx-target="#kbVersionList" hx-swap="afterbegin"
       hx-encoding="multipart/form-data" hx-disabled-elt="find button[type='submit']">
   <fieldset class="kb-fieldset">
+    <label class="kb-radio">
+      <input type="radio" name="splitMethod" value="langchain" checked> LangChain split
+      <span class="gen-note">generic recursive chunking — any document</span>
+    </label>
+    <label class="kb-radio">
+      <input type="radio" name="splitMethod" value="custom"> Custom split
+      <span class="gen-note">Custom OpenAPI script — one chunk per endpoint; requires an OpenAPI document</span>
+    </label>
+  </fieldset>
+
+  <fieldset class="kb-fieldset" style="margin-top:var(--s4)">
     <label class="kb-radio">
       <input type="radio" name="sourceKind" value="link" checked> Link
       <span class="gen-note">fetch a spec URL</span>
@@ -27,17 +38,6 @@
       <input class="set-input" type="file" name="file" accept=".json,.yaml,.yml,.txt"
              aria-label="Spec file">
     </div>
-  </fieldset>
-
-  <fieldset class="kb-fieldset" style="margin-top:var(--s4)">
-    <label class="kb-radio">
-      <input type="radio" name="splitMethod" value="langchain" checked> LangChain split
-      <span class="gen-note">generic recursive chunking — any document</span>
-    </label>
-    <label class="kb-radio">
-      <input type="radio" name="splitMethod" value="custom"> Custom split
-      <span class="gen-note">Custom OpenAPI script — one chunk per endpoint; requires an OpenAPI document</span>
-    </label>
   </fieldset>
 
   <div class="set-error" id="kbError"></div>

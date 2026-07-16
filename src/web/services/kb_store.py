@@ -93,6 +93,17 @@ def set_active(user_id, version_id) -> bool:
     return True
 
 
+def delete_version(user_id, version_id) -> bool:
+    """Remove a version row — errored versions only (nothing was embedded for them,
+    so deleting the row leaves no orphaned Chroma collection behind)."""
+    with db.cursor() as conn:
+        cur = conn.execute(
+            "DELETE FROM kb_versions WHERE id = ? AND user_id = ? AND status = 'error'",
+            (version_id, user_id),
+        )
+        return cur.rowcount > 0
+
+
 def get_storage(user_id) -> dict:
     """Where this user's vector store lives: {'storage_kind': 'local'|'remote',
     'storage_url': ...}. 'local' (the default) means the shared AUTOTEST_DATA_DIR

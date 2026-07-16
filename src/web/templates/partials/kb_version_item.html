@@ -14,8 +14,11 @@
     <span>{{ v.doc_count }} doc{{ '' if v.doc_count == 1 else 's' }}</span>
     <span class="mono">{{ v.created_at }}</span>
   </div>
-  {% if v.status == 'error' and v.error_message %}
-    <div class="gen-error"><b>&#10007;</b> {{ v.error_message }}</div>
+  {% if v.status == 'error' %}
+    {% if v.error_message %}<div class="gen-error"><b>&#10007;</b> {{ v.error_message }}</div>{% endif %}
+    <button class="btn btn-ghost kb-activate-btn" type="button"
+            hx-post="/settings/knowledgebase/{{ v.id }}/delete"
+            hx-target="#kbContent" hx-swap="innerHTML">Remove</button>
   {% endif %}
   <div class="kb-stage gen-note" hidden></div>
   {% if v.status == 'done' and not v.is_active %}
