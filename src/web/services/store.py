@@ -71,6 +71,28 @@ def list_orgs(user_id: int) -> list:
     return orgs
 
 
+def org_exists(user_id: int, org_id: str) -> bool:
+    return any(o.get("id") == org_id for o in list_orgs(user_id))
+
+
+def remove_org(user_id: int, org_id: str) -> bool:
+    """Forget an organization for this user: drops it and its cached networks/devices
+    from our store only — nothing is deleted on the Meraki side. Clears the default
+    example network too if it pointed into this org, so it can't dangle onto a network
+    we no longer know about. Returns False if the org wasn't connected."""
+    row = _row(user_id)
+    orgs = json.loads(row["orgs_json"] or "[]")
+    remaining = [o for o in orgs if o.get("id") != org_id]
+    if len(remaining) == len(orgs):
+        return False
+    dropped_nets = {n.get("id") for o in orgs if o.get("id") == org_id
+                    for n in o.get("networks", [])}
+    _save(user_id, row["api_key_enc"], remaining)
+    if row["default_network_id"] in dropped_nets:
+        set_default_network_id(user_id, "")
+    return True
+
+
 def save_org(user_id: int, org: dict) -> dict:
     row = _row(user_id)
     orgs = json.loads(row["orgs_json"] or "[]")
@@ -143,6 +165,23 @@ def verified_networks(user_id: int) -> list:
 
 
 # --- default example network (Run feature) ---------------------------------------
+
+def default_or_first_network_id(user_id: int, org_id: str = "") -> str:
+    """A concrete network ID to bake into generated tests: the configured default
+    example network, else the first connected network (preferring ``org_id``). The
+    Run feature swaps this for the ephemeral network at run time, so any real network
+    id works — the point is to hand the model a literal instead of nothing, which is
+    what pushes it to invent network-discovery code."""
+    default = get_default_network_id(user_id)
+    if default:
+        return default
+    nets = verified_networks(user_id)
+    if org_id:
+        for n in nets:
+            if org_id_for_network(user_id, n.get("id", "")) == org_id and n.get("id"):
+                return n["id"]
+    return next((n["id"] for n in nets if n.get("id")), "")
+
 
 def get_default_network_id(user_id: int) -> str:
     return _row(user_id)["default_network_id"] or ""

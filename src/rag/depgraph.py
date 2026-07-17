@@ -27,6 +27,13 @@ DEFAULT_GRAPH_PATH = GRAPH_JSON
 DOWNSTREAM_RENDER_CAP = 10  # dependents can fan out widely; keep prompts bounded
 UPSTREAM_CLOSURE_CAP = 10   # prerequisite producers to add to the retrieved set (upstream is shallow)
 
+# Path params the app always supplies as concrete values (services.generate injects
+# them; the Run feature swaps networkId for the ephemeral network at run time). They
+# are treated like caller-supplied (orphan) params: never chase a producer for them,
+# so the rendered call-order never tells the model to list orgs/networks to
+# "discover" an id it was already handed.
+SUPPLIED_PARAMS = frozenset({"organizationId", "networkId"})
+
 
 class DependencyGraph:
     def __init__(self, path=DEFAULT_GRAPH_PATH):
@@ -75,7 +82,7 @@ class DependencyGraph:
                 return
             stack.add(nid)
             for param in sorted(self.nodes.get(nid, {}).get("params", []), key=lambda p: p["name"]):
-                if param.get("orphan"):
+                if param.get("orphan") or param["name"] in SUPPLIED_PARAMS:
                     continue
                 producer = self.producer_of.get((nid, param["name"]))
                 if producer:
@@ -128,7 +135,7 @@ class DependencyGraph:
         """[(param, producer_or_None, is_orphan)] for endpoint_id's path params."""
         needs = []
         for p in sorted(self.nodes.get(endpoint_id, {}).get("params", []), key=lambda p: p["name"]):
-            if p.get("orphan"):
+            if p.get("orphan") or p["name"] in SUPPLIED_PARAMS:
                 needs.append((p["name"], None, True))
             else:
                 needs.append((p["name"], self.producer_of.get((endpoint_id, p["name"])), False))

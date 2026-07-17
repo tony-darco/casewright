@@ -22,8 +22,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from web.auth import require_user
 from web.deps import templates
 from web.services import (
-    coverage, generate, gen_registry, kb_store, logs_store, provider_store,
-    run_logs_store, runs_store, store, tests_store,
+    coverage, generate, gen_registry, kb_store, logs_store, meraki, network_provision,
+    provider_store, run_logs_store, runs_store, store, tests_store,
 )
 
 _SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
@@ -37,28 +37,64 @@ def _default_name(prompt: str) -> str:
 
 
 def _gen_meta(user_id: int, devices: list) -> dict:
-    """Concrete identifiers to inject into the generated test (issue #9): base URL and
-    the org that owns the first referenced device's network. The Run feature also
-    persists this (plus the referenced network ids) so the runner can substitute the
-    literals baked into the code for each run's ephemeral network/serials."""
-    net_ids = [d["networkId"] for d in devices
-               if isinstance(d, dict) and d.get("networkId")]
-    return {"base_url": None, "org_id": store.org_id_for_network(user_id, net_ids[0] if net_ids else ""),
-            "network_ids": list(dict.fromkeys(net_ids))}
+    """Concrete identifiers to inject into the generated test (issue #9).
+
+    @-mentioned devices are unclaimed inventory, so they carry an org but no network —
+    the network a test targets doesn't exist until a run provisions it. We bake in the
+    account's default example network (the one a run clones) so the model emits a real
+    id instead of a YOUR_NETWORK_ID placeholder, and the Run feature substitutes it for
+    the ephemeral network's id at run time (services.runners.inject)."""
+    org_ids = [d["orgId"] for d in devices if isinstance(d, dict) and d.get("orgId")]
+    org_id = org_ids[0] if org_ids else store.org_id_for_network(user_id, "")
+    net_id = store.default_or_first_network_id(user_id, org_id)
+    return {"base_url": None, "org_id": org_id,
+            "network_ids": [net_id] if net_id else []}
 
 
 def _sse(obj: dict) -> str:
     return "data: " + json.dumps(obj) + "\n\n"
 
 
+_HW_LABELS = {"wireless": "Wireless AP", "security_appliance": "Security appliance",
+              "camera": "Camera"}
+
+
+def _claimable_devices(user_id: int):
+    """Unclaimed inventory across the user's orgs, for the Hardware picker — the only
+    devices a run can actually claim. Returns (devices, error): a Meraki failure yields
+    an error string rather than an empty list, so the picker never implies "you have no
+    hardware" when it simply couldn't ask."""
+    key = store.get_meraki_key(user_id)
+    if not key:
+        return [], "Add a Meraki API key in Settings to pick specific hardware."
+    devices, errors = [], []
+    for org in store.list_orgs(user_id):
+        try:
+            inv = meraki.list_org_inventory(org["id"], key, unclaimed_only=True)
+        except meraki.MerakiError as exc:
+            errors.append(f"{org.get('name') or org['id']}: {exc}")
+            continue
+        for d in inv:
+            hw_type = network_provision.hardware_type_for_model(d.get("model", ""))
+            devices.append({
+                "serial": d["serial"], "model": d.get("model", ""), "name": d.get("name", ""),
+                "label": f"{_HW_LABELS.get(hw_type, 'Device')} {d.get('model', '')} · {d['serial']}",
+            })
+    return devices, "; ".join(errors)
+
+
 def _run_context(user_id: int, test: dict) -> dict:
     """Run-configuration context for the Test Configuration tab: the account's networks
-    + default, this test's saved run config, and its most recent run (for status/logs)."""
+    + default, the hardware it can pin to, this test's saved run config, and its most
+    recent run (for status/logs)."""
     runs = runs_store.list_runs_for_test(user_id, test["id"]) if test else []
     latest = runs_store.get_run(user_id, runs[0]["id"]) if runs else None
+    claimable, claimable_error = _claimable_devices(user_id)
     return {
         "networks": store.verified_networks(user_id),
         "default_network_id": store.get_default_network_id(user_id),
+        "claimable": claimable,
+        "claimable_error": claimable_error,
         "run_source": test.get("run_source", "example") if test else "example",
         "source_network_id": test.get("source_network_id", "") if test else "",
         "run": latest,
@@ -73,16 +109,24 @@ def app_home(request: Request, user: dict = Depends(require_user)):
     )
 
 
-def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language, meta, prov):
+def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language, meta, prov,
+                    repair=None, endpoints=None, keep_hardware=None, is_new=True):
     """Background worker (#11): run the pipeline, emit stream events onto ``job``, and
     persist the finished test (or drop the placeholder on failure). Runs off the
-    request, so it survives the client navigating away or disconnecting."""
-    for ev in generate.stream_events(prompt, dev, language, meta, prov):
+    request, so it survives the client navigating away or disconnecting.
+
+    ``repair`` re-enters the pipeline with a failed run's code + output to fix it,
+    grounded on ``endpoints`` (what the first pass retrieved) rather than retrieving
+    again. ``keep_hardware`` is the test's existing hardware, preserved verbatim: a
+    repair edits code, never the run config."""
+    for ev in generate.stream_events(prompt, dev, language, meta, prov, repair, endpoints):
         if ev["type"] != "final":
             job.emit(ev)                       # stage / token / error passthrough
             continue
         vm = ev["vm"]
         vm["devices"] = devices_raw            # echoed to the panel so regenerate reuses grounding
+        if repair:
+            vm["hardware"] = keep_hardware or []
         ok = not vm.get("error") and not vm.get("empty")
         if ok:
             tests_store.finish_test(uid, test_id, vm["file_name"], vm["code"],
@@ -98,9 +142,15 @@ def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language,
             vm.update(_run_context(uid, tests_store.get_test(uid, test_id)))
             item = templates.get_template("partials/test_item.html").render(
                 {"t": {"id": test_id, "name": name, "status": "done"}})
-        else:
+        elif is_new:
             tests_store.delete_test(uid, test_id)   # failed/empty: don't leave a placeholder
             item = ""
+        else:
+            # A regenerate/repair that fails must not take the existing test with it —
+            # deleting here would destroy the stored code and every prior version.
+            tests_store.abandon_generation(uid, test_id)
+            item = templates.get_template("partials/test_item.html").render(
+                {"t": {"id": test_id, "name": name, "status": "done"}})
         panel = templates.get_template("partials/workspace.html").render(vm)
         job.emit({"type": "done", "panel_html": panel, "item_html": item,
                   "status": "done" if ok else "error", "test_id": test_id})
@@ -132,12 +182,62 @@ def app_generate_start(
     t = None
     if regen_of.strip().isdigit():
         t = tests_store.restart_generation(uid, int(regen_of), prompt, language)
-    if t is None:                                    # new test (or regen target not found)
+    is_new = t is None
+    if is_new:                                       # new test (or regen target not found)
         t = tests_store.create_generating(uid, name, prompt, language, dev)
     test_id, name = t["id"], t["name"]
 
     gen_registry.start(test_id, uid, lambda job: _run_generation(
-        job, uid, test_id, name, prompt, dev, devices, language, meta, prov))
+        job, uid, test_id, name, prompt, dev, devices, language, meta, prov, is_new=is_new))
+
+    item = templates.get_template("partials/test_item.html").render({"t": t})
+    return JSONResponse({"test_id": test_id, "item_html": item})
+
+
+@router.post("/app/tests/{test_id}/repair/start")
+def app_repair_start(test_id: int, user: dict = Depends(require_user)):
+    """Send a failed run back through the pipeline to fix the code.
+
+    The payoff of keeping everything: the prompt, the endpoints the first pass grounded
+    on, the code, and the run's own output all still exist, so a repair re-enters at the
+    generate step with the full picture and lands as a new version — the prior code stays
+    reachable if the fix is worse. Retrieval is skipped (the endpoints are already known)
+    and the hardware config is carried over untouched."""
+    uid = user["id"]
+    test = tests_store.get_test(uid, test_id)
+    if not test:
+        return JSONResponse({"error": "Test not found."}, status_code=404)
+
+    runs = runs_store.list_runs_for_test(uid, test_id)
+    run = runs_store.get_run(uid, runs[0]["id"]) if runs else None
+    if not run or run["status"] not in ("failed", "error"):
+        return JSONResponse({"error": "There's no failed run to learn from. Run the test first."},
+                            status_code=400)
+
+    repair = generate.repair_context(test, run, run_logs_store.logs_for_run(run["id"]))
+    dev = generate.parse_devices(test.get("devices_json"))
+    endpoints = generate.parse_devices(test.get("endpoints_json"))   # forgiving JSON list parse
+    keep_hardware = generate.parse_devices(test.get("hardware_json"))
+    prompt, language = test.get("prompt", ""), test.get("language") or "py"
+
+    prov = provider_store.overrides(uid)
+    active_kb = kb_store.get_active(uid)
+    if active_kb:
+        prov = {**prov, "collection_name": active_kb["collection_name"]}
+        storage = kb_store.get_storage(uid)
+        if storage["storage_kind"] == "remote" and storage["storage_url"]:
+            prov["chroma_url"] = storage["storage_url"]
+
+    t = tests_store.restart_generation(uid, test_id, prompt, language)
+    if t is None:
+        return JSONResponse({"error": "Test not found."}, status_code=404)
+    name = t["name"]
+    meta = _gen_meta(uid, dev)
+
+    gen_registry.start(test_id, uid, lambda job: _run_generation(
+        job, uid, test_id, name, prompt, dev, test.get("devices_json") or "[]", language,
+        meta, prov, repair=repair, endpoints=endpoints, keep_hardware=keep_hardware,
+        is_new=False))
 
     item = templates.get_template("partials/test_item.html").render({"t": t})
     return JSONResponse({"test_id": test_id, "item_html": item})
@@ -197,16 +297,26 @@ def load_test(request: Request, test_id: int, user: dict = Depends(require_user)
 
 
 @router.post("/app/tests/{test_id}/hardware", response_class=HTMLResponse)
-def save_hardware(test_id: int, hwType: list[str] = Form(default=[]),
-                  hwCount: list[str] = Form(default=[]), user: dict = Depends(require_user)):
-    """Persist the user's edited hardware requirements from the Test Configuration tab."""
+def save_hardware(test_id: int, hwDevice: list[str] = Form(default=[]),
+                  user: dict = Depends(require_user)):
+    """Persist the user's edited hardware requirements from the Test Configuration tab.
+
+    One row is one device: either ``serial:<serial>`` (pinned to a specific device) or
+    ``type:<hw_type>`` (any device of that type). Two APs means two rows. A pinned row's
+    model/type are resolved from inventory rather than trusted from the form."""
+    known = {d["serial"]: d for d in _claimable_devices(user["id"])[0]}
     hardware = []
-    for t, c in zip(hwType, hwCount):
-        try:
-            count = max(1, min(4, int(c)))
-        except (TypeError, ValueError):
-            count = 1
-        hardware.append({"type": t, "count": count, "reason": ""})
+    for value in hwDevice:
+        kind, _, rest = (value or "").partition(":")
+        if kind == "serial" and rest:
+            dev = known.get(rest, {})
+            hardware.append({
+                "type": network_provision.hardware_type_for_model(dev.get("model", "")),
+                "count": 1, "serial": rest, "model": dev.get("model", ""),
+                "name": dev.get("name", ""), "reason": "pinned to a specific device",
+            })
+        elif kind == "type" and rest in _HW_LABELS:
+            hardware.append({"type": rest, "count": 1, "reason": ""})
     ok = tests_store.update_hardware(user["id"], test_id, hardware)
     if not ok:
         return HTMLResponse("", status_code=404)
