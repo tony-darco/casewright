@@ -371,6 +371,15 @@ def rename_test(request: Request, test_id: int, name: str = Form(""), user: dict
     return templates.TemplateResponse(request, "partials/test_item.html", {"t": test})
 
 
+@router.delete("/app/tests/{test_id}")
+def delete_test(test_id: int, user: dict = Depends(require_user)):
+    """Permanently delete a test. Its versions, runs, and logs cascade via foreign keys
+    (see web.db). 204 on success, 404 if it isn't the user's. The client removes the
+    sidebar item and resets the workspace if the test was open."""
+    ok = tests_store.delete_test(user["id"], test_id)
+    return HTMLResponse("", status_code=204 if ok else 404)
+
+
 @router.get("/runs", response_class=HTMLResponse)
 def runs_dashboard(request: Request):
     return templates.TemplateResponse(request, "runs.html")

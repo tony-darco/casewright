@@ -94,4 +94,20 @@
     {# The terminal lives in the Output tab (workspace.html #paneOutput). This form's
        hx-target reaches it by id across panes; app.js switches tabs on submit. #}
   </section>
+
+  {# Delete the test: a red action gated behind an inline confirm (destructive, and it
+     cascades to every version and run). app.js handles reveal/cancel/confirm. #}
+  <section class="pt-section pt-danger">
+    <h4>Delete test</h4>
+    <p class="gen-note">Permanently removes this test — its code, every version, and all run
+      history. This can&rsquo;t be undone.</p>
+    <div class="pt-del" data-test-id="{{ t.id if t else '' }}">
+      <button type="button" class="btn btn-danger" id="ptDeleteBtn">Delete test</button>
+      <span class="pt-del-confirm" id="ptDeleteConfirm" hidden>
+        <span class="gen-note">Delete permanently?</span>
+        <button type="button" class="btn btn-danger" id="ptDeleteYes">Delete</button>
+        <button type="button" class="btn btn-ghost" id="ptDeleteNo">Cancel</button>
+      </span>
+    </div>
+  </section>
 </div>
