@@ -1,10 +1,16 @@
 """Rewrite a generated test's baked-in identifiers for one run (Run feature).
 
-Generated code deliberately bakes literal org/network ids and device serials in (only
-the API key is read from the environment — see rag.graph.prompts). A run executes
-against a *fresh* ephemeral network with *different* serials, so just before running
-we substitute the generation-time literals for this run's actual values. Org id and
-base URL don't change between generation and run, so they're left alone.
+The org id, network id, and API key normally reach the generated code through
+environment variables the runner sets (see rag.graph.prompts + run_orchestrator) — the
+network is a *fresh* ephemeral network per run, so new code reads MERAKI_NETWORK_ID and
+carries no network literal at all. Device serials are the one identifier still baked in
+(a test @-mentions specific hardware), and a run claims *different* physical devices, so
+just before running we swap each generation-time serial for the serial actually claimed.
+
+The network-id string-replace below is a compatibility fallback for *legacy* tests
+generated before env injection existed: they baked a literal network id in, and without
+the swap their writes would hit that real network instead of this run's ephemeral one.
+New code has no such literal, so the replace is a harmless no-op there.
 
 Known MVP limitation: when a test references several devices of the *same* hardware
 type, original->claimed serial pairing is order-based/best-effort, not guaranteed.
@@ -12,11 +18,14 @@ type, original->claimed serial pairing is order-based/best-effort, not guarantee
 
 
 def inject_run_values(code, gen_meta, orig_devices, claimed_devices, new_network_id) -> str:
-    """Return ``code`` with generation-time network ids and device serials replaced by
-    this run's ephemeral network id and claimed serials."""
+    """Return ``code`` with device serials swapped for this run's claimed serials, and —
+    for legacy literal-based tests — any baked-in network id swapped for this run's
+    ephemeral network. New code reads the network id from the environment instead."""
     code = code or ""
     gen_meta = gen_meta or {}
 
+    # Legacy fallback: swap a baked-in literal network id for this run's ephemeral one,
+    # so an older test never writes to the real network it was generated against.
     for old_net_id in gen_meta.get("network_ids", []):
         if old_net_id and new_network_id:
             code = code.replace(old_net_id, new_network_id)

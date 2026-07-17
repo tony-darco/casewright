@@ -91,6 +91,19 @@ def delete_test(user_id, test_id):
         return cur.rowcount > 0
 
 
+def abandon_generation(user_id, test_id):
+    """A regenerate/repair failed: flip the row out of 'generating' so it isn't stuck,
+    leaving the stored code and version history untouched. A brand-new test is deleted
+    instead (it never had content to keep) — see app_view._run_generation."""
+    with db.cursor() as conn:
+        cur = conn.execute(
+            "UPDATE tests SET status = 'done', updated_at = datetime('now') "
+            "WHERE id = ? AND user_id = ?",
+            (test_id, user_id),
+        )
+        return cur.rowcount > 0
+
+
 def restart_generation(user_id, test_id, prompt, language):
     """Reuse an existing test row for a regenerate (#12): flip it back to 'generating'
     and update the prompt/language. Returns the row stub, or None if not the user's."""

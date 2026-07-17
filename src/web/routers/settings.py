@@ -178,6 +178,11 @@ def add_org(request: Request, orgId: str = Form(""), user: dict = Depends(requir
     org_id = orgId.strip()
     if not org_id:
         return _error(request, "Enter an organization ID.", retarget="#orgError")
+    if store.org_exists(user["id"], org_id):
+        # Re-adding is a no-op that used to append a second card; "Refresh networks"
+        # on the existing card is the way to re-pull its networks.
+        return _error(request, f"Organization {org_id} is already connected.",
+                      retarget="#orgError")
     try:
         key = store.get_meraki_key(user["id"])
         org = meraki.verify_org(org_id, key)
@@ -188,6 +193,20 @@ def add_org(request: Request, orgId: str = Form(""), user: dict = Depends(requir
     store.set_networks_for_org(user["id"], org["id"], networks)  # bulk-store (devices load lazily)
     org = next((o for o in store.list_orgs(user["id"]) if o["id"] == org["id"]), org)
     return templates.TemplateResponse(request, "partials/org_card.html", {"org": org})
+
+
+@router.delete("/settings/meraki/orgs/{org_id}", response_class=HTMLResponse)
+def remove_org(request: Request, org_id: str, user: dict = Depends(require_user)):
+    """Disconnect an org from casewright. Local only — it never touches Meraki. The
+    card deletes itself client-side; we re-render the default-network picker out of
+    band because removing an org can invalidate (and so clear) the selection."""
+    if not store.remove_org(user["id"], org_id):
+        return _error(request, "Organization is no longer connected.", retarget=f"#neterr-{org_id}")
+    return templates.TemplateResponse(request, "partials/default_network.html", {
+        "default_network_id": store.get_default_network_id(user["id"]),
+        "networks": store.verified_networks(user["id"]),
+        "oob": True,
+    })
 
 
 @router.post("/settings/meraki/orgs/{org_id}/networks/refresh", response_class=HTMLResponse)
@@ -265,10 +284,31 @@ def save_run_settings(
     return templates.TemplateResponse(request, "partials/run_settings_saved.html", {})
 
 
-@router.get("/api/networks", response_class=JSONResponse)
-def api_networks(user: dict = Depends(require_user)):
-    """This user's verified networks + devices for the app's @-mention / device picker."""
-    return store.verified_networks(user["id"])
+@router.get("/api/devices", response_class=JSONResponse)
+def api_devices(user: dict = Depends(require_user)):
+    """Claimable hardware for the app's @-mention picker: the org's *unclaimed*
+    inventory, which is exactly the pool a run can claim from. A device already sitting
+    in a network is deliberately excluded — a run builds its own ephemeral network and
+    can only claim hardware that isn't assigned elsewhere, so grounding a test on one
+    would mean generating against a device the run could never actually use.
+
+    Fetched live rather than from the store: "claimable" is a right-now fact, and a
+    device claimed elsewhere since the last page load must not still be offered. Per-org
+    failures come back in ``errors`` so the picker can say so instead of just looking
+    empty."""
+    key = store.get_meraki_key(user["id"])
+    devices, errors = [], []
+    if not key:
+        return {"devices": [], "errors": ["Add a Meraki API key in Settings."]}
+    for org in store.list_orgs(user["id"]):
+        try:
+            inv = meraki.list_org_inventory(org["id"], key, unclaimed_only=True)
+        except meraki.MerakiError as exc:
+            errors.append(f"{org.get('name') or org['id']}: {exc}")
+            continue
+        for d in inv:
+            devices.append({**d, "orgId": org["id"], "orgName": org.get("name", "")})
+    return {"devices": devices, "errors": errors}
 
 
 # --- knowledge base (Settings → Knowledge base) -----------------------------------

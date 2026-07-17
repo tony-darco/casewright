@@ -61,6 +61,13 @@ def test_full_run_success_and_teardown():
     delete.assert_called_once_with("L_new", "key")
     assert orch.is_busy() is False  # released in finally
 
+    # the fresh network + org reach the container through the environment, not baked
+    # into the code — so the test runs against the network provisioned for this run
+    container_env = docker_client.containers.run.call_args.kwargs["environment"]
+    assert container_env["MERAKI_NETWORK_ID"] == "L_new"
+    assert container_env["MERAKI_ORG_ID"] == "O1"
+    assert container_env["MERAKI_API_KEY"] == "key"
+
     events = job._events
     assert events[0]["type"] == "status" and events[0]["status"] == "provisioning"
     assert any(e["type"] == "status" and e["status"] == "running" for e in events)

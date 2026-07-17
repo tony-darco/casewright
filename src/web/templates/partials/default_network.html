@@ -1,6 +1,6 @@
 {# Default example network picker (Run feature). Runs that build from an example clone
    this network unless a test overrides it. Replaces itself on save. #}
-<form class="set-form" id="defaultNetForm"
+<form class="set-form" id="defaultNetForm"{% if oob %} hx-swap-oob="true"{% endif %}
       hx-post="/settings/meraki/default-network" hx-target="this" hx-swap="outerHTML"
       hx-disabled-elt="find button[type='submit']">
   <div class="gen-field">

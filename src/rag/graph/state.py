@@ -28,3 +28,6 @@ class PipelineState(TypedDict, total=False):
     tests: str                                   # first-pass generated test code (sanitized)
     validation: dict                             # {ok, method, detail, language} for the code
     hardware: list                               # [{type, count, reason}] physical Meraki hardware the run needs
+    repair: dict                                 # {code, status, stage, output} of a failed run; set = fix that
+                                                 # code instead of writing fresh (skips retrieval, reusing the
+                                                 # endpoints the first pass already grounded on)

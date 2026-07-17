@@ -19,7 +19,8 @@ def _run_and_capture_prov(monkeypatch, uid):
     to capture the prov dict it's handed, and running the job target synchronously."""
     captured_prov = {}
 
-    def fake_run_generation(job, uid_, test_id, name, prompt, dev, devices_raw, language, meta, prov):
+    def fake_run_generation(job, uid_, test_id, name, prompt, dev, devices_raw, language, meta, prov,
+                            **kwargs):
         captured_prov.update(prov)
 
     def fake_start(test_id, user_id, target):

@@ -1,6 +1,7 @@
-{# Verified Meraki network (handoff G10), nested under its org. Persisted server-side;
-   the app reads devices from GET /api/networks. Devices are fetched lazily the first
-   time this row is revealed (so org-add doesn't do an N+1 device fetch). #}
+{# Verified Meraki network (handoff G10), nested under its org. Persisted server-side.
+   Devices are fetched lazily the first time this row is revealed (so org-add doesn't do
+   an N+1 device fetch). This list is informational — @-mentions come from unclaimed
+   inventory (GET /api/devices), since a device in a network can't be claimed by a run. #}
 <div class="net-card" data-net-id="{{ net.id }}">
   <div class="org-row">
     <span class="org-id">#{{ net.id }}</span>

@@ -245,6 +245,16 @@ def init() -> None:
         run_cols = {row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()}
         if "version_no" not in run_cols:
             conn.execute("ALTER TABLE runs ADD COLUMN version_no INTEGER NOT NULL DEFAULT 0")
+            # Backfill: assign each existing run to the code version that was live when it
+            # ran (the newest version created at or before the run), so historical output
+            # stays visible under the right version instead of collapsing onto v0. Runs
+            # predating any version fall back to 0.
+            conn.execute(
+                "UPDATE runs SET version_no = COALESCE(("
+                "  SELECT v.version_no FROM test_versions v"
+                "  WHERE v.test_id = runs.test_id AND v.created_at <= runs.created_at"
+                "  ORDER BY v.created_at DESC, v.version_no DESC LIMIT 1), 0)"
+            )
         # meraki_data gains a default example network for the Run feature
         meraki_cols = {row[1] for row in conn.execute("PRAGMA table_info(meraki_data)").fetchall()}
         if "default_network_id" not in meraki_cols:

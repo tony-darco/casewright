@@ -126,18 +126,23 @@ uvicorn web.main:app --reload
 Visit `http://localhost:8000`, sign up, and:
 
 1. Connect a Meraki organization in **Settings → Meraki integration** (org ID, verified
-   against the Meraki Dashboard API) so its networks and devices become available to
-   reference in a prompt with `@device-name`. Runs that clone an example network also
-   need a **default example network** picked here.
+   against the Meraki Dashboard API). Its **unclaimed inventory** then becomes available
+   to reference in a prompt with `@device-name` — that's the pool a run can claim from, so
+   a device already assigned to a network isn't offered. Runs that clone an example
+   network also need a **default example network** picked here.
 2. Describe a test on the composer screen and pick a target language (Python/pytest,
    TypeScript/Jest, Java/JUnit 5, Go, or C#/xUnit).
-3. Review the generated code in the workspace — Prompt, Code, and Output tabs — export it
-   (copy or download), or refine the prompt and regenerate a new version. Every test keeps
-   its full version history.
-4. **Run it** from the workspace: pick the hardware the test needs and whether to clone
-   your example network or build one from scratch, and watch the stages stream in. Each
-   run provisions its own ephemeral Meraki network, claims the hardware, executes the
-   code in a container, and tears it all back down.
+3. Review the generated code in the workspace — Prompt, Code, Test Configuration, and
+   Output tabs — export it (copy or download), or refine the prompt and regenerate a new
+   version. Every test keeps its full version history.
+4. **Run it** with the **Run** button (**Re-run** once it has a run behind it). Devices you
+   named in the prompt arrive pre-pinned under **Test Configuration**, where you also
+   choose whether to clone your example network or build one from scratch. The **Output**
+   tab streams the run as it happens. Each run provisions its own ephemeral Meraki network,
+   claims exactly the hardware the test names, executes the code in a container, and tears
+   it all back down.
+5. If it fails, hit **Fix with this output** on the run terminal to send the code and the
+   failure back through the pipeline as a new version.
 
 ## How It Works
 
@@ -155,6 +160,11 @@ Each prompt runs through a LangGraph with a correction loop: if the grader isn't
 confident in what it kept, the query gets rewritten and re-retrieved (bounded, so it
 can't loop forever) before generation ever runs.
 
+The graph has **two entry points**. A prompt takes the long way round — retrieve, rank,
+grade, decide the hardware, then write the test. A **repair** (a failed run sent back
+with its output) skips retrieval entirely and re-enters at `repair_context`, reusing the
+endpoints the first pass already grounded on, then rejoins the shared tail.
+
 ```mermaid
 flowchart TD
     START(["prompt"]) --> GQ["generate_queries<br/>(RAG-Fusion)"]
@@ -165,7 +175,13 @@ flowchart TD
     REWRITE --> GQ
     GRADE -- "confident, or<br/>attempts exhausted" --> FIN["finalize<br/>(endpoint ids)"]
     FIN --> DEPS["dependencies<br/>(call-order graph)"]
-    DEPS --> GEN["generate<br/>(target language/framework)"]
+
+    FIX(["failed run<br/>code + output"]) --> RC["repair_context<br/>(reuse the stored endpoints)"]
+    RC --> DEPS
+
+    DEPS -- "first pass" --> HW["hardware<br/>(what a live run needs)"]
+    HW --> GEN["generate<br/>(target language/framework)"]
+    DEPS -- "repair<br/>(keep the run config)" --> GEN
     GEN --> SAN["sanitize<br/>(strip fences/prose)"]
     SAN --> VAL["validate<br/>(parses/compiles?)"]
     VAL --> DONE(["done"])
@@ -175,6 +191,23 @@ Retrieval nodes degrade gracefully on a bad model response (e.g. fall back to th
 unranked pool) but never on a genuine backend outage — that surfaces as an error rather
 than a silent empty result, so a down model backend never looks like "nothing found."
 
+### Repairing a failed test
+
+A run keeps everything: the prompt, the endpoints it was grounded in, the code, and the
+container's own output. **Fix with this output** (in a test's **Output** tab, on the run
+terminal) hands the model all four and asks it to correct the test. The fix lands as a
+new version, so the previous code stays reachable if it turns out worse.
+
+Two deliberate limits. Retrieval is skipped, so a repair can't quietly drift onto a
+different set of endpoints than the test was written for. And the `hardware` node is
+skipped too — a code fix has no business re-deciding which devices a run claims, so the
+pinned hardware carries over untouched.
+
+A run can fail two ways, and the repair prompt is told which: the test ran and failed
+(fixable), or the run never reached the test — Docker down, hardware not claimable — in
+which case the code may be fine. The model is explicitly licensed to return it unchanged
+rather than invent an edit for a problem that isn't in the code.
+
 ## What You Get
 
 - A **composer → workspace** flow: describe a test, watch it stream in, review the result.
@@ -182,18 +215,25 @@ than a silent empty result, so a down model backend never looks like "nothing fo
   prompt/code stay reachable, not overwritten.
 - **Five target languages**: Python (pytest), TypeScript (Jest), Java (JUnit 5), Go
   (`testing`), and C# (xUnit) — each with its own generation and sanitization rules.
-- **Meraki integration**: connect organizations, verify networks, and reference real
-  devices in a prompt via `@device-name` mentions.
+- **Meraki integration**: connect organizations (and disconnect them — locally; nothing is
+  deleted in Meraki), auto-list their networks, and reference real claimable hardware in a
+  prompt via `@device-name` mentions.
 - **Export**: copy generated code to the clipboard or download it as a file.
 - A **Knowledge base** you build from the UI: add an API spec by URL or upload, chunk it
   per-endpoint or with generic recursive splitting, and switch between embedded versions.
   Stored inside the app, or in a remote Chroma server.
 - **Test execution**: run a generated test in a short-lived Docker container against its
   own ephemeral Meraki network — cloned from an example or built from scratch by an agent
-  — with the required hardware claimed from your org's unclaimed inventory and released
-  afterwards. Hardware is never fabricated: if the org has nothing suitable, the run
-  errors rather than pretending. Python, Go, and generic scripts run today; TypeScript,
-  Java, and C# generate but report a clear "no runner yet" error.
+  — with its hardware claimed from your org's unclaimed inventory and released afterwards.
+  A device the test names by serial is claimed exactly, never substituted for another of
+  the same type; hardware is never fabricated either, so if the org has nothing suitable
+  the run errors rather than pretending. The **Output** tab streams the whole run as a
+  terminal: provisioning, the container's own stdout, then teardown. Python, Go, and
+  generic scripts run today; TypeScript, Java, and C# generate but report a clear "no
+  runner yet" error.
+- **Repair**: send a failed run's code and output back through the pipeline as a new
+  version — see [Repairing a failed test](#repairing-a-failed-test). Needs a run to learn
+  from, so it's offered only after one fails.
 - A **Settings** area covering account, Meraki integration, output language, model
   provider (Ollama endpoint/models/temperature/reasoning), the knowledge base, run
   containers (per-language base images, timeout, CPU/memory caps, cleanup policy), and

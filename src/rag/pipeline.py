@@ -17,10 +17,12 @@ added later without reshaping the pipeline.
 """
 
 import json
+import logging
 import os
 import sys
 from typing import Literal, Optional
 
+from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
@@ -38,6 +40,9 @@ from rag.provider import (
     build_vector_store,
     is_connection_error,
 )
+
+logger = logging.getLogger("rag.pipeline")
+
 
 def _env_true(name: str) -> bool:
     return os.getenv(name, "").strip().lower() in ("1", "true", "yes", "on")
@@ -221,14 +226,39 @@ class AutoTestLLM:
             return []
         return [{"type": r.type, "count": r.count, "reason": r.reason} for r in reqs]
 
-    def generate_tests(self, query: str, docs, dependencies: str = "", language="python"):
+    def docs_for_endpoints(self, endpoint_ids):
+        """The stored spec docs for known endpoint ids, in the order given.
+
+        The repair path reuses the context a previous generation already grounded on
+        rather than retrieving again, so a fix can't silently drift onto a different
+        set of endpoints. Returns [] if the store can't answer — the caller treats that
+        as "nothing to ground on" rather than generating blind."""
+        ids = [e for e in (endpoint_ids or []) if e]
+        if not ids:
+            return []
+        try:
+            res = self.vector_store.get(where={"endpoint_id": {"$in": ids}},
+                                        include=["documents", "metadatas"])
+        except Exception:
+            logger.warning("repair: could not fetch stored docs for %d endpoint(s)", len(ids))
+            return []
+        found = {}
+        for text, meta in zip(res.get("documents") or [], res.get("metadatas") or []):
+            eid = (meta or {}).get("endpoint_id")
+            if eid and eid not in found:
+                found[eid] = Document(page_content=text, metadata=meta)
+        return [found[e] for e in ids if e in found]   # preserve the original ordering
+
+    def generate_tests(self, query: str, docs, dependencies: str = "", language="python",
+                       repair=None):
         if not docs:
             return ""
         lang = languages.resolve(language)
         context = "\n\n".join(self._render_full(d) for d in docs)
         msgs = [
-            SystemMessage(prompts.generate_system(lang.label, lang.framework)),
-            HumanMessage(prompts.user_generate(query, context, dependencies)),
+            SystemMessage(prompts.repair_system(lang.label, lang.framework) if repair
+                          else prompts.generate_system(lang.label, lang.framework)),
+            HumanMessage(prompts.user_generate(query, context, dependencies, repair)),
         ]
         # Deliberately NOT swallowed: unlike the retrieval nodes (which have graceful
         # fallbacks), a failure here — e.g. the model backend unreachable — must surface
@@ -328,11 +358,18 @@ class AutoTestLLM:
                 "dependency_endpoints": self.dependency_endpoints(eps),  # prerequisite ids for the eval set
             }
 
+        def repair_context_node(state):
+            """Repair entry: reuse the endpoints the first pass grounded on instead of
+            retrieving again, so a fix can't drift onto a different set."""
+            eps = list(state.get("endpoints") or [])
+            return {"graded": self.docs_for_endpoints(eps), "endpoints": eps}
+
         def generate_node(state):
             docs = state.get("graded") or state.get("ranked") or []
             question = state.get("original_query", state["query"])
             language = state.get("language", languages.DEFAULT.name)
-            return {"tests": self.generate_tests(question, docs, state.get("dependencies", ""), language)}
+            return {"tests": self.generate_tests(question, docs, state.get("dependencies", ""),
+                                                 language, state.get("repair"))}
 
         def sanitize_node(state):
             # Deterministic strip of fences/prose so only runnable source reaches the user.
@@ -349,6 +386,15 @@ class AutoTestLLM:
                 return "rewrite"
             return "finalize"
 
+        def entry(state) -> Literal["repair_context", "generate_queries"]:
+            # A repair already knows its endpoints; retrieval would only risk drift.
+            return "repair_context" if state.get("repair") else "generate_queries"
+
+        def after_dependencies(state) -> Literal["hardware", "generate"]:
+            # Repair keeps the test's existing hardware — re-deciding it would discard
+            # the devices the user pinned in the Config tab.
+            return "generate" if state.get("repair") else "hardware"
+
         builder.add_node("generate_queries", generate_queries_node)
         builder.add_node("retrieve", retrieve_node)
         builder.add_node("rerank", rerank_node)
@@ -357,12 +403,21 @@ class AutoTestLLM:
         builder.add_node("finalize", finalize_node)
         builder.add_node("dependencies", dependencies_node)   # runs in eval + full mode
         if not self.eval_mode:
+            builder.add_node("repair_context", repair_context_node)  # reuse endpoints, skip retrieval
             builder.add_node("hardware", hardware_node)   # decide physical hardware the run needs
             builder.add_node("generate", generate_node)
             builder.add_node("sanitize", sanitize_node)
             builder.add_node("validate", validate_node)
 
-        builder.add_edge(START, "generate_queries")
+        if self.eval_mode:
+            builder.add_edge(START, "generate_queries")
+        else:
+            # A repair enters at repair_context and rejoins at dependencies; everything
+            # from generate onward is shared with a first pass.
+            builder.add_conditional_edges(START, entry,
+                                          {"repair_context": "repair_context",
+                                           "generate_queries": "generate_queries"})
+            builder.add_edge("repair_context", "dependencies")
         builder.add_edge("generate_queries", "retrieve")
         builder.add_edge("retrieve", "rerank")
         builder.add_edge("rerank", "grade")
@@ -373,7 +428,8 @@ class AutoTestLLM:
         if self.eval_mode:
             builder.add_edge("dependencies", END)         # eval: stop after targets + prerequisites
         else:
-            builder.add_edge("dependencies", "hardware")  # decide hardware after endpoints are final
+            builder.add_conditional_edges("dependencies", after_dependencies,
+                                          {"hardware": "hardware", "generate": "generate"})
             builder.add_edge("hardware", "generate")
             builder.add_edge("generate", "sanitize")   # deterministic fence/prose strip
             builder.add_edge("sanitize", "validate")   # check output is the selected language
@@ -383,11 +439,18 @@ class AutoTestLLM:
 
     # -- entry points --------------------------------------------------------
 
-    def _inputs(self, query: str, language: str) -> dict:
-        return {
+    def _inputs(self, query: str, language: str, repair=None, endpoints=None) -> dict:
+        """Graph inputs. ``repair`` (a failed run's code/status/stage/output) routes the
+        run through the repair entry, grounding on ``endpoints`` — the ids the first pass
+        already retrieved — instead of retrieving again."""
+        inputs = {
             "query": query, "original_query": query, "attempts": 0,
             "language": languages.resolve(language).name,
         }
+        if repair:
+            inputs["repair"] = repair
+            inputs["endpoints"] = list(endpoints or [])
+        return inputs
 
     def run(self, query: str, language: str = "python"):
         return self.graph.invoke(self._inputs(query, language))
@@ -395,7 +458,7 @@ class AutoTestLLM:
     async def ainvoke(self, query: str, language: str = "python"):
         return await self.graph.ainvoke(self._inputs(query, language))
 
-    def stream_run(self, query: str, language: str = "python"):
+    def stream_run(self, query: str, language: str = "python", repair=None, endpoints=None):
         """Stream the run as it happens. Yields, in order:
 
             ("stage", node_name)  -- a graph node just started/finished (progress)
@@ -408,7 +471,7 @@ class AutoTestLLM:
         (so "Writing the test…" precedes the code), with a fallback to its node
         update if the model didn't stream.
         """
-        inputs = self._inputs(query, language)
+        inputs = self._inputs(query, language, repair, endpoints)
         final: dict = {}
         gen_announced = False
         for mode, chunk in self.graph.stream(inputs, stream_mode=["updates", "messages"]):

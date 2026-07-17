@@ -71,6 +71,8 @@ def start_run(job, uid, test, run_id, run_code, org_id, source, example_network_
     result = None
     try:
         status("provisioning")
+        # hardware rows pinned to a serial (from the prompt's @-mentions, or chosen in
+        # the Config tab) are claimed exactly, so the test runs on the device it names
         hardware = _loads(test.get("hardware_json"), [])
         result = network_provision.provision(uid, run_code, org_id, hardware, source,
                                              example_network_id, key, on_log)
@@ -78,12 +80,16 @@ def start_run(job, uid, test, run_id, run_code, org_id, source, example_network_
         runs_store.set_claimed_devices(run_id, result.claimed_devices)
 
         status("running")
+        # New code reads org/network/key from the environment (so the fresh per-run
+        # network is used with no id baked in); inject only swaps device serials and, for
+        # legacy literal-based tests, any baked-in network id -> this run's network.
         code = inject_run_values(
             test.get("code", ""), _loads(test.get("gen_meta_json"), {}),
             _loads(test.get("devices_json"), []), result.claimed_devices, result.network_id)
+        env = {"MERAKI_API_KEY": key, "MERAKI_ORG_ID": result.org_id,
+               "MERAKI_NETWORK_ID": result.network_id}
         runner = registry.get_runner(test.get("language") or "py")
-        outcome = runner.run(code, {"MERAKI_API_KEY": key},
-                             run_settings_store.get_settings(uid), on_log)
+        outcome = runner.run(code, env, run_settings_store.get_settings(uid), on_log)
         status("success" if outcome.ok else "failed")
     except ProvisionError as exc:
         on_log({"stage": "provision", "level": "error", "message": str(exc)})

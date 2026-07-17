@@ -19,6 +19,7 @@ import re
 
 from web import config
 from web.deps import get_pipeline
+from web.services import network_provision
 
 logger = logging.getLogger("web.generate")
 
@@ -44,6 +45,37 @@ def parse_devices(raw):
     return data if isinstance(data, list) else []
 
 
+def pin_mentioned_hardware(hardware, devices):
+    """Fold the prompt's @-mentioned devices into the model's hardware requirements,
+    as one row per device.
+
+    The model only guesses *types* ("a wireless AP"), but an @-mention names the actual
+    device the test is written against — so it becomes a row pinned to that serial, and
+    consumes one unit of the matching generic requirement instead of adding to it. A
+    mention with no matching requirement still pins (the test clearly needs that device);
+    requirements nothing mentions stay generic, expanded to one row each so the Config
+    tab needs no count field."""
+    pinned, seen = [], set()
+    for d in devices or []:
+        serial = (d.get("serial") or "").strip() if isinstance(d, dict) else ""
+        if not serial or serial in seen:
+            continue
+        seen.add(serial)
+        pinned.append({
+            "type": network_provision.hardware_type_for_model(d.get("model", "")),
+            "count": 1, "serial": serial, "model": d.get("model", ""),
+            "name": d.get("name", ""), "reason": "referenced in the prompt",
+        })
+
+    rest = []
+    for req in hardware or []:
+        if not isinstance(req, dict):
+            continue
+        remaining = int(req.get("count", 1) or 1) - sum(1 for p in pinned if p["type"] == req.get("type"))
+        rest += [{**req, "count": 1} for _ in range(max(0, remaining))]
+    return pinned + rest
+
+
 def _device_context(devices):
     if not devices:
         return ""
@@ -62,23 +94,23 @@ def _device_context(devices):
     return "\n".join(lines)
 
 
-def _concrete_context(devices, meta):
-    """Real identifiers the generated test should use literally, instead of
-    placeholders (issue #9): base URL, org ID, and each referenced device's network
-    ID + serial. Values come from the user's verified Meraki data / @device mentions."""
+def _concrete_context(meta):
+    """Runtime identifiers the generated test must read from the environment, plus the
+    concrete constants it may hardcode (issue #9).
+
+    The org ID, network ID, and API key are supplied through environment variables set
+    by the runner — the network id is a *fresh* network provisioned per run, so it can't
+    be a literal, and the org id follows the same channel for consistency. Only the base
+    URL (stable) and @-mentioned device serials are baked in as literals."""
     meta = meta or {}
-    lines = ["Concrete values — use these literally, do not invent placeholders:"]
-    lines.append(f"- base URL: {meta.get('base_url') or config.MERAKI_BASE_URL}")
-    if meta.get("org_id"):
-        lines.append(f"- organization ID: {meta['org_id']}")
-    net_ids = []
-    for d in devices or []:
-        if isinstance(d, dict) and d.get("networkId") and d["networkId"] not in net_ids:
-            net_ids.append(d["networkId"])
-    for nid in net_ids:
-        lines.append(f"- network ID: {nid}")
-    lines.append("- API key: read from the MERAKI_API_KEY environment variable")
-    return "\n".join(lines)
+    return "\n".join([
+        "Runtime values are provided via environment variables — read them from the "
+        "environment (do NOT hardcode them, do NOT list/search/filter to discover them):",
+        "- MERAKI_API_KEY: the API key",
+        "- MERAKI_ORG_ID: the organization ID",
+        "- MERAKI_NETWORK_ID: the network ID (a fresh network provisioned for this run)",
+        f"- base URL (a stable constant you may hardcode): {meta.get('base_url') or config.MERAKI_BASE_URL}",
+    ])
 
 
 def _full_prompt(prompt, devices, meta):
@@ -86,7 +118,7 @@ def _full_prompt(prompt, devices, meta):
     ctx = _device_context(devices)
     if ctx:
         parts.append(ctx)
-    parts.append(_concrete_context(devices, meta))
+    parts.append(_concrete_context(meta))
     return "\n\n".join(parts)
 
 
@@ -196,6 +228,7 @@ def view_model_from_version(version, test_id, name, version_count):
 
 # Graph node -> the status line the user sees while that stage runs (live generation).
 STAGE_LABELS = {
+    "repair_context": "Re-reading the endpoints this test was grounded in…",
     "generate_queries": "Expanding your prompt into search queries…",
     "retrieve": "Searching the API spec…",
     "rerank": "Ranking the most relevant endpoints…",
@@ -209,7 +242,39 @@ STAGE_LABELS = {
 }
 
 
-def stream_events(prompt, devices, language="py", meta=None, overrides=None):
+_MAX_OUTPUT_CHARS = 6000   # a failing run's log can be huge; keep the tail (where the error is)
+
+
+def repair_context(test, run, logs):
+    """Turn a failed run into the evidence a repair pass needs: the code that ran, how it
+    failed, and what it printed.
+
+    ``stage`` is the honest part. Log lines are tagged by stage, so if nothing came from
+    the container ("run") the failure was in provisioning/teardown and the code never
+    executed — the prompt says so, and the model is told to leave correct code alone
+    rather than invent a fix for a Docker outage."""
+    lines = [l for l in (logs or []) if l.get("message")]
+    ran = any(l.get("stage") == "run" for l in lines)
+    # infra failures bury the cause in provision/teardown noise; a real test failure is
+    # all in the container's own output, so prefer that when we have it
+    relevant = [l for l in lines if l.get("stage") == "run"] if ran else lines
+    output = "\n".join(f"[{l.get('stage')}] {l['message']}" if not ran else l["message"]
+                       for l in relevant)
+    if len(output) > _MAX_OUTPUT_CHARS:
+        output = "…(earlier output trimmed)…\n" + output[-_MAX_OUTPUT_CHARS:]
+    err = (run or {}).get("error_message") or ""
+    if err and err not in output:
+        output = (output + "\n" + err).strip()
+    return {
+        "code": test.get("code") or "",
+        "status": (run or {}).get("status") or "failed",
+        "stage": "run" if ran else "provision",
+        "output": output or "(no output captured)",
+    }
+
+
+def stream_events(prompt, devices, language="py", meta=None, overrides=None,
+                  repair=None, endpoints=None):
     """Yield streaming events for the SSE endpoint:
 
         {"type": "stage", "node": ..., "label": ...}   -- progress
@@ -222,7 +287,8 @@ def stream_events(prompt, devices, language="py", meta=None, overrides=None):
     """
     prompt = (prompt or "").strip()
     log = _GenLog()
-    log.add("start", f"prompt={prompt!r}, devices={len(devices or [])}")
+    log.add("start", f"prompt={prompt!r}, devices={len(devices or [])}"
+            + (f", repairing a {repair['status']} run" if repair else ""))
 
     pipeline, error = get_pipeline(overrides)
     if error is not None:
@@ -232,7 +298,9 @@ def stream_events(prompt, devices, language="py", meta=None, overrides=None):
 
     final = {}
     try:
-        for kind, payload in pipeline.stream_run(_full_prompt(prompt, devices, meta), language=language):
+        for kind, payload in pipeline.stream_run(_full_prompt(prompt, devices, meta),
+                                                 language=language, repair=repair,
+                                                 endpoints=endpoints):
             if kind == "stage":
                 log.add(payload, STAGE_LABELS.get(payload, payload))  # pipeline dedups the generate stage
                 label = STAGE_LABELS.get(payload)
@@ -257,8 +325,18 @@ def stream_events(prompt, devices, language="py", meta=None, overrides=None):
             if code else "no code generated (retriever found nothing to ground)",
             "info" if code else "error")
 
+    # A repair skips the hardware node entirely, so there's nothing to pin: the caller
+    # keeps the test's existing rows. Re-deciding would discard the devices the user
+    # pinned in the Config tab, which a code fix has no business touching.
+    hardware = [] if repair else pin_mentioned_hardware(final.get("hardware"), devices)
+    if repair:
+        log.add("hardware", "hardware unchanged (repair edits the code, not the run config)")
+    else:
+        log.add("hardware", "hardware: " + (", ".join(
+            f"{h.get('model') or h.get('type')} {h.get('serial')}".strip() if h.get("serial")
+            else f"{h.get('count')}x {h.get('type')}" for h in hardware) or "(none)"))
     vm = _workspace_vm(prompt, code, _filename(prompt, endpoints, language), endpoints,
-                       language, final.get("validation"), final.get("hardware"))
+                       language, final.get("validation"), hardware)
     vm["_log"] = log.entries
     # Prerequisite endpoints the test calls to set up (upstream producers from the
     # dependency graph). Not part of the workspace view — carried for the coverage

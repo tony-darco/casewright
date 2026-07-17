@@ -8,6 +8,11 @@
             hx-post="/settings/meraki/orgs/{{ org.id }}/networks/refresh"
             hx-target="closest .org-card" hx-swap="outerHTML"
             hx-disabled-elt="this">Refresh networks</button>
+    <button class="btn btn-ghost removeorg-btn" type="button" title="Disconnect from casewright"
+            hx-delete="/settings/meraki/orgs/{{ org.id }}"
+            hx-target="closest .org-card" hx-swap="delete"
+            hx-confirm="Disconnect {{ org.name }} from casewright? This only forgets it here — nothing is deleted in Meraki."
+            hx-disabled-elt="this">Remove</button>
     <span class="stat-pill"><span class="g">{% if org.status == 'operational' %}&#10003;{% else %}&#10007;{% endif %}</span>{{ org.status }}</span>
   </div>
   <div class="org-meta"><span>region <b>{{ org.region }}</b></span><span>host <b>{{ org.hostname }}</b></span></div>

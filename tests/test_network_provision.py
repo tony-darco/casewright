@@ -80,3 +80,73 @@ def test_teardown_is_best_effort():
          mock.patch.object(np.meraki, "delete_network") as delete:
         np.teardown("O1", "L_new", [{"serial": "Q2-A"}], "key")
     delete.assert_called_once_with("L_new", "key")
+
+
+# --- hardware pinned to a specific device -----------------------------------------
+# A hardware row can name one real device by serial (from the prompt's @-mentions, or
+# picked in the Config tab). That serial is baked into the generated code, so claiming
+# a different device of the same type would silently run an MR42's test on an MR16.
+
+def _pin(serial, model, name=""):
+    return {"type": np.hardware_type_for_model(model), "count": 1, "serial": serial,
+            "model": model, "name": name, "reason": "referenced in the prompt"}
+
+
+def test_pinned_device_is_claimed_by_serial_not_by_type():
+    inv = _inventory(_dev("Q2-MR16", "MR16", "wireless"), _dev("Q2-MR42", "MR42", "wireless"))
+    with mock.patch.object(np.meraki, "create_network", return_value={"id": "L_new", "orgId": "O1", "name": "run-1"}), \
+         mock.patch.object(np.meraki, "list_org_inventory", return_value=inv), \
+         mock.patch.object(np.meraki, "claim_device") as claim:
+        res = np.provision(1, "12345678", "O1", [_pin("Q2-MR42", "MR42", "AP2")],
+                           "example", "L_example", "key")
+    # the MR16 sorts first: type-matching alone would have claimed the wrong AP
+    claim.assert_called_once_with("L_new", ["Q2-MR42"], "key")
+    assert res.claimed_devices == [{"serial": "Q2-MR42", "model": "MR42", "hardwareType": "wireless"}]
+
+
+def test_pinned_and_generic_rows_claim_distinct_devices():
+    """A pinned MR42 plus 'any wireless AP' must claim two different devices."""
+    inv = _inventory(_dev("Q2-MR16", "MR16", "wireless"), _dev("Q2-MR42", "MR42", "wireless"))
+    with mock.patch.object(np.meraki, "create_network", return_value={"id": "L_new", "orgId": "O1", "name": "run-1"}), \
+         mock.patch.object(np.meraki, "list_org_inventory", return_value=inv), \
+         mock.patch.object(np.meraki, "claim_device"):
+        res = np.provision(1, "12345678", "O1",
+                           [_pin("Q2-MR42", "MR42"), {"type": "wireless", "count": 1}],
+                           "example", "L_example", "key")
+    assert [d["serial"] for d in res.claimed_devices] == ["Q2-MR42", "Q2-MR16"]
+
+
+def test_pinned_device_not_unclaimed_errors_and_tears_down():
+    """The reported case: the named AP sits in a network, so it isn't claimable. That
+    must fail loudly rather than quietly substituting a different AP."""
+    inv = _inventory(_dev("Q2-MR16", "MR16", "wireless"))   # the MR42 is not unclaimed
+    with mock.patch.object(np.meraki, "create_network", return_value={"id": "L_new", "orgId": "O1", "name": "run-1"}), \
+         mock.patch.object(np.meraki, "list_org_inventory", return_value=inv), \
+         mock.patch.object(np.meraki, "claim_device"), \
+         mock.patch.object(np.meraki, "delete_network") as delete:
+        with pytest.raises(ProvisionError) as exc:
+            np.provision(1, "12345678", "O1", [_pin("Q2-MR42", "MR42", "AP2")],
+                         "example", "L_example", "key")
+    assert "AP2" in str(exc.value) and "Q2-MR42" in str(exc.value)
+    delete.assert_called_once_with("L_new", "key")
+
+
+def test_network_product_types_follow_a_pinned_devices_model():
+    """A network only holds devices whose product type it was created with, so a pinned
+    AP must force a wireless network even though the row declares no generic type."""
+    inv = _inventory(_dev("Q2-MR42", "MR42", "wireless"))
+    with mock.patch.object(np.meraki, "create_network", return_value={"id": "L_new", "orgId": "O1", "name": "run-1"}) as create, \
+         mock.patch.object(np.meraki, "list_org_inventory", return_value=inv), \
+         mock.patch.object(np.meraki, "claim_device"):
+        np.provision(1, "12345678", "O1", [_pin("Q2-MR42", "MR42")], "example", "L_example", "key")
+    assert create.call_args[0][2] == ["wireless"]
+
+
+def test_hardware_type_for_model():
+    assert np.hardware_type_for_model("MR16") == "wireless"
+    assert np.hardware_type_for_model("CW9164") == "wireless"
+    assert np.hardware_type_for_model("MX75") == "security_appliance"
+    assert np.hardware_type_for_model("Z4C") == "security_appliance"
+    assert np.hardware_type_for_model("MV12N") == "camera"
+    assert np.hardware_type_for_model("MS220-8P") == ""   # switches aren't a run type
+    assert np.hardware_type_for_model("") == ""

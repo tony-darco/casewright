@@ -1,21 +1,47 @@
-{# Run status + live log pane (Run feature). Rendered inside the Test Configuration
-   tab: standalone after POST /app/tests/{id}/run, and on load for the latest run.
-   When the run is non-terminal, data-run-stream drives the SSE log attach (app.js). #}
+{# Run terminal (Run feature). Rendered inside the Test Configuration tab: standalone
+   after POST /app/tests/{id}/run, and on load for the latest run.
+
+   One pane shows the whole run: the provision/teardown chatter (dimmed, tagged by
+   stage) around the container's own stdout (stage "run" — the actual test output).
+   While the run is non-terminal, data-run-stream drives the SSE attach in app.js and
+   data-live paints the blinking cursor; new lines must match the markup below. #}
 {% set terminal = run and run.status in ('success', 'error', 'failed') %}
 {% if run_error %}
 <div class="run-status">
   <div class="gen-error"><b>&#10007;</b> {{ run_error }}</div>
 </div>
 {% elif run %}
-<div class="run-status" data-run-id="{{ run.id }}" data-test-id="{{ run.test_id }}"
+<div class="run-status run-term" data-run-id="{{ run.id }}" data-test-id="{{ run.test_id }}"
      {% if not terminal %}data-run-stream="/app/tests/{{ run.test_id }}/runs/{{ run.id }}/stream"{% endif %}>
-  <div class="run-badge run-{{ run.status }}">
-    <span class="run-code mono">#{{ run.run_code }}</span>
-    <span class="run-state">{{ run.status }}</span>
+  <div class="term-bar">
+    <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="term-title mono">run #{{ run.run_code }}</span>
+    <span class="term-state mono run-{{ run.status }}">{{ run.status }}</span>
   </div>
-  {% if run.error_message %}<div class="gen-error"><b>&#10007;</b> {{ run.error_message }}</div>{% endif %}
-  <pre class="run-log" id="runLog">{% for e in logs or [] %}[{{ e.stage }}] {{ e.message }}
-{% endfor %}</pre>
+  <div class="term-body" id="runLog" role="log" aria-live="polite"
+       {% if not terminal %}data-live="1"{% endif %}>
+    {%- for e in logs or [] %}
+    <div class="tl{% if e.level == 'error' %} tl-err{% endif %}" data-stage="{{ e.stage }}"><span class="tl-s">{{ e.stage }}</span><span class="tl-m">{{ e.message }}</span></div>
+    {%- endfor %}
+  </div>
+  {% if terminal %}
+  <div class="term-foot{% if run.status != 'success' %} term-foot-err{% endif %}">
+    <span class="term-foot-msg">
+      {%- if run.status == 'success' %}<b>&#10003;</b> The test passed.
+      {%- elif run.status == 'failed' %}<b>&#10007;</b> The test ran and failed — see the output above.
+      {%- else %}<b>&#10007;</b> {{ run.error_message or 'The run could not complete.' }}
+      {%- endif %}
+    </span>
+    {# Send the failure back through the pipeline: prompt + the endpoints this test was
+       grounded in + the code + this output, and ask the model to fix it. Lands as a new
+       version, so the current code stays reachable if the fix is worse. #}
+    {% if run.status in ('failed', 'error') %}
+    <button class="term-fix" type="button" id="repairBtn" data-test-id="{{ run.test_id }}"
+            title="Send the code and this output back to the model to fix">
+      <span class="rico">&#8635;</span> Fix with this output</button>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
 {% else %}
 <div class="run-status">

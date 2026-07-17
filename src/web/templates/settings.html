@@ -48,8 +48,10 @@
         <div class="set-head">
           <span class="eyebrow">Meraki integration</span>
           <h1>Organizations &amp; networks</h1>
-          <p>Connect Meraki organizations and networks. Once a network is verified, its devices become
-            available to reference in a test with <span class="mono">@device-name</span>.</p>
+          <p>Connect Meraki organizations and networks. Hardware in an org's <b>unclaimed
+            inventory</b> can be referenced in a test with <span class="mono">@device-name</span> —
+            a run claims that exact device into its own ephemeral network, so a device already
+            assigned to a network isn't offered.</p>
         </div>
         {# API key (secret): stored server-side, write-only, never returned to the browser. #}
         <div class="org-head">

@@ -26,14 +26,12 @@
     <div class="topbar">
       <button class="menu" id="menuBtn" aria-label="Toggle sidebar">&#9776;</button>
       <div class="title" id="topTitle">New test</div>
-      <button class="ctxbtn" id="ctxBtn" aria-haspopup="true" aria-expanded="false">Devices: <b id="ctxLabel">none</b> <span class="car">&#9662;</span></button>
       <a class="icobtn settings-btn" href="/settings" title="Settings" aria-label="Settings">&#9881;</a>
       <div class="userbox">
         <span class="who" title="{{ request.state.user.username }}">{{ request.state.user.username }}</span>
         <form method="post" action="/logout" style="display:inline"><button class="logout" type="submit">Log out</button></form>
       </div>
     </div>
-    <div class="ctxmenu" id="ctxMenu"></div>
     <div class="mentionmenu" id="mentionMenu"></div>
 
     <div class="stage">
@@ -55,11 +53,10 @@
           {# Workspace target — the generation stream (#11) swaps partials/workspace.html here #}
           <div id="workspace"></div>
         </div>
+        {# Language belongs to composing: the hero composer picks it for a new test and
+           the Prompt tab's regenLang changes it for an existing one. The dock had its own
+           picker left over from the composer removed in cf461c9 — it read nothing. #}
         <div class="dock">
-
-          <div class="composer-opts">
-            <label class="lang-field">Language {{ ui.lang_select('dockLang') }}</label>
-          </div>
           <div class="hint2">{{ WORDMARK }} can be wrong — generated tests are for review, run in a sandbox</div>
         </div>
       </div>

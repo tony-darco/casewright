@@ -9,9 +9,11 @@ from web.services.runners import base, registry
 from web.services.runners.inject import inject_run_values
 
 
-# --- inject ------------------------------------------------------------------
+# --- inject (serials always; network id only as a legacy-literal fallback) -----------
 
-def test_inject_replaces_network_id_and_serials():
+def test_inject_swaps_legacy_network_literal_and_serials():
+    """A legacy test baked a network id in; the swap keeps its writes on the ephemeral
+    network. New code has no literal and instead reads MERAKI_NETWORK_ID from the env."""
     code = 'NET = "L_old_1"\nSERIAL = "Q2AA-BBBB-CCCC"\n'
     gen_meta = {"network_ids": ["L_old_1"]}
     orig = [{"serial": "Q2AA-BBBB-CCCC", "model": "MR33"}]
