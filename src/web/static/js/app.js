@@ -354,6 +354,20 @@
     }
     var hwRemove = e.target.closest('.pt-hw-remove');
     if (hwRemove) { var row = hwRemove.closest('.pt-hw-row'); if (row) row.remove(); return; }
+    // Test Configuration: delete the test behind an inline confirm
+    if (e.target.closest('#ptDeleteBtn')) {
+      var dc = workspace.querySelector('#ptDeleteConfirm'), db = workspace.querySelector('#ptDeleteBtn');
+      if (dc) dc.hidden = false; if (db) db.hidden = true; return;
+    }
+    if (e.target.closest('#ptDeleteNo')) {
+      var dc2 = workspace.querySelector('#ptDeleteConfirm'), db2 = workspace.querySelector('#ptDeleteBtn');
+      if (dc2) dc2.hidden = true; if (db2) db2.hidden = false; return;
+    }
+    if (e.target.closest('#ptDeleteYes')) {
+      var wrap = e.target.closest('.pt-del'); var pid = wrap && wrap.dataset.testId;
+      if (pid) deleteTest(pid);
+      return;
+    }
     if (e.target.closest('#regenBtn')) { regenerate(); return; }
     if (e.target.closest('#promptStartOver')) { document.getElementById('newBtn').click(); return; }
     var vnav = e.target.closest('[data-ver-nav]'), vlatest = e.target.closest('[data-ver-latest]');
@@ -447,8 +461,27 @@
     document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
     topTitle.textContent = 'New test'; clearComposer(heroInput); heroSend.disabled = true; heroInput.focus();
   });
+  // Delete a test (from the sidebar × or the Test Configuration button), then tidy the
+  // UI: drop its sidebar item, reset the workspace if it was open, restore the empty
+  // hint when the last test goes. Versions/runs/logs are cascaded server-side.
+  function deleteTest(id) {
+    return fetch('/app/tests/' + id, { method: 'DELETE' }).then(function (r) {
+      if (!r.ok && r.status !== 404) return false;   // server refused: leave the UI intact
+      var it = document.getElementById('test-' + id); if (it) it.remove();
+      if (viewing() === String(id)) document.getElementById('newBtn').click();
+      var list = document.getElementById('testList');
+      if (list && !list.querySelector('.ritem')) { var le = document.getElementById('libEmpty'); if (le) le.hidden = false; }
+      return true;
+    }).catch(function () { return false; });
+  }
   // library items are added at runtime — delegate so clicks work as they appear
   document.getElementById('recents').addEventListener('click', function (e) {
+    var del = e.target.closest('.ritem-del');
+    if (del) {
+      var rit = del.closest('.ritem'); var did = rit && rit.dataset.testId;
+      if (did && confirm('Delete this test? Its code, versions, and run history will be permanently removed.')) deleteTest(did);
+      return;
+    }
     var rename = e.target.closest('.ritem-rename');
     if (rename) {
       var it = rename.closest('.ritem'); it.classList.add('editing');
