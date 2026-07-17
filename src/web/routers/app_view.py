@@ -187,8 +187,15 @@ def app_generate_start(
     """Kick off a generation in the background and return the (generating) test id plus
     its sidebar item. ``regen_of`` regenerates into an existing test as a new version
     (#12); otherwise a fresh test is created. The client then attaches to the stream."""
-    dev = generate.parse_devices(devices)
     uid = user["id"]
+    dev = generate.parse_devices(devices)
+    # Resolve plain-text @-mentions the composer didn't send as chips (e.g. a bare
+    # "@MR42"): look them up in the org's claimable inventory so the test gets a real
+    # serial instead of the model name. Best-effort — skip if inventory is unavailable.
+    if generate.has_unresolved_mentions(prompt, dev):
+        inventory, _ = _claimable_devices(uid)
+        dev = generate.resolve_prompt_mentions(prompt, dev, inventory)
+        devices = json.dumps(dev)   # persist the resolved set (regenerate/repair reuse it)
     name = _default_name(prompt)
     meta = _gen_meta(uid, dev)
     prov = provider_store.overrides(uid)

@@ -45,6 +45,51 @@ def parse_devices(raw):
     return data if isinstance(data, list) else []
 
 
+# An @-mention token in the prompt: '@' then a name/serial/model-ish run.
+_MENTION_RE = re.compile(r"@([A-Za-z0-9][\w.-]*)")
+
+
+def has_unresolved_mentions(prompt, devices):
+    """True if the prompt @-mentions something the composer did NOT send as a device
+    (a plain-text '@MR42' that never became a chip). Used to avoid an inventory lookup
+    when every mention already arrived as a resolved device."""
+    if not prompt or "@" not in prompt:
+        return False
+    have = {(d.get("name") or "").upper() for d in devices or [] if isinstance(d, dict)}
+    return any(m.group(1).upper() not in have for m in _MENTION_RE.finditer(prompt))
+
+
+def resolve_prompt_mentions(prompt, devices, inventory):
+    """Attach real devices for @-mentions the composer sent as plain text, so a bare
+    '@MR42' still resolves to a concrete serial instead of leaving the model to guess
+    one (which it does badly — using the model name as the serial).
+
+    A mention token is matched against each inventory device's name, serial, or model
+    (case-insensitive). Only a UNIQUE match is added, and only if it isn't already among
+    ``devices``; an ambiguous token (e.g. a model shared by several devices) is left
+    alone, since we can't know which one the user meant."""
+    devices = list(devices or [])
+    if not prompt or "@" not in prompt or not inventory:
+        return devices
+    have_serials = {(d.get("serial") or "").upper() for d in devices if isinstance(d, dict)}
+    have_names = {(d.get("name") or "").upper() for d in devices if isinstance(d, dict)}
+    for token in dict.fromkeys(m.group(1) for m in _MENTION_RE.finditer(prompt)):
+        tu = token.upper()
+        if tu in have_names:
+            continue
+        matches = [d for d in inventory if tu in {
+            (d.get("name") or "").upper(), (d.get("serial") or "").upper(),
+            (d.get("model") or "").upper()}]
+        serials = {(d.get("serial") or "").upper() for d in matches}
+        if len(serials) == 1 and next(iter(serials)) not in have_serials:
+            d = matches[0]
+            devices.append({"name": d.get("name") or token, "serial": d.get("serial", ""),
+                            "mac": d.get("mac", ""), "model": d.get("model", ""),
+                            "orgId": d.get("orgId", "")})
+            have_serials.add((d.get("serial") or "").upper())
+    return devices
+
+
 def pin_mentioned_hardware(hardware, devices):
     """Fold the prompt's @-mentioned devices into the model's hardware requirements,
     as one row per device.

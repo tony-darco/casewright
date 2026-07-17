@@ -19,15 +19,17 @@ RERANK_SYSTEM = (
 )
 
 GRADE_SYSTEM = (
-    "You decide, strictly, whether each candidate API endpoint is one the user "
-    "actually needs to perform the requested action — its HTTP method and resource "
-    "must directly match the operation the request describes. Mark true ONLY for "
-    "such a direct match. Mark false for endpoints that are merely topically "
-    "related — a different resource, a different action, or the same HTTP method on "
-    "an unrelated path — even if they look similar. When in doubt, mark false. Do "
-    "not include prerequisite/parameter-supplying endpoints here; those are added "
-    "separately from the dependency graph. Return one boolean per candidate, in the "
-    "same order as given."
+    "You decide which candidate API endpoints a test for the user's request should "
+    "exercise. First judge the request's SCOPE. If it names ONE specific operation, be "
+    "strict: mark true only for the endpoint(s) whose HTTP method and resource directly "
+    "perform that operation, and false for anything merely topically related — a "
+    "different resource, a different action, or the same method on an unrelated path. "
+    "If instead it asks for a BROAD, comprehensive, multi-endpoint, or integration test "
+    "over a resource area — or to 'test everything about X' — mark true for every "
+    "candidate that belongs to that area so the test can span them, and false only for "
+    "candidates outside it. Do not include prerequisite/parameter-supplying endpoints "
+    "here; those are added separately from the dependency graph. Return one boolean per "
+    "candidate, in the same order as given."
 )
 
 REWRITE_SYSTEM = (
