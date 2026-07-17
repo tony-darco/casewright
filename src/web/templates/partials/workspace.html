@@ -12,6 +12,7 @@
       <button class="tab active" data-tab="code" type="button">Code
         {% if file_name %}<span class="ph-file mono">{{ file_name }}</span>{% endif %}</button>
       <button class="tab" data-tab="config" type="button">Test Configuration</button>
+      <button class="tab" data-tab="output" type="button">Output</button>
     </div>
     <div class="head-right">
       {% if not error and not empty %}
@@ -23,9 +24,13 @@
         </div>
       </div>
       {% endif %}
+      {# "Re-run" once this test has a run behind it — every render path here goes through
+         _run_context, so `run` is the latest run (or None). app.js flips the label when a
+         run starts, since only #ptRunResult re-renders after that, not this button. #}
       {% if not error and not empty and t %}
-      <button class="runbtn" type="button" id="runBtn" title="Configure and run this test">
-        <span class="tri">&#9654;</span> Run</button>
+      <button class="runbtn" type="button" id="runBtn"
+              title="{% if run %}Run this test again{% else %}Run this test{% endif %}">
+        <span class="tri">&#9654;</span> <span class="runbtn-label">{{ 'Re-run' if run else 'Run' }}</span></button>
       {% endif %}
     </div>
   </div>
@@ -42,7 +47,9 @@
   <div class="panel-body">
     <div class="pane" id="panePrompt">
       <div class="prompt-pane">
-        <label class="prompt-label" for="promptEdit">Your prompt</label>
+        <label class="prompt-label" for="promptEdit">Your prompt
+          {% if version_count and version_count > 1 %}<span class="prompt-ver">version {{ version_no }}{% if is_latest %} · latest{% else %} of {{ version_count }}{% endif %}</span>{% endif %}
+        </label>
         <textarea class="prompt-edit" id="promptEdit" spellcheck="false"{% if readonly %} readonly{% endif %}
           placeholder="Describe a test — an endpoint, a feature, an edge case…">{{ prompt }}</textarea>
         <div class="prompt-actions">
@@ -79,6 +86,18 @@
         <div class="out-empty"><span class="big">&#9654;</span> Generate a test first to configure and run it.</div>
       {% else %}
         {% include "partials/per_test.html" %}
+      {% endif %}
+    </div>
+    {# Output: the run terminal. Lives here rather than in the Config tab so the
+       provision/run stream has a home of its own; the Run form (Config) targets
+       #ptRunResult below, which app.js reveals by switching to this tab. #}
+    <div class="pane" id="paneOutput">
+      {% if error or empty or not t %}
+        <div class="out-empty"><span class="big">&#9654;</span> Generate a test first to run it.</div>
+      {% else %}
+        <div class="output-pane" id="ptRunResult">
+          {% include "partials/run_output.html" %}
+        </div>
       {% endif %}
     </div>
   </div>

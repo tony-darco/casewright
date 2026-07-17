@@ -2,22 +2,34 @@
    action, live logs, and run status. Rendered inside workspace.html's #paneConfig. #}
 <div class="pertest" data-test-id="{{ t.id if t else '' }}">
 
+  {# One row = one device a run claims: either pinned to a real device ("serial:Q2DD-…")
+     or generic ("type:wireless", any device of that type). Devices @-mentioned in the
+     prompt arrive pre-pinned. ``claimable`` is the org's unclaimed inventory — the only
+     hardware a run can take. #}
   <section class="pt-section">
     <h4>Hardware</h4>
-    <p class="gen-note">Physical Meraki devices a run claims for this test. The model
-      suggests these; edit as needed.</p>
+    <p class="gen-note">One device per row. Devices you named in the prompt are pinned to that
+      exact device; otherwise the model suggests a type. Add a row for each extra device.
+      Only unclaimed inventory can be claimed — a device already in a network won't appear.</p>
+    {% if claimable_error %}<div class="gen-note">&#9888; {{ claimable_error }}</div>{% endif %}
     <form class="pt-hardware" id="ptHardwareForm"
           hx-post="/app/tests/{{ t.id if t else '' }}/hardware"
           hx-target="#ptHardwareStatus" hx-swap="innerHTML">
       <div class="pt-hw-rows" id="ptHwRows">
         {% for h in hardware or [] %}
         <div class="pt-hw-row">
-          <select class="set-input" name="hwType" aria-label="Hardware type">
-            <option value="wireless"{% if h.type == 'wireless' %} selected{% endif %}>Wireless AP</option>
-            <option value="security_appliance"{% if h.type == 'security_appliance' %} selected{% endif %}>Security appliance</option>
-            <option value="camera"{% if h.type == 'camera' %} selected{% endif %}>Camera</option>
+          <select class="set-input pt-hw-device" name="hwDevice" aria-label="Hardware">
+            <option value="type:wireless"{% if not h.serial and h.type == 'wireless' %} selected{% endif %}>Any wireless AP</option>
+            <option value="type:security_appliance"{% if not h.serial and h.type == 'security_appliance' %} selected{% endif %}>Any security appliance</option>
+            <option value="type:camera"{% if not h.serial and h.type == 'camera' %} selected{% endif %}>Any camera</option>
+            {% for d in claimable or [] %}
+              <option value="serial:{{ d.serial }}"{% if h.serial == d.serial %} selected{% endif %}>{{ d.label }}</option>
+            {% endfor %}
+            {# a pinned device that's no longer claimable must still show, not vanish #}
+            {% if h.serial and not (claimable or []) | selectattr('serial', 'equalto', h.serial) | list %}
+              <option value="serial:{{ h.serial }}" selected>{{ h.model }} · {{ h.serial }} — unavailable</option>
+            {% endif %}
           </select>
-          <input class="set-input" type="number" name="hwCount" min="1" max="4" value="{{ h.count or 1 }}" aria-label="Count">
           <button class="btn btn-ghost pt-hw-remove" type="button" aria-label="Remove">&#10005;</button>
         </div>
         {% endfor %}
@@ -31,12 +43,14 @@
     {# template row cloned by JS when adding hardware #}
     <template id="ptHwRowTpl">
       <div class="pt-hw-row">
-        <select class="set-input" name="hwType" aria-label="Hardware type">
-          <option value="wireless">Wireless AP</option>
-          <option value="security_appliance">Security appliance</option>
-          <option value="camera">Camera</option>
+        <select class="set-input pt-hw-device" name="hwDevice" aria-label="Hardware">
+          <option value="type:wireless">Any wireless AP</option>
+          <option value="type:security_appliance">Any security appliance</option>
+          <option value="type:camera">Any camera</option>
+          {% for d in claimable or [] %}
+            <option value="serial:{{ d.serial }}">{{ d.label }}</option>
+          {% endfor %}
         </select>
-        <input class="set-input" type="number" name="hwCount" min="1" max="4" value="1" aria-label="Count">
         <button class="btn btn-ghost pt-hw-remove" type="button" aria-label="Remove">&#10005;</button>
       </div>
     </template>
@@ -44,10 +58,14 @@
 
   <section class="pt-section">
     <h4>Run</h4>
+    {# The form has no submit button of its own — the topbar Run button triggers it, so
+       that's what gets disabled while the request is in flight. #}
     <form class="pt-run" id="ptRunForm"
           hx-post="/app/tests/{{ t.id if t else '' }}/run"
           hx-target="#ptRunResult" hx-swap="innerHTML"
-          hx-disabled-elt="find button[type='submit']">
+          hx-disabled-elt="#runBtn">
+      {# which code version this run executes — the version being viewed (blank = latest) #}
+      <input type="hidden" name="versionNo" value="{{ version_no if version_no is not none else '' }}">
       <fieldset class="pt-source">
         <label class="pt-radio">
           <input type="radio" name="runSource" value="example"
@@ -70,12 +88,10 @@
           Build from scratch <span class="gen-note">(an agent configures a new network)</span>
         </label>
       </fieldset>
-      <div class="pt-run-actions">
-        <button class="btn btn-primary" type="submit"><span class="tri">&#9654;</span> Run test</button>
-      </div>
+      {# No submit button here: the topbar Run button is the single way to start a run
+         (app.js triggers this form's submit), so there's only one place to press. #}
     </form>
-    <div id="ptRunResult">
-      {% include "partials/run_status.html" %}
-    </div>
+    {# The terminal lives in the Output tab (workspace.html #paneOutput). This form's
+       hx-target reaches it by id across panes; app.js switches tabs on submit. #}
   </section>
 </div>

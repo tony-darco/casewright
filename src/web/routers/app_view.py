@@ -83,23 +83,43 @@ def _claimable_devices(user_id: int):
     return devices, "; ".join(errors)
 
 
-def _run_context(user_id: int, test: dict) -> dict:
-    """Run-configuration context for the Test Configuration tab: the account's networks
-    + default, the hardware it can pin to, this test's saved run config, and its most
-    recent run (for status/logs)."""
-    runs = runs_store.list_runs_for_test(user_id, test["id"]) if test else []
-    latest = runs_store.get_run(user_id, runs[0]["id"]) if runs else None
+def output_ctx(user_id: int, run: dict) -> dict:
+    """Output-tab context for one run: the run, its logs, and its code version's
+    output-nav (browse "run i of N" within the version). ``run`` None is the empty
+    state. Shared with the runs router so a fresh run and a re-render match."""
+    if not run:
+        return {"run": None, "logs": [], "version_runs": [], "run_total": 0,
+                "run_index": -1, "prev_run_id": None, "next_run_id": None, "latest_run_id": None}
+    ctx = {"run": run, "logs": run_logs_store.logs_for_run(run["id"])}
+    ctx.update(runs_store.output_nav(user_id, run["test_id"], run["version_no"], run["id"]))
+    return ctx
+
+
+def _run_context(user_id: int, test: dict, version_no: int = None) -> dict:
+    """Run-configuration context for the Test Configuration + Output tabs: the account's
+    networks + default, the hardware it can pin to, this test's saved run config, and —
+    scoped to the code version being viewed — that version's latest run and output-nav.
+
+    ``version_no`` None means the latest version. Each run is tagged with the code
+    version it executed, so browsing an old version shows the outputs produced from it."""
     claimable, claimable_error = _claimable_devices(user_id)
-    return {
+    ctx = {
         "networks": store.verified_networks(user_id),
         "default_network_id": store.get_default_network_id(user_id),
         "claimable": claimable,
         "claimable_error": claimable_error,
         "run_source": test.get("run_source", "example") if test else "example",
         "source_network_id": test.get("source_network_id", "") if test else "",
-        "run": latest,
-        "logs": run_logs_store.logs_for_run(latest["id"]) if latest else [],
     }
+    if not test:
+        ctx.update(output_ctx(user_id, None))
+        return ctx
+    if version_no is None:
+        version_no = max(len(tests_store.list_versions(user_id, test["id"])) - 1, 0)
+    runs = runs_store.version_runs(user_id, test["id"], version_no)
+    latest = runs_store.get_run(user_id, runs[-1]["id"]) if runs else None   # newest of this version
+    ctx.update(output_ctx(user_id, latest))
+    return ctx
 
 
 @router.get("/app", response_class=HTMLResponse)
@@ -332,7 +352,7 @@ def load_version(request: Request, test_id: int, version_no: int, user: dict = D
     test = tests_store.get_test(user["id"], test_id)
     count = len(tests_store.list_versions(user["id"], test_id))
     vm = generate.view_model_from_version(version, test_id, test["name"] if test else "", count)
-    vm.update(_run_context(user["id"], test))
+    vm.update(_run_context(user["id"], test, version_no))
     return templates.TemplateResponse(request, "partials/workspace.html", vm)
 
 

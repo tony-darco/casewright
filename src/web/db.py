@@ -141,6 +141,7 @@ CREATE TABLE IF NOT EXISTS runs (
     test_id              INTEGER NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
     status               TEXT NOT NULL DEFAULT 'queued',   -- queued|provisioning|running|success|error|failed
     source               TEXT NOT NULL DEFAULT 'example',  -- example|scratch
+    version_no           INTEGER NOT NULL DEFAULT 0,        -- the code version this run executed
     example_network_id   TEXT NOT NULL DEFAULT '',
     org_id               TEXT NOT NULL DEFAULT '',
     network_id           TEXT NOT NULL DEFAULT '',         -- the ephemeral network, once provisioned
@@ -239,6 +240,11 @@ def init() -> None:
                           ("dep_endpoints_json", "TEXT NOT NULL DEFAULT '[]'")):
             if name not in test_cols:
                 conn.execute(f"ALTER TABLE tests ADD COLUMN {name} {ddl}")
+        # runs gains the code version it executed (versioned output: each run is an
+        # output tagged to the code version it ran, so the Output tab is version-scoped)
+        run_cols = {row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()}
+        if "version_no" not in run_cols:
+            conn.execute("ALTER TABLE runs ADD COLUMN version_no INTEGER NOT NULL DEFAULT 0")
         # meraki_data gains a default example network for the Run feature
         meraki_cols = {row[1] for row in conn.execute("PRAGMA table_info(meraki_data)").fetchall()}
         if "default_network_id" not in meraki_cols:

@@ -19,25 +19,25 @@
 
   var emptyView = document.getElementById('emptyView');
   var heroInput = document.getElementById('heroInput'), heroSend = document.getElementById('heroSend');
-  var dockInput = document.getElementById('dockInput'), dockSend = document.getElementById('dockSend');
   var workspace = document.getElementById('workspace');
   var topTitle = document.getElementById('topTitle');
 
-  /* ---------------- verified networks (from the server-side store) ---------------- */
-  var NETWORKS = [];                   // [{id, name, orgName, devices:[{name,serial,mac,model,clientId,networkId}]}]
-  var activeNetworkId = null;
-  function loadNetworks() {
-    fetch('/api/networks').then(function (r) { return r.json(); }).then(function (d) {
-      NETWORKS = Array.isArray(d) ? d : []; refreshCtx();
-    }).catch(function () { /* leave empty; picker shows the "add in Settings" state */ });
+  /* ---------------- claimable devices (unclaimed org inventory) ----------------
+     @-mentions offer only hardware a run could actually claim, so a test is never
+     grounded on a device the run can't use. Devices live in org inventory, not in a
+     network, so the list is flat across every connected org. */
+  var DEVICES = [];                    // [{name,serial,mac,model,productType,orgId,orgName,clientId}]
+  var DEVICE_ERROR = '';
+  function loadDevices() {
+    fetch('/api/devices').then(function (r) { return r.json(); }).then(function (d) {
+      DEVICES = (d && d.devices) || [];
+      DEVICE_ERROR = ((d && d.errors) || []).join('; ');
+    }).catch(function (e) {
+      // never silent: an empty picker must not be indistinguishable from a failed fetch
+      DEVICES = []; DEVICE_ERROR = 'Could not load devices (' + e + ').';
+    });
   }
-
-  function allNetworks() { return NETWORKS; }
-  function activeNetwork() {
-    for (var i = 0; i < NETWORKS.length; i++) if (NETWORKS[i].id === activeNetworkId) return NETWORKS[i];
-    return null;
-  }
-  function currentDevices() { var n = activeNetwork(); return n ? (n.devices || []) : []; }
+  function currentDevices() { return DEVICES; }
 
   /* ---------------- generate (real: POST /app/generate) ---------------- */
   function collectDevices(input) {
@@ -49,7 +49,7 @@
         mac: chip.dataset.mac || '',
         model: chip.dataset.model || '',
         clientId: chip.dataset.clientId || '',
-        networkId: chip.dataset.networkId || (activeNetwork() ? activeNetwork().id : '')
+        orgId: chip.dataset.orgId || ''
       };
     });
   }
@@ -117,7 +117,13 @@
       } else if (existing) {
         existing.remove();
       }
-      if (isViewing) { workspace.innerHTML = ev.panel_html; attachRunStreams(workspace); }
+      if (isViewing) {
+        workspace.innerHTML = ev.panel_html;
+        // innerHTML bypasses htmx, so the panel's hx-* (the Run form) needs wiring or
+        // its submit falls back to a native GET of the current URL.
+        if (window.htmx) htmx.process(workspace);
+        attachRunStreams(workspace);
+      }
       delete activeGens[testId];
     }
   }
@@ -190,16 +196,43 @@
     }).catch(streamError);
   }
 
+  // Send a failed run back through the pipeline (prompt + the endpoints it was grounded
+  // in + the code + the run's output) and ask the model to fix it. Streams like any other
+  // generation and lands as a new version, so the current code stays reachable.
+  function repairTest(testId) {
+    app.dataset.view = 'work';
+    app.dataset.viewing = '';
+    workspace.innerHTML = STREAM_SHELL;
+    fetch('/app/tests/' + testId + '/repair/start', { method: 'POST' }).then(function (resp) {
+      if (resp.status === 401) { window.location = '/login'; return null; }
+      return resp.json().then(function (d) { return resp.ok ? d : { _err: d && d.error }; });
+    }).then(function (d) {
+      if (!d) return;
+      if (d._err) {   // e.g. nothing failed to learn from — say so, don't stall on the shell
+        workspace.innerHTML = '<div class="panel"><div class="panel-body"><div class="gen-error">'
+          + '<b>&#10007; Can\'t repair this test.</b><div class="muted">' + esc(d._err) + '</div>'
+          + '</div></div></div>';
+        return;
+      }
+      var existing = document.getElementById('test-' + d.test_id);
+      if (d.item_html && existing) {
+        existing.outerHTML = d.item_html;
+        var el = document.getElementById('test-' + d.test_id);
+        if (window.htmx && el) htmx.process(el);
+      }
+      attachStream(d.test_id, true);
+    }).catch(streamError);
+  }
+
   function langOf(id) { var s = document.getElementById(id); return s ? s.value : null; }
   function fromHero(text, devices) {
     var lang = langOf('heroLang');
     emptyView.classList.add('leaving');
     setTimeout(function () {
       generate(text, devices, lang); emptyView.classList.remove('leaving');
-      clearComposer(heroInput); heroSend.disabled = true; dockInput.focus();
+      clearComposer(heroInput); heroSend.disabled = true;
     }, 200);
   }
-  function fromDock(text, devices) { generate(text, devices, langOf('dockLang')); clearComposer(dockInput); dockSend.disabled = true; }
 
   // Open a test in the workspace. A still-generating test reattaches to its live
   // stream (#11); a finished one loads its saved code.
@@ -220,13 +253,14 @@
   }
 
   /* ---------------- workspace: tabs / export (delegated; survives swaps) ---------------- */
+  var PANES = { prompt: '#panePrompt', code: '#paneCode', config: '#paneConfig', output: '#paneOutput' };
   function switchTab(name) {
     var panel = workspace.querySelector('.panel'); if (!panel) return;
     panel.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('active', t.dataset.tab === name); });
-    var prompt = panel.querySelector('#panePrompt'), code = panel.querySelector('#paneCode'), cfg = panel.querySelector('#paneConfig');
-    if (prompt) prompt.classList.toggle('show', name === 'prompt');
-    if (code) code.classList.toggle('show', name === 'code');
-    if (cfg) cfg.classList.toggle('show', name === 'config');
+    Object.keys(PANES).forEach(function (key) {
+      var pane = panel.querySelector(PANES[key]);
+      if (pane) pane.classList.toggle('show', key === name);
+    });
   }
   // Regenerate from the edited prompt (Prompt tab): reuses the same @device grounding.
   function regenerate() {
@@ -302,7 +336,16 @@
 
   workspace.addEventListener('click', function (e) {
     var tab = e.target.closest('.tab'); if (tab) { switchTab(tab.dataset.tab); return; }
-    if (e.target.closest('#runBtn')) { switchTab('config'); return; }
+    // The topbar Run button starts the run with the test's saved config and shows the
+    // Output tab, where the terminal streams it.
+    if (e.target.closest('#runBtn')) {
+      var runForm = workspace.querySelector('#ptRunForm');
+      if (runForm && window.htmx) htmx.trigger(runForm, 'submit');
+      switchTab(runForm ? 'output' : 'config');
+      return;
+    }
+    var fix = e.target.closest('#repairBtn');
+    if (fix) { fix.disabled = true; repairTest(fix.dataset.testId); return; }
     // Test Configuration: add/remove hardware rows
     if (e.target.closest('#ptHwAdd')) {
       var rows = workspace.querySelector('#ptHwRows'), tpl = workspace.querySelector('#ptHwRowTpl');
@@ -342,26 +385,41 @@
   });
 
   /* ---------------- run stream (Run feature): live logs + status over SSE ---------------- */
+  // Must mirror partials/run_status.html exactly: replayed lines are server-rendered and
+  // live ones are built here, so they have to be indistinguishable.
+  function termLine(stage, message, level) {
+    var line = document.createElement('div');
+    line.className = 'tl' + (level === 'error' ? ' tl-err' : '');
+    line.dataset.stage = stage || '';
+    var s = document.createElement('span'); s.className = 'tl-s'; s.textContent = stage || '';
+    var m = document.createElement('span'); m.className = 'tl-m'; m.textContent = message || '';
+    line.appendChild(s); line.appendChild(m);
+    return line;
+  }
   function attachRunStreams(root) {
     var boxes = (root || workspace).querySelectorAll('.run-status[data-run-stream]');
     boxes.forEach(function (box) {
       if (box.dataset.attached === '1') return;   // already streaming
       box.dataset.attached = '1';
       var es = new EventSource(box.dataset.runStream);
-      var log = box.querySelector('#runLog'), badge = box.querySelector('.run-badge'),
-          state = box.querySelector('.run-state');
+      var log = box.querySelector('#runLog'), state = box.querySelector('.term-state');
       es.onmessage = function (e) {
         var ev; try { ev = JSON.parse(e.data); } catch (_) { return; }
         if (ev.type === 'log') {
-          if (log) { log.textContent += '[' + ev.stage + '] ' + ev.message + '\n'; log.scrollTop = log.scrollHeight; }
+          if (log) {
+            var atBottom = (log.scrollHeight - log.scrollTop - log.clientHeight) <= 24;  // don't yank a scrolled-up reader
+            log.appendChild(termLine(ev.stage, ev.message, ev.level));
+            if (atBottom) log.scrollTop = log.scrollHeight;
+          }
         } else if (ev.type === 'status') {
-          if (state) state.textContent = ev.status;
-          if (badge) badge.className = 'run-badge run-' + ev.status;
+          if (state) { state.textContent = ev.status; state.className = 'term-state mono run-' + ev.status; }
         } else if (ev.type === 'done') {
           es.close();
-          // re-render the final terminal state (status + any error) cleanly from the server
+          if (log) delete log.dataset.live;   // stop the cursor even if the re-render is slow
+          // re-render the whole Output pane (version output-nav + status + footer) cleanly
+          // from the server, so the nav's "run i of N" reflects this now-finished run.
           if (window.htmx) htmx.ajax('GET', '/app/tests/' + box.dataset.testId + '/runs/' + box.dataset.runId,
-                                     { target: box, swap: 'outerHTML' });
+                                     { target: '#ptRunResult', swap: 'innerHTML' });
         }
       };
       es.onerror = function () { es.close(); };
@@ -369,6 +427,18 @@
   }
   document.body.addEventListener('htmx:afterSwap', function (e) {
     if (e.target && e.target.querySelector) attachRunStreams(e.target);
+  });
+  // Starting a run: show the Output tab, where the terminal is, and flip Run -> Re-run.
+  // Only #ptRunResult re-renders from here on, so the button's own label is ours to keep
+  // honest until the next full panel render.
+  document.body.addEventListener('htmx:beforeRequest', function (e) {
+    var form = e.detail.elt && e.detail.elt.closest && e.detail.elt.closest('#ptRunForm');
+    if (!form) return;
+    switchTab('output');
+    var label = workspace.querySelector('#runBtn .runbtn-label');
+    if (label) label.textContent = 'Re-run';
+    var btn = workspace.querySelector('#runBtn');
+    if (btn) btn.title = 'Run this test again';
   });
 
   /* ---------------- sidebar / new test ---------------- */
@@ -397,40 +467,11 @@
   });
   document.getElementById('backdrop').addEventListener('click', function () { app.dataset.nav = 'closed'; });
 
-  /* ---------------- device context selector (topbar) ---------------- */
-  var ctxBtn = document.getElementById('ctxBtn'), ctxMenu = document.getElementById('ctxMenu'), ctxLabel = document.getElementById('ctxLabel');
   function positionMenu(menu, anchor) {
     var r = anchor.getBoundingClientRect();
     menu.style.top = (r.bottom + 6) + 'px';
     menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
   }
-  function refreshCtx() {
-    var nets = allNetworks();
-    if (!activeNetworkId && nets.length) activeNetworkId = nets[0].id;
-    var current = activeNetwork();
-    ctxLabel.textContent = current ? current.name : 'none';
-    if (!nets.length) {
-      ctxMenu.innerHTML = '<div class="empty">No verified networks yet.<br><a href="/settings">Add one in Settings &#8594;</a></div>';
-      return;
-    }
-    ctxMenu.innerHTML = nets.map(function (n) {
-      return '<button type="button" class="item' + (n.id === activeNetworkId ? ' active' : '') + '" data-net-id="' + esc(n.id) + '">' +
-        '<span class="n">' + esc(n.name) + '</span><span class="o">' + esc(n.orgName || '') + ' · ' + (n.devices ? n.devices.length : 0) + ' devices</span></button>';
-    }).join('');
-  }
-  ctxBtn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    var open = ctxMenu.classList.toggle('open');
-    ctxBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) positionMenu(ctxMenu, ctxBtn);
-  });
-  ctxMenu.addEventListener('click', function (e) {
-    var item = e.target.closest('.item'); if (!item) return;
-    activeNetworkId = item.dataset.netId; refreshCtx(); ctxMenu.classList.remove('open');
-  });
-  document.addEventListener('click', function (e) {
-    if (!ctxMenu.contains(e.target) && e.target !== ctxBtn && !ctxBtn.contains(e.target)) ctxMenu.classList.remove('open');
-  });
 
   /* ---------------- @mention-enabled composer ---------------- */
   var mentionMenu = document.getElementById('mentionMenu');
@@ -439,16 +480,22 @@
   function renderMentionMenu() {
     var devices = currentDevices();
     var q = mentionState.query.toLowerCase();
-    var filtered = devices.filter(function (d) { return d.name.toLowerCase().indexOf(q) !== -1; });
+    var filtered = devices.filter(function (d) {
+      return (d.name || '').toLowerCase().indexOf(q) !== -1 || (d.model || '').toLowerCase().indexOf(q) !== -1;
+    });
     mentionState.filtered = filtered; mentionState.sel = 0;
-    if (!devices.length) {
-      mentionMenu.innerHTML = '<div class="mempty">No devices available. <a href="/settings">Add a network in Settings &#8594;</a></div>';
+    if (DEVICE_ERROR) {
+      mentionMenu.innerHTML = '<div class="mempty">' + esc(DEVICE_ERROR) + '</div>';
+    } else if (!devices.length) {
+      mentionMenu.innerHTML = '<div class="mempty">No claimable devices. A run can only claim hardware '
+        + 'that isn\'t already in a network. <a href="/settings">Check inventory in Settings &#8594;</a></div>';
     } else if (!filtered.length) {
       mentionMenu.innerHTML = '<div class="mempty">No device matches “' + esc(mentionState.query) + '”.</div>';
     } else {
       mentionMenu.innerHTML = filtered.map(function (d, i) {
         return '<button type="button" class="mopt' + (i === 0 ? ' sel' : '') + '" data-i="' + i + '">' +
-          '<span class="n">' + esc(d.name) + '</span><span class="d">' + esc(d.model) + ' · ' + esc(d.serial) + '</span></button>';
+          '<span class="n">' + esc(d.name) + '</span><span class="d">' + esc(d.model) + ' · ' + esc(d.serial)
+          + ' · ' + esc(d.orgName || '') + '</span></button>';
       }).join('');
     }
     mentionMenu.classList.add('open');
@@ -469,7 +516,7 @@
     chip.className = 'mention-chip'; chip.contentEditable = 'false'; chip.textContent = '@' + device.name;
     chip.title = device.serial + ' · ' + device.model + ' · ' + device.mac;
     chip.dataset.serial = device.serial; chip.dataset.mac = device.mac; chip.dataset.model = device.model;
-    chip.dataset.clientId = device.clientId; chip.dataset.networkId = device.networkId || (activeNetwork() ? activeNetwork().id : '');
+    chip.dataset.clientId = device.clientId; chip.dataset.orgId = device.orgId || '';
     var parent = node.parentNode;
     parent.replaceChild(afterNode, node);
     parent.insertBefore(chip, afterNode);
@@ -497,6 +544,7 @@
   }
 
   function wireComposer(input, send, submit) {
+    if (!input || !send) return;   // a composer the template doesn't render on this page
     input.addEventListener('input', function () {
       send.disabled = textOf(input) === '';
       detectMention(input);
@@ -527,11 +575,11 @@
   }
   document.addEventListener('click', function (e) { if (!mentionMenu.contains(e.target)) closeMention(); }, true);
 
-  // Composer language pickers default to the Settings preferred language (per-test
-  // choices override it but never change this default).
+  // The composer's language defaults to the Settings preference (a per-test choice in
+  // the Prompt tab overrides it but never changes this default).
   (function initComposerLang() {
     var lang = localStorage.getItem('cw.language') || 'py';
-    ['heroLang', 'dockLang'].forEach(function (id) { var s = document.getElementById(id); if (s) s.value = lang; });
+    var s = document.getElementById('heroLang'); if (s) s.value = lang;
   })();
 
   // Code-view text-wrap preference (Settings > General, #13). Set on the app root so
@@ -539,7 +587,5 @@
   app.dataset.wrap = localStorage.getItem('cw.wrap') === 'on' ? 'on' : 'off';
 
   wireComposer(heroInput, heroSend, fromHero);
-  wireComposer(dockInput, dockSend, fromDock);
-  refreshCtx();
-  loadNetworks();   // fetch verified networks from the server, then refresh the picker
+  loadDevices();    // claimable hardware for @-mentions (unclaimed org inventory)
 })();

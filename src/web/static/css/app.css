@@ -240,7 +240,8 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .panel-head { display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s3); height: 44px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .tabs { display: flex; align-items: stretch; height: 100%; }
 .tab { display: inline-flex; align-items: center; gap: 7px; padding: 0 var(--s4); height: 100%; font-size: var(--t-micro);
-  color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .12s, border-color .12s; }
+  color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .12s, border-color .12s;
+  white-space: nowrap; flex: none; }   /* four tabs now: a label must never wrap into itself */
 .tab[hidden] { display: none; }
 .tab:hover { color: var(--ink-2); }
 .tab.active { color: var(--ink); border-bottom-color: var(--ink-solid); }
@@ -252,7 +253,8 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
   color: var(--ink-2); font-family: var(--font-mono); font-size: 13px; border: 1px solid transparent; transition: background .12s, border-color .12s, color .12s; }
 .icobtn:hover { background: var(--sunken); color: var(--ink); }
 .runbtn { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 14px; border-radius: var(--radius);
-  background: var(--ink-solid); color: var(--paper); font-size: var(--t-micro); font-weight: 500; transition: background .15s, opacity .15s; }
+  background: var(--ink-solid); color: var(--paper); font-size: var(--t-micro); font-weight: 500; transition: background .15s, opacity .15s;
+  white-space: nowrap; flex: none; }   /* the label flips to the longer "Re-run": never wrap it */
 .runbtn:hover { background: #33342f; }
 .runbtn:disabled { opacity: 0.55; cursor: default; }
 .runbtn .tri { font-size: 10px; }
@@ -285,22 +287,65 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .pt-section { margin-bottom: var(--s6); }
 .pt-section h4 { margin: 0 0 var(--s2); font-size: var(--t-small); }
 .pt-hw-row { display: flex; gap: var(--s2); align-items: center; margin-bottom: var(--s2); }
-.pt-hw-row .set-input[name="hwType"] { flex: 1; }
-.pt-hw-row .set-input[name="hwCount"] { width: 70px; }
+.pt-hw-row .pt-hw-device { flex: 1; }
 .pt-hw-actions { display: flex; gap: var(--s2); align-items: center; margin-top: var(--s2); }
 .pt-source { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--s3); margin-bottom: var(--s3); }
 .pt-radio { display: block; margin: var(--s2) 0; }
 .pt-netpick { margin: var(--s2) 0 var(--s3) var(--s5); }
 .run-status { margin-top: var(--s3); }
-.run-badge { display: inline-flex; gap: var(--s2); align-items: center; padding: 3px 10px; border-radius: var(--radius);
-  font-family: var(--font-mono); font-size: var(--t-micro); background: var(--sunken); }
-.run-badge .run-state { text-transform: uppercase; letter-spacing: .04em; }
-.run-queued, .run-provisioning, .run-running { color: var(--ink-2); }
-.run-success { color: #2f7d32; }
-.run-error, .run-failed { color: #b3261e; }
-.run-log { margin-top: var(--s3); padding: var(--s3); background: var(--sunken); border-radius: var(--radius);
-  font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1.6; white-space: pre-wrap;
-  max-height: 320px; overflow-y: auto; }
+/* Run terminal: the one place the app inverts — a run is a machine talking, and its
+   container output is already terminal text. Built from --ink-solid/--paper so it stays
+   inside the grayscale system rather than introducing a new palette. */
+.run-term { margin-top: var(--s3); border-radius: var(--radius); overflow: hidden;
+  background: var(--ink-solid); border: 1px solid var(--ink-solid); }
+.term-bar { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s3);
+  border-bottom: 1px solid rgba(246, 245, 243, 0.12); }
+.term-dots { display: inline-flex; gap: 6px; }
+.term-dots i { width: 8px; height: 8px; border-radius: 50%; background: rgba(246, 245, 243, 0.22); }
+.term-title { font-size: var(--t-eyebrow); color: rgba(246, 245, 243, 0.55); }
+.term-state { margin-left: auto; font-size: var(--t-eyebrow); text-transform: uppercase;
+  letter-spacing: .06em; color: rgba(246, 245, 243, 0.55); display: inline-flex; align-items: center; gap: 6px; }
+/* live states pulse so a long provision doesn't read as a hang */
+.term-state.run-queued::before, .term-state.run-provisioning::before, .term-state.run-running::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  animation: termpulse 1.2s ease-in-out infinite; }
+.term-state.run-success { color: #7fca85; }
+.term-state.run-error, .term-state.run-failed { color: #ff8a7a; }
+@keyframes termpulse { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+
+.term-body { padding: var(--s3); font-family: var(--font-mono); font-size: var(--t-micro);
+  line-height: 1.65; max-height: 340px; overflow-y: auto; color: var(--paper); }
+.term-body[data-live="1"]::after { content: '▋'; display: inline-block; color: var(--paper);
+  animation: termblink 1.1s steps(2, start) infinite; }
+@keyframes termblink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.tl { display: flex; gap: var(--s3); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* stage gutter: provision/teardown are scaffolding, so they sit back from the output.
+   nowrap + room for the longest stage ("provision") — it must never wrap into itself. */
+.tl-s { flex: none; width: 74px; text-align: right; color: rgba(246, 245, 243, 0.34);
+  white-space: nowrap; user-select: none; }
+.tl-m { flex: 1; min-width: 0; color: rgba(246, 245, 243, 0.62); }
+/* the container's own stdout — the thing the user actually came to read */
+.tl[data-stage="run"] .tl-m { color: var(--paper); }
+.tl-err .tl-m { color: #ff8a7a; }
+
+.term-foot { display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s2) var(--s3); border-top: 1px solid rgba(246, 245, 243, 0.12);
+  font-family: var(--font-mono); font-size: var(--t-micro); color: #7fca85; }
+.term-foot-err { color: #ff8a7a; }
+.term-foot-msg { min-width: 0; overflow-wrap: anywhere; }
+/* "Fix with this output" — the repair entry point, on the terminal so it sits next to
+   the evidence it sends. */
+.term-fix { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--paper);
+  border: 1px solid rgba(246, 245, 243, 0.28); border-radius: var(--radius); padding: 4px 10px; }
+.term-fix:hover { border-color: var(--paper); background: rgba(246, 245, 243, 0.08); }
+.term-fix[disabled] { opacity: .5; cursor: default; }
+.term-fix .rico { font-size: 13px; }
+
+/* Output tab: the terminal gets the pane to itself. */
+.output-pane { padding: var(--s5); }
+.output-pane .run-term { margin-top: 0; }
+.output-pane .term-body { max-height: none; }
 
 /* Prompt tab — edit the prompt and regenerate (issue: prompt not editable). */
 .prompt-pane { display: flex; flex-direction: column; height: 100%; padding: var(--s5); gap: var(--s4); }
@@ -361,6 +406,11 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .ver-label { letter-spacing: 0.03em; }
 .ver-latest { margin-left: auto; color: var(--ink-2); font-family: var(--font-mono); font-size: var(--t-eyebrow); }
 .ver-latest:hover { color: var(--ink); }
+/* Output-tab run navigator: same idiom as the version bar, sits atop the terminal */
+.output-nav { display: flex; align-items: center; gap: var(--s3); padding: 6px var(--s3);
+  border-bottom: 1px solid var(--line); background: var(--sunken);
+  font-family: var(--font-mono); font-size: var(--t-eyebrow); color: var(--ink-2); }
+.prompt-ver { margin-left: var(--s2); color: var(--ink-3); text-transform: none; }
 /* read-only (older) version: dim the disabled regenerate + non-editable code */
 .panel[data-readonly] .prompt-regen:disabled { opacity: 0.5; cursor: default; }
 .runmeta { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--line); color: var(--ink); }
@@ -641,23 +691,6 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 
 .set-loading { display: flex; align-items: center; gap: 9px; padding: var(--s4); color: var(--ink-2); font-family: var(--font-mono); font-size: 12px; }
 .set-loading .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-2); animation: pulse 1s infinite ease-in-out; }
-
-/* device context selector (topbar) */
-.ctxbtn { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: var(--t-eyebrow);
-  color: var(--ink-2); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 5px 10px; }
-.ctxbtn:hover { color: var(--ink); border-color: var(--ink); }
-.ctxbtn b { color: var(--ink); font-weight: 500; }
-.ctxbtn .car { color: var(--ink-3); }
-.ctxmenu { position: fixed; z-index: 55; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius);
-  min-width: 220px; max-width: 280px; padding: 6px; display: none; }
-.ctxmenu.open { display: block; }
-.ctxmenu .item { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 8px 10px; border-radius: var(--radius); }
-.ctxmenu .item:hover { background: var(--sunken); }
-.ctxmenu .item.active .n { text-decoration: underline; text-underline-offset: 2px; }
-.ctxmenu .item .n { font-size: var(--t-micro); color: var(--ink); font-weight: 500; }
-.ctxmenu .item .o { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); }
-.ctxmenu .empty { padding: 10px; font-size: 12px; color: var(--ink-3); line-height: 1.4; }
-.ctxmenu .empty a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
 
 /* mention-enabled composer */
 .composer .cetext { flex: 1; outline: 0; color: var(--ink); font-family: var(--font-sans); font-size: var(--t-body);

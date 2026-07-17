@@ -13,6 +13,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 
 from web.auth import require_user
 from web.deps import templates
+from web.routers.app_view import output_ctx
 from web.services import (
     run_logs_store, run_orchestrator, run_registry, runs_store, store, tests_store,
 )
@@ -26,18 +27,30 @@ def _sse(obj: dict) -> str:
     return "data: " + json.dumps(obj) + "\n\n"
 
 
-def _status_partial(request, user_id, run):
-    logs = run_logs_store.logs_for_run(run["id"]) if run else []
-    return templates.TemplateResponse(request, "partials/run_status.html", {"run": run, "logs": logs})
+def _output_partial(request, user_id, run):
+    """Render the Output tab's content (version output-nav + run terminal) for one run."""
+    return templates.TemplateResponse(request, "partials/run_output.html", output_ctx(user_id, run))
 
 
 @router.post("/app/tests/{test_id}/run", response_class=HTMLResponse)
 def start_run(request: Request, test_id: int, runSource: str = Form("example"),
-              networkId: str = Form(""), user: dict = Depends(require_user)):
+              networkId: str = Form(""), versionNo: str = Form(""),
+              user: dict = Depends(require_user)):
     uid = user["id"]
     test = tests_store.get_test(uid, test_id)
     if not test:
         return HTMLResponse("<div class='gen-error'>Test not found.</div>", status_code=404)
+
+    # Which code version to run: the latest (the editable test row) unless an older
+    # version is being viewed, in which case run that snapshot and tag the run to it.
+    latest_no = max(len(tests_store.list_versions(uid, test_id)) - 1, 0)
+    run_version_no = latest_no
+    if versionNo.strip().isdigit() and int(versionNo) < latest_no:
+        run_version_no = int(versionNo)
+        snapshot = tests_store.get_version(uid, test_id, run_version_no)
+        if snapshot:
+            test = {**test, "code": snapshot["code"], "language": snapshot["language"],
+                    "file_name": snapshot["file_name"]}
 
     source = "scratch" if runSource == "scratch" else "example"
     tests_store.set_run_config(uid, test_id, source, networkId.strip())
@@ -61,16 +74,15 @@ def start_run(request: Request, test_id: int, runSource: str = Form("example"),
                                           {"run_error": "Connect a Meraki organization in Settings first."})
 
     # MVP single-run guard: reject rather than queue a second concurrent run.
-    run = runs_store.create_run(uid, test_id, source, example_network_id)
+    run = runs_store.create_run(uid, test_id, source, example_network_id, version_no=run_version_no)
     if not run_orchestrator.begin(run["id"]):
         runs_store.update_status(run["id"], "error", "A run is already in progress. Wait for it to finish.")
-        return templates.TemplateResponse(request, "partials/run_status.html",
-                                          {"run": runs_store.get_run(uid, run["id"]), "logs": []})
+        return _output_partial(request, uid, runs_store.get_run(uid, run["id"]))
 
     run_registry.start(run["id"], uid, lambda job: run_orchestrator.start_run(
         job, uid, test, run["id"], run["run_code"], org_id, source, example_network_id, key))
 
-    return _status_partial(request, uid, runs_store.get_run(uid, run["id"]))
+    return _output_partial(request, uid, runs_store.get_run(uid, run["id"]))
 
 
 @router.get("/app/tests/{test_id}/runs/{run_id}/stream")
@@ -103,4 +115,4 @@ def run_snapshot(request: Request, test_id: int, run_id: int, user: dict = Depen
     run = runs_store.get_run(user["id"], run_id)
     if not run:
         return HTMLResponse("<div class='gen-error'>Run not found.</div>", status_code=404)
-    return _status_partial(request, user["id"], run)
+    return _output_partial(request, user["id"], run)

@@ -25,17 +25,18 @@ def _new_code() -> str:
     return f"{random.randint(0, 99_999_999):08d}"
 
 
-def create_run(user_id, test_id, source, example_network_id="") -> dict:
+def create_run(user_id, test_id, source, example_network_id="", version_no=0) -> dict:
     """Create a queued run with a unique 8-digit code. Retries on the rare code
-    collision (UNIQUE constraint) before giving up."""
+    collision (UNIQUE constraint) before giving up. ``version_no`` records which code
+    version this run executes, so its output can be browsed under that version."""
     for _ in range(_MAX_CODE_ATTEMPTS):
         code = _new_code()
         try:
             with db.cursor() as conn:
                 cur = conn.execute(
-                    "INSERT INTO runs (run_code, user_id, test_id, source, example_network_id) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (code, user_id, test_id, source, example_network_id),
+                    "INSERT INTO runs (run_code, user_id, test_id, source, example_network_id, version_no) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (code, user_id, test_id, source, example_network_id, version_no),
                 )
                 return {"id": cur.lastrowid, "run_code": code, "status": "queued"}
         except sqlite3.IntegrityError:
@@ -59,6 +60,37 @@ def list_runs_for_test(user_id, test_id) -> list:
             (user_id, test_id),
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def version_runs(user_id, test_id, version_no) -> list:
+    """Runs of one code version, oldest-first — the browsable outputs the Output tab
+    pages through for that version."""
+    with db.cursor() as conn:
+        rows = conn.execute(
+            "SELECT id, run_code, status, error_message, created_at, finished_at "
+            "FROM runs WHERE user_id = ? AND test_id = ? AND version_no = ? "
+            "ORDER BY created_at ASC, id ASC",
+            (user_id, test_id, version_no),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def output_nav(user_id, test_id, version_no, current_run_id) -> dict:
+    """Output-navigation context for one code version: the version's runs plus the
+    position of ``current_run_id`` within them, so the Output tab can render
+    "run i of N" with prev/next/latest links. ``current_run_id`` None (no run yet)
+    yields an empty nav."""
+    runs = version_runs(user_id, test_id, version_no)
+    ids = [r["id"] for r in runs]
+    idx = ids.index(current_run_id) if current_run_id in ids else (len(ids) - 1)
+    return {
+        "version_runs": runs,
+        "run_index": idx,                                    # 0-based, -1 when no runs
+        "run_total": len(runs),
+        "prev_run_id": ids[idx - 1] if idx > 0 else None,
+        "next_run_id": ids[idx + 1] if 0 <= idx < len(ids) - 1 else None,
+        "latest_run_id": ids[-1] if ids else None,
+    }
 
 
 def latest_status_by_test(user_id) -> dict:
