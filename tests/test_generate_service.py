@@ -7,24 +7,27 @@ from web.services import generate
 
 # --- issue #9: runtime identifiers come from the environment, not baked-in literals ----
 
-def test_concrete_context_directs_org_and_network_to_env():
-    """Org id and network id are supplied via environment variables (the network is a
-    fresh per-run network, so it can never be a literal). Device serials stay concrete."""
+def test_concrete_context_directs_ids_and_serial_to_env():
+    """Org id, network id, AND device serial are supplied via environment variables —
+    all are per-run (fresh network, freshly-claimed device), so none is a literal. The
+    device's model still appears (useful context); its serial does not."""
     devices = [{"name": "ap1", "serial": "Q2XX-YYYY", "model": "MR16", "orgId": "549236"}]
     meta = {"base_url": None, "org_id": "549236", "network_ids": ["L_123"]}
     fp = generate._full_prompt("list the org devices", devices, meta)
-    assert "Q2XX-YYYY" in fp          # serial still concrete (device context)
-    assert "MERAKI_ORG_ID" in fp      # org id read from the environment
-    assert "MERAKI_NETWORK_ID" in fp  # network id read from the environment
-    assert "api.meraki.com" in fp     # base url default (a literal constant)
-    # the actual org/network ids must NOT be baked into the prompt as literals
-    assert "549236" not in fp and "L_123" not in fp
+    assert "MERAKI_ORG_ID" in fp        # org id read from the environment
+    assert "MERAKI_NETWORK_ID" in fp    # network id read from the environment
+    assert "MERAKI_DEVICE_SERIAL" in fp  # serial read from the environment
+    assert "MR16" in fp                 # device model is still useful context
+    assert "api.meraki.com" in fp       # base url default (a literal constant)
+    # the actual ids/serial must NOT be baked into the prompt as literals
+    assert "549236" not in fp and "L_123" not in fp and "Q2XX-YYYY" not in fp
 
 
 def test_concrete_context_env_vars_present_without_meta():
     """Even with no meta, the code is told to read the identifiers from the environment."""
     fp = generate._full_prompt("list the org devices", [], {})
-    assert "MERAKI_ORG_ID" in fp and "MERAKI_NETWORK_ID" in fp and "MERAKI_API_KEY" in fp
+    assert all(v in fp for v in
+               ("MERAKI_ORG_ID", "MERAKI_NETWORK_ID", "MERAKI_API_KEY", "MERAKI_DEVICE_SERIAL"))
 
 
 # --- issue #7: humanize failures so they surface with a real cause ---------------

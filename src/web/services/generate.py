@@ -124,16 +124,18 @@ def pin_mentioned_hardware(hardware, devices):
 def _device_context(devices):
     if not devices:
         return ""
-    lines = ["Referenced devices (resolve by serial):"]
+    # Describe the device(s) the test targets for context (model matters — an MR42 is
+    # dual-band, etc.), but the serial to USE at runtime is MERAKI_DEVICE_SERIAL from the
+    # environment, not the literal below — the run claims a fresh device each time.
+    lines = ["Device(s) this test targets (read the serial from MERAKI_DEVICE_SERIAL at "
+             "run time — do NOT hardcode the serial shown here):"]
     for d in devices:
         if not isinstance(d, dict):
             continue
         lines.append(
-            "- {name}: serial={serial} model={model} mac={mac}".format(
+            "- {name}: model={model} (this run's serial comes from MERAKI_DEVICE_SERIAL)".format(
                 name=d.get("name", "?"),
-                serial=d.get("serial", "?"),
                 model=d.get("model", "?"),
-                mac=d.get("mac", "?"),
             )
         )
     return "\n".join(lines)
@@ -143,10 +145,10 @@ def _concrete_context(meta):
     """Runtime identifiers the generated test must read from the environment, plus the
     concrete constants it may hardcode (issue #9).
 
-    The org ID, network ID, and API key are supplied through environment variables set
-    by the runner — the network id is a *fresh* network provisioned per run, so it can't
-    be a literal, and the org id follows the same channel for consistency. Only the base
-    URL (stable) and @-mentioned device serials are baked in as literals."""
+    The org ID, network ID, API key, and device serial are supplied through environment
+    variables set by the runner — the network is *freshly provisioned* per run and the
+    device is *freshly claimed* per run, so neither can be a literal; the org id follows
+    the same channel for consistency. Only the base URL (stable) is baked in."""
     meta = meta or {}
     return "\n".join([
         "Runtime values are provided via environment variables — read them from the "
@@ -154,6 +156,10 @@ def _concrete_context(meta):
         "- MERAKI_API_KEY: the API key",
         "- MERAKI_ORG_ID: the organization ID",
         "- MERAKI_NETWORK_ID: the network ID (a fresh network provisioned for this run)",
+        "- MERAKI_DEVICE_SERIAL: the serial of the device claimed for this run — use it "
+        "for any device-scoped endpoint; NEVER hardcode or fabricate a serial (a model "
+        "name like 'MR42' is NOT a serial). MERAKI_DEVICE_SERIALS is a comma-separated "
+        "list when a test needs more than one device.",
         f"- base URL (a stable constant you may hardcode): {meta.get('base_url') or config.MERAKI_BASE_URL}",
     ])
 
