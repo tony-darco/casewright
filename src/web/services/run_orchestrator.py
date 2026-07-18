@@ -80,19 +80,15 @@ def start_run(job, uid, test, run_id, run_code, org_id, source, example_network_
         runs_store.set_claimed_devices(run_id, result.claimed_devices)
 
         status("running")
-        # New code reads org/network/key/device-serial from the environment (all are
-        # per-run: a fresh network and freshly-claimed devices), so nothing ephemeral is
-        # baked in. inject only swaps serials for legacy literal-based tests, plus any
-        # baked-in network id -> this run's network.
+        # org/network/key reach the code via the environment (a fresh network per run, so
+        # no id is baked in). The device serial IS baked in — the user pins a specific
+        # device up front — so inject only maps that baked serial to the actually-claimed
+        # one (a no-op when they're the same), plus any legacy baked-in network id.
         code = inject_run_values(
             test.get("code", ""), _loads(test.get("gen_meta_json"), {}),
             _loads(test.get("devices_json"), []), result.claimed_devices, result.network_id)
-        serials = [d.get("serial", "") for d in result.claimed_devices if d.get("serial")]
         env = {"MERAKI_API_KEY": key, "MERAKI_ORG_ID": result.org_id,
                "MERAKI_NETWORK_ID": result.network_id}
-        if serials:
-            env["MERAKI_DEVICE_SERIAL"] = serials[0]        # the device under test
-            env["MERAKI_DEVICE_SERIALS"] = ",".join(serials)  # all claimed, for multi-device tests
         runner = registry.get_runner(test.get("language") or "py")
         outcome = runner.run(code, env, run_settings_store.get_settings(uid), on_log)
         status("success" if outcome.ok else "failed")

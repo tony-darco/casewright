@@ -5,6 +5,7 @@
 {% import "_macros.html" as ui %}
 <div class="panel enter" data-file="{{ file_name|default('generated.test.py', true) }}" data-devices="{{ devices|default('[]', true) }}"
   data-test-id="{{ t.id if t else '' }}" data-language="{{ language|default('py', true) }}"
+  data-hardware='{{ hardware|default([], true)|tojson }}'
   {% if readonly %}data-readonly="1"{% endif %}>
   <div class="panel-head">
     <div class="tabs">
@@ -52,6 +53,15 @@
         </label>
         <textarea class="prompt-edit" id="promptEdit" spellcheck="false"{% if readonly %} readonly{% endif %}
           placeholder="Describe a test — an endpoint, a feature, an edge case…">{{ prompt }}</textarea>
+        {# Hardware this test needs — carried with the prompt so a regenerate keeps it.
+           Rows are built by app.js from the loaded device inventory (data-hw). #}
+        {% if not readonly %}
+        <div class="hwpick" data-hw>
+          <div class="hwpick-label">Hardware <span class="gen-note">— a specific device (its serial is baked into the test) or any device of a type</span></div>
+          <div class="hwpick-rows"></div>
+          <button type="button" class="btn btn-ghost hwpick-add">+ Add hardware</button>
+        </div>
+        {% endif %}
         <div class="prompt-actions">
           <button class="prompt-startover" id="promptStartOver" type="button">Delete &amp; start over</button>
           <label class="lang-field">Language {{ ui.lang_select('regenLang', language|default('py', true)) }}</label>

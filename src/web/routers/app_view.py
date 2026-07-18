@@ -130,7 +130,8 @@ def app_home(request: Request, user: dict = Depends(require_user)):
 
 
 def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language, meta, prov,
-                    repair=None, endpoints=None, keep_hardware=None, is_new=True):
+                    repair=None, endpoints=None, keep_hardware=None, is_new=True,
+                    hardware=None):
     """Background worker (#11): run the pipeline, emit stream events onto ``job``, and
     persist the finished test (or drop the placeholder on failure). Runs off the
     request, so it survives the client navigating away or disconnecting.
@@ -138,8 +139,11 @@ def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language,
     ``repair`` re-enters the pipeline with a failed run's code + output to fix it,
     grounded on ``endpoints`` (what the first pass retrieved) rather than retrieving
     again. ``keep_hardware`` is the test's existing hardware, preserved verbatim: a
-    repair edits code, never the run config."""
-    for ev in generate.stream_events(prompt, dev, language, meta, prov, repair, endpoints):
+    repair edits code, never the run config. ``hardware`` is the user's upfront hardware
+    selection (from the composer/Prompt tab), which is authoritative over the model's
+    guess."""
+    for ev in generate.stream_events(prompt, dev, language, meta, prov, repair, endpoints,
+                                     hardware=hardware):
         if ev["type"] != "final":
             job.emit(ev)                       # stage / token / error passthrough
             continue
@@ -182,13 +186,17 @@ def app_generate_start(
     devices: str = Form(""),
     language: str = Form("py"),
     regen_of: str = Form(""),
+    hardware: str = Form(""),
     user: dict = Depends(require_user),
 ):
     """Kick off a generation in the background and return the (generating) test id plus
     its sidebar item. ``regen_of`` regenerates into an existing test as a new version
-    (#12); otherwise a fresh test is created. The client then attaches to the stream."""
+    (#12); otherwise a fresh test is created. ``hardware`` is the user's upfront picker
+    selection (a JSON list of ``serial:``/``type:`` rows), authoritative over the model's
+    guess. The client then attaches to the stream."""
     uid = user["id"]
     dev = generate.parse_devices(devices)
+    user_hardware = _parse_hardware_rows(uid, generate.parse_devices(hardware))
     # Resolve plain-text @-mentions the composer didn't send as chips (e.g. a bare
     # "@MR42"): look them up in the org's claimable inventory so the test gets a real
     # serial instead of the model name. Best-effort — skip if inventory is unavailable.
@@ -215,7 +223,8 @@ def app_generate_start(
     test_id, name = t["id"], t["name"]
 
     gen_registry.start(test_id, uid, lambda job: _run_generation(
-        job, uid, test_id, name, prompt, dev, devices, language, meta, prov, is_new=is_new))
+        job, uid, test_id, name, prompt, dev, devices, language, meta, prov, is_new=is_new,
+        hardware=user_hardware))
 
     item = templates.get_template("partials/test_item.html").render({"t": t})
     return JSONResponse({"test_id": test_id, "item_html": item})
@@ -323,18 +332,15 @@ def load_test(request: Request, test_id: int, user: dict = Depends(require_user)
     return templates.TemplateResponse(request, "partials/workspace.html", vm)
 
 
-@router.post("/app/tests/{test_id}/hardware", response_class=HTMLResponse)
-def save_hardware(test_id: int, hwDevice: list[str] = Form(default=[]),
-                  user: dict = Depends(require_user)):
-    """Persist the user's edited hardware requirements from the Test Configuration tab.
-
-    One row is one device: either ``serial:<serial>`` (pinned to a specific device) or
-    ``type:<hw_type>`` (any device of that type). Two APs means two rows. A pinned row's
-    model/type are resolved from inventory rather than trusted from the form."""
-    known = {d["serial"]: d for d in _claimable_devices(user["id"])[0]}
+def _parse_hardware_rows(user_id: int, rows: list) -> list:
+    """Turn hardware-picker rows (``serial:<serial>`` | ``type:<hw_type>``) into stored
+    hardware requirements. One row is one device; a pinned row's model/type are resolved
+    from live inventory rather than trusted from the form. Shared by the Test
+    Configuration save and the upfront composer/Prompt-tab picker."""
+    known = {d["serial"]: d for d in _claimable_devices(user_id)[0]}
     hardware = []
-    for value in hwDevice:
-        kind, _, rest = (value or "").partition(":")
+    for value in rows or []:
+        kind, _, rest = (str(value) or "").partition(":")
         if kind == "serial" and rest:
             dev = known.get(rest, {})
             hardware.append({
@@ -344,6 +350,18 @@ def save_hardware(test_id: int, hwDevice: list[str] = Form(default=[]),
             })
         elif kind == "type" and rest in _HW_LABELS:
             hardware.append({"type": rest, "count": 1, "reason": ""})
+    return hardware
+
+
+@router.post("/app/tests/{test_id}/hardware", response_class=HTMLResponse)
+def save_hardware(test_id: int, hwDevice: list[str] = Form(default=[]),
+                  user: dict = Depends(require_user)):
+    """Persist the user's edited hardware requirements from the Test Configuration tab.
+
+    One row is one device: either ``serial:<serial>`` (pinned to a specific device) or
+    ``type:<hw_type>`` (any device of that type). Two APs means two rows. A pinned row's
+    model/type are resolved from inventory rather than trusted from the form."""
+    hardware = _parse_hardware_rows(user["id"], hwDevice)
     ok = tests_store.update_hardware(user["id"], test_id, hardware)
     if not ok:
         return HTMLResponse("", status_code=404)

@@ -302,6 +302,13 @@ h1, h2, h3, h4, p { margin: 0; text-wrap: pretty; }
 .pt-hw-row { display: flex; gap: var(--s2); align-items: center; margin-bottom: var(--s2); }
 .pt-hw-row .pt-hw-device { flex: 1; }
 .pt-hw-actions { display: flex; gap: var(--s2); align-items: center; margin-top: var(--s2); }
+/* Upfront hardware picker (hero composer + Prompt tab) */
+.hwpick { margin-top: var(--s3); display: flex; flex-direction: column; gap: var(--s2); align-items: flex-start; width: 100%; }
+.hwpick-label { font-size: var(--t-eyebrow); color: var(--ink-2); }
+.hwpick-rows { display: flex; flex-direction: column; gap: var(--s2); width: 100%; }
+.hwpick-row { display: flex; gap: var(--s2); align-items: center; }
+.hwpick-row .hwpick-device { flex: 1; }
+.hwpick-add { align-self: flex-start; padding: 6px 12px; }
 .pt-source { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--s3); margin-bottom: var(--s3); }
 .pt-radio { display: block; margin: var(--s2) 0; }
 .pt-netpick { margin: var(--s2) 0 var(--s3) var(--s5); }

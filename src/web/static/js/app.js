@@ -53,6 +53,64 @@
       };
     });
   }
+
+  /* ---------------- hardware picker (composer + Prompt tab) ---------------- */
+  // A row is one device: a generic type ("any AP") or a specific device (its serial gets
+  // baked into the generated test). Options come from the loaded inventory (DEVICES).
+  var HW_TYPES = [['type:wireless', 'Any wireless AP'],
+                  ['type:security_appliance', 'Any security appliance'],
+                  ['type:camera', 'Any camera']];
+  function hwOptionsHtml(selected) {
+    var opts = HW_TYPES.map(function (t) {
+      return '<option value="' + t[0] + '"' + (t[0] === selected ? ' selected' : '') + '>' + esc(t[1]) + '</option>';
+    });
+    var haveSerial = false;
+    DEVICES.forEach(function (d) {
+      var v = 'serial:' + d.serial;
+      if (v === selected) haveSerial = true;
+      opts.push('<option value="' + esc(v) + '"' + (v === selected ? ' selected' : '') + '>' +
+        esc((d.name ? d.name + ' · ' : '') + (d.model || '') + ' · ' + d.serial) + '</option>');
+    });
+    if (selected && selected.indexOf('serial:') === 0 && !haveSerial) {  // pinned but no longer claimable
+      opts.push('<option value="' + esc(selected) + '" selected>' + esc(selected.slice(7)) + ' — unavailable</option>');
+    }
+    return opts.join('');
+  }
+  function addHwRow(pick, selected) {
+    var rows = pick && pick.querySelector('.hwpick-rows'); if (!rows) return;
+    var row = document.createElement('div'); row.className = 'hwpick-row';
+    row.innerHTML = '<select class="set-input hwpick-device" aria-label="Hardware">' +
+      hwOptionsHtml(selected) + '</select>' +
+      '<button type="button" class="btn btn-ghost hwpick-remove" aria-label="Remove">&#10005;</button>';
+    rows.appendChild(row);
+  }
+  function collectHardware(pick) {
+    if (!pick) return [];
+    return Array.prototype.map.call(pick.querySelectorAll('.hwpick-device'), function (s) { return s.value; })
+      .filter(function (v) { return v; });
+  }
+  function prefillHardware(pick, list) {
+    if (!pick) return;
+    (list || []).forEach(function (h) {
+      addHwRow(pick, h.serial ? ('serial:' + h.serial) : ('type:' + h.type));
+    });
+  }
+  // Prefill the workspace panel's picker from the test's stored hardware, once per render.
+  function initPanelHardware() {
+    var panel = workspace.querySelector('.panel'); if (!panel) return;
+    var pick = panel.querySelector('.hwpick'); if (!pick || pick.dataset.init === '1') return;
+    pick.dataset.init = '1';
+    var hw = []; try { hw = JSON.parse(panel.dataset.hardware || '[]'); } catch (e) { hw = []; }
+    prefillHardware(pick, hw);
+  }
+  // add / remove rows — delegated so it works in the composer and any swapped-in panel
+  document.addEventListener('click', function (e) {
+    var add = e.target.closest('.hwpick-add');
+    if (add) { addHwRow(add.closest('.hwpick')); return; }
+    var rm = e.target.closest('.hwpick-remove');
+    if (rm) { var r = rm.closest('.hwpick-row'); if (r) r.remove(); }
+  });
+
   var GENNING = '<div class="panel"><div class="panel-body"><div class="genning"><span class="dot"></span> Generating tests…</div></div></div>';
 
   function setActive(item) {
@@ -123,6 +181,7 @@
         // its submit falls back to a native GET of the current URL.
         if (window.htmx) htmx.process(workspace);
         attachRunStreams(workspace);
+        initPanelHardware();
       }
       delete activeGens[testId];
     }
@@ -164,7 +223,7 @@
   // Start a new generation (or regenerate): create it server-side, then attach.
   // `language` is the per-test choice; it falls back to the Settings default.
   // regenOf (optional): regenerate into an existing test as a new version (#12).
-  function generate(text, devices, language, regenOf) {
+  function generate(text, devices, language, regenOf, hardware) {
     app.dataset.view = 'work';
     topTitle.innerHTML = '<b>' + esc(trunc(text, 60)) + '</b>';
     var le = document.getElementById('libEmpty'); if (le) le.hidden = true;
@@ -174,6 +233,7 @@
       prompt: text, devices: JSON.stringify(devices || []),
       language: language || localStorage.getItem('cw.language') || 'py'
     };
+    if (hardware && hardware.length) params.hardware = JSON.stringify(hardware);
     if (regenOf) params.regen_of = regenOf;
     fetch('/app/generate/start', {
       method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -227,10 +287,13 @@
   function langOf(id) { var s = document.getElementById(id); return s ? s.value : null; }
   function fromHero(text, devices) {
     var lang = langOf('heroLang');
+    var heroHw = document.getElementById('heroHw');
+    var hw = collectHardware(heroHw);
     emptyView.classList.add('leaving');
     setTimeout(function () {
-      generate(text, devices, lang); emptyView.classList.remove('leaving');
+      generate(text, devices, lang, null, hw); emptyView.classList.remove('leaving');
       clearComposer(heroInput); heroSend.disabled = true;
+      var rows = heroHw && heroHw.querySelector('.hwpick-rows'); if (rows) rows.innerHTML = '';  // reset for next test
     }, 200);
   }
 
@@ -269,7 +332,8 @@
     var text = ta.value.trim(); if (!text) { ta.focus(); return; }
     var devices = []; try { devices = JSON.parse(panel.dataset.devices || '[]'); } catch (e) { devices = []; }
     var langSel = panel.querySelector('#regenLang');
-    generate(text, devices, langSel ? langSel.value : null, panel.dataset.testId || null);  // new version (#12)
+    var hw = collectHardware(panel.querySelector('.hwpick'));
+    generate(text, devices, langSel ? langSel.value : null, panel.dataset.testId || null, hw);  // new version (#12)
   }
 
   // Load a specific version of a test into the workspace (#12). The latest version is
@@ -441,6 +505,7 @@
   }
   document.body.addEventListener('htmx:afterSwap', function (e) {
     if (e.target && e.target.querySelector) attachRunStreams(e.target);
+    if (e.target && e.target.id === 'workspace') initPanelHardware();  // prefill picker on load_test/version
   });
   // Starting a run: show the Output tab, where the terminal is, and flip Run -> Re-run.
   // Only #ptRunResult re-renders from here on, so the button's own label is ours to keep

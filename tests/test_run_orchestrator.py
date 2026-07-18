@@ -67,10 +67,8 @@ def test_full_run_success_and_teardown():
     assert container_env["MERAKI_NETWORK_ID"] == "L_new"
     assert container_env["MERAKI_ORG_ID"] == "O1"
     assert container_env["MERAKI_API_KEY"] == "key"
-    # the freshly-claimed device's serial reaches the container by env too, so the test
-    # never has to hardcode or guess a serial
-    assert container_env["MERAKI_DEVICE_SERIAL"] == "Q2-A"
-    assert container_env["MERAKI_DEVICE_SERIALS"] == "Q2-A"
+    # the device serial is baked into the code (a pinned device), not passed by env
+    assert "MERAKI_DEVICE_SERIAL" not in container_env
 
     events = job._events
     assert events[0]["type"] == "status" and events[0]["status"] == "provisioning"

@@ -99,7 +99,11 @@ def pin_mentioned_hardware(hardware, devices):
     consumes one unit of the matching generic requirement instead of adding to it. A
     mention with no matching requirement still pins (the test clearly needs that device);
     requirements nothing mentions stay generic, expanded to one row each so the Config
-    tab needs no count field."""
+    tab needs no count field.
+
+    ``hardware`` may already contain serial-pinned rows (the user picked a specific device
+    in the upfront picker); those are kept but de-duplicated against the @-mention pins so
+    naming the same device both ways doesn't claim it twice."""
     pinned, seen = [], set()
     for d in devices or []:
         serial = (d.get("serial") or "").strip() if isinstance(d, dict) else ""
@@ -116,6 +120,13 @@ def pin_mentioned_hardware(hardware, devices):
     for req in hardware or []:
         if not isinstance(req, dict):
             continue
+        req_serial = (req.get("serial") or "").strip()
+        if req_serial:                       # an explicitly-pinned device from the picker
+            if req_serial in seen:
+                continue                     # already pinned via an @-mention
+            seen.add(req_serial)
+            rest.append({**req, "count": 1})
+            continue
         remaining = int(req.get("count", 1) or 1) - sum(1 for p in pinned if p["type"] == req.get("type"))
         rest += [{**req, "count": 1} for _ in range(max(0, remaining))]
     return pinned + rest
@@ -124,18 +135,20 @@ def pin_mentioned_hardware(hardware, devices):
 def _device_context(devices):
     if not devices:
         return ""
-    # Describe the device(s) the test targets for context (model matters — an MR42 is
-    # dual-band, etc.), but the serial to USE at runtime is MERAKI_DEVICE_SERIAL from the
-    # environment, not the literal below — the run claims a fresh device each time.
-    lines = ["Device(s) this test targets (read the serial from MERAKI_DEVICE_SERIAL at "
-             "run time — do NOT hardcode the serial shown here):"]
+    # The device(s) the test targets, with the CONCRETE serial to bake into the code. The
+    # user pins a specific device up front, so its serial is known now and stays stable
+    # across runs (the run claims that exact device) — use it literally.
+    lines = ["Referenced devices — use each serial as a literal in the code "
+             "(a model name like 'MR42' is NOT a serial):"]
     for d in devices:
         if not isinstance(d, dict):
             continue
         lines.append(
-            "- {name}: model={model} (this run's serial comes from MERAKI_DEVICE_SERIAL)".format(
+            "- {name}: serial={serial} model={model} mac={mac}".format(
                 name=d.get("name", "?"),
+                serial=d.get("serial", "?"),
                 model=d.get("model", "?"),
+                mac=d.get("mac", "?"),
             )
         )
     return "\n".join(lines)
@@ -145,10 +158,10 @@ def _concrete_context(meta):
     """Runtime identifiers the generated test must read from the environment, plus the
     concrete constants it may hardcode (issue #9).
 
-    The org ID, network ID, API key, and device serial are supplied through environment
-    variables set by the runner — the network is *freshly provisioned* per run and the
-    device is *freshly claimed* per run, so neither can be a literal; the org id follows
-    the same channel for consistency. Only the base URL (stable) is baked in."""
+    The org ID, network ID, and API key are supplied through environment variables set by
+    the runner — the network is *freshly provisioned* per run, so it can't be a literal,
+    and the org id follows the same channel for consistency. The base URL is stable and
+    device serials (a pinned device is known up front) are baked in as literals."""
     meta = meta or {}
     return "\n".join([
         "Runtime values are provided via environment variables — read them from the "
@@ -156,16 +169,33 @@ def _concrete_context(meta):
         "- MERAKI_API_KEY: the API key",
         "- MERAKI_ORG_ID: the organization ID",
         "- MERAKI_NETWORK_ID: the network ID (a fresh network provisioned for this run)",
-        "- MERAKI_DEVICE_SERIAL: the serial of the device claimed for this run — use it "
-        "for any device-scoped endpoint; NEVER hardcode or fabricate a serial (a model "
-        "name like 'MR42' is NOT a serial). MERAKI_DEVICE_SERIALS is a comma-separated "
-        "list when a test needs more than one device.",
         f"- base URL (a stable constant you may hardcode): {meta.get('base_url') or config.MERAKI_BASE_URL}",
     ])
 
 
+def expand_mentions(prompt, devices):
+    """Rewrite each ``@name`` in the prompt to ``@name (serial <serial>, model <model>)``
+    using the submitted devices, so the concrete serial travels inline with the mention
+    (not just in the separate device-context block). A device with no serial, or a name
+    that doesn't appear in the prompt, is left alone. Whole-word match on the name so
+    ``@AP1`` isn't expanded inside ``@AP12``."""
+    if not prompt or not devices:
+        return prompt or ""
+    for d in devices:
+        if not isinstance(d, dict):
+            continue
+        name, serial = (d.get("name") or "").strip(), (d.get("serial") or "").strip()
+        if not name or not serial:
+            continue
+        suffix = f" (serial {serial}, model {d.get('model') or '?'})"
+        # match "@name" only when not already followed by our "(serial …)" annotation
+        pat = re.compile(r"@" + re.escape(name) + r"\b(?!\s*\(serial )")
+        prompt = pat.sub("@" + name + suffix, prompt)
+    return prompt
+
+
 def _full_prompt(prompt, devices, meta):
-    parts = [prompt]
+    parts = [expand_mentions(prompt, devices)]
     ctx = _device_context(devices)
     if ctx:
         parts.append(ctx)
@@ -325,7 +355,7 @@ def repair_context(test, run, logs):
 
 
 def stream_events(prompt, devices, language="py", meta=None, overrides=None,
-                  repair=None, endpoints=None):
+                  repair=None, endpoints=None, hardware=None):
     """Yield streaming events for the SSE endpoint:
 
         {"type": "stage", "node": ..., "label": ...}   -- progress
@@ -378,8 +408,11 @@ def stream_events(prompt, devices, language="py", meta=None, overrides=None,
 
     # A repair skips the hardware node entirely, so there's nothing to pin: the caller
     # keeps the test's existing rows. Re-deciding would discard the devices the user
-    # pinned in the Config tab, which a code fix has no business touching.
-    hardware = [] if repair else pin_mentioned_hardware(final.get("hardware"), devices)
+    # pinned in the Config tab, which a code fix has no business touching. Otherwise, the
+    # user's upfront hardware selection is authoritative; only fall back to the model's
+    # guess when the user picked nothing.
+    base_hardware = hardware if hardware else final.get("hardware")
+    hardware = [] if repair else pin_mentioned_hardware(base_hardware, devices)
     if repair:
         log.add("hardware", "hardware unchanged (repair edits the code, not the run config)")
     else:

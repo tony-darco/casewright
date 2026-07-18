@@ -11,7 +11,7 @@ def _fake_stream(code, prompt="p"):
     vm = generate._workspace_vm(prompt, code, "f.test.py", ["GET /x"], "py", None)
     vm["_log"] = []
 
-    def _gen(prompt_, dev, language, meta, prov, repair=None, endpoints=None):
+    def _gen(prompt_, dev, language, meta, prov, repair=None, endpoints=None, hardware=None):
         yield {"type": "token", "text": code}
         yield {"type": "final", "vm": vm}
     return _gen

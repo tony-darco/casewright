@@ -82,7 +82,7 @@ def test_get_is_user_scoped():
 # --- worker: persists on success, drops placeholder on failure -------------------
 
 def _fake_stream(vm_final):
-    def _gen(prompt, dev, language, meta, prov, repair=None, endpoints=None):
+    def _gen(prompt, dev, language, meta, prov, repair=None, endpoints=None, hardware=None):
         yield {"type": "stage", "node": "generate", "label": "Writing the test…"}
         yield {"type": "token", "text": "import requests\n"}
         yield {"type": "final", "vm": vm_final}

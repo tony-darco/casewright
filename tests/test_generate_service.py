@@ -7,27 +7,28 @@ from web.services import generate
 
 # --- issue #9: runtime identifiers come from the environment, not baked-in literals ----
 
-def test_concrete_context_directs_ids_and_serial_to_env():
-    """Org id, network id, AND device serial are supplied via environment variables —
-    all are per-run (fresh network, freshly-claimed device), so none is a literal. The
-    device's model still appears (useful context); its serial does not."""
+def test_concrete_context_directs_ids_to_env_and_bakes_serial():
+    """Org id and network id come from the environment (per-run, so never literals), but
+    a pinned device's serial IS a concrete literal baked into the prompt (the user picked
+    the device up front, so its serial is known)."""
     devices = [{"name": "ap1", "serial": "Q2XX-YYYY", "model": "MR16", "orgId": "549236"}]
     meta = {"base_url": None, "org_id": "549236", "network_ids": ["L_123"]}
     fp = generate._full_prompt("list the org devices", devices, meta)
     assert "MERAKI_ORG_ID" in fp        # org id read from the environment
     assert "MERAKI_NETWORK_ID" in fp    # network id read from the environment
-    assert "MERAKI_DEVICE_SERIAL" in fp  # serial read from the environment
-    assert "MR16" in fp                 # device model is still useful context
+    assert "MERAKI_DEVICE_SERIAL" not in fp  # the serial is baked in, not from env
+    assert "Q2XX-YYYY" in fp            # the device serial is a concrete literal
+    assert "MR16" in fp                 # device model as context
     assert "api.meraki.com" in fp       # base url default (a literal constant)
-    # the actual ids/serial must NOT be baked into the prompt as literals
-    assert "549236" not in fp and "L_123" not in fp and "Q2XX-YYYY" not in fp
+    # the org/network ids must NOT be baked into the prompt as literals
+    assert "549236" not in fp and "L_123" not in fp
 
 
 def test_concrete_context_env_vars_present_without_meta():
-    """Even with no meta, the code is told to read the identifiers from the environment."""
+    """Even with no meta, the code is told to read the ids/key from the environment."""
     fp = generate._full_prompt("list the org devices", [], {})
-    assert all(v in fp for v in
-               ("MERAKI_ORG_ID", "MERAKI_NETWORK_ID", "MERAKI_API_KEY", "MERAKI_DEVICE_SERIAL"))
+    assert all(v in fp for v in ("MERAKI_ORG_ID", "MERAKI_NETWORK_ID", "MERAKI_API_KEY"))
+    assert "MERAKI_DEVICE_SERIAL" not in fp   # serial isn't an env var any more
 
 
 # --- issue #7: humanize failures so they surface with a real cause ---------------
@@ -104,3 +105,30 @@ def test_duplicate_mentions_pin_once():
 
 def test_no_hardware_and_no_mentions_is_empty():
     assert generate.pin_mentioned_hardware(None, None) == []
+
+
+def test_picker_serial_row_is_kept_and_deduped_against_a_mention():
+    """A specific device picked in the upfront picker survives as a pinned row, but if the
+    same device is also @-mentioned it's only claimed once."""
+    kept = generate.pin_mentioned_hardware(
+        [{"type": "wireless", "count": 1, "serial": "Q2-A", "model": "MR16"}], [])
+    assert [h["serial"] for h in kept] == ["Q2-A"]
+
+    deduped = generate.pin_mentioned_hardware(
+        [{"type": "wireless", "count": 1, "serial": "Q2-A", "model": "MR16"}],
+        [_mention("Q2-A", "MR16", "AP1")])
+    assert [h["serial"] for h in deduped] == ["Q2-A"]   # not twice
+
+
+def test_stream_events_user_hardware_overrides_the_models_guess():
+    """Hardware the user set upfront is authoritative; the model's guess is discarded."""
+    from unittest import mock
+    fake = mock.Mock()
+    fake.stream_run.return_value = iter([("final", {
+        "endpoints": ["GET /x"], "tests": "def test_x(): pass", "validation": None,
+        "hardware": [{"type": "camera", "count": 1, "reason": "model guess"}],
+    })])
+    user_hw = [{"type": "wireless", "count": 1, "reason": "picked"}]
+    with mock.patch.object(generate, "get_pipeline", return_value=(fake, None)):
+        evs = list(generate.stream_events("p", [], "py", {}, None, hardware=user_hw))
+    assert [h["type"] for h in evs[-1]["vm"]["hardware"]] == ["wireless"]
