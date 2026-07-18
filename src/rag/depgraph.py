@@ -32,7 +32,13 @@ UPSTREAM_CLOSURE_CAP = 10   # prerequisite producers to add to the retrieved set
 # are treated like caller-supplied (orphan) params: never chase a producer for them,
 # so the rendered call-order never tells the model to list orgs/networks to
 # "discover" an id it was already handed.
-SUPPLIED_PARAMS = frozenset({"organizationId", "networkId"})
+# Path params the caller always supplies, so the graph must not route the model to a
+# producer endpoint to discover them. org/network arrive as environment variables; the
+# device serial arrives as a {{DEVICE_SERIAL_N}} token (web.services.serial_tokens).
+# Leaving `serial` out told the model to call a device *lister* first and filter it for
+# the device it had already been handed — the list-and-filter pattern that produced
+# fabricated serials and 404s.
+SUPPLIED_PARAMS = frozenset({"organizationId", "networkId", "serial"})
 
 
 class DependencyGraph:

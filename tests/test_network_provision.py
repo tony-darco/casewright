@@ -31,7 +31,10 @@ def test_example_clone_claims_and_returns():
     assert isinstance(res, ProvisionResult) and res.network_id == "L_new"
     assert create.call_args.kwargs["copy_from_network_id"] == "L_example"
     claim.assert_called_once_with("L_new", ["Q2-A"], "key")
-    assert res.claimed_devices == [{"serial": "Q2-A", "model": "MR33", "hardwareType": "wireless"}]
+    # `row` is the 1-based hardware row this device satisfies — the index a
+    # {{DEVICE_SERIAL_N}} token in the generated code resolves against.
+    assert res.claimed_devices == [
+        {"serial": "Q2-A", "model": "MR33", "hardwareType": "wireless", "row": 1}]
 
 
 def test_scratch_invokes_agent():
@@ -101,7 +104,8 @@ def test_pinned_device_is_claimed_by_serial_not_by_type():
                            "example", "L_example", "key")
     # the MR16 sorts first: type-matching alone would have claimed the wrong AP
     claim.assert_called_once_with("L_new", ["Q2-MR42"], "key")
-    assert res.claimed_devices == [{"serial": "Q2-MR42", "model": "MR42", "hardwareType": "wireless"}]
+    assert res.claimed_devices == [
+        {"serial": "Q2-MR42", "model": "MR42", "hardwareType": "wireless", "row": 1}]
 
 
 def test_pinned_and_generic_rows_claim_distinct_devices():

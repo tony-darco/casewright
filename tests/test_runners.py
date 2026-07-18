@@ -36,6 +36,42 @@ def test_inject_noop_without_metadata():
     assert inject_run_values("x=1", {}, [], [], "L_new") == "x=1"
 
 
+# --- inject: serial tokens (the current contract) -----------------------------------
+
+def test_inject_resolves_token_from_claimed_device():
+    """A type-only hardware row has no serial until a run claims one, so its token
+    survives generation and is resolved here."""
+    code = 'SERIAL = "{{DEVICE_SERIAL_1}}"'
+    claimed = [{"serial": "Q2NEW-AAAA", "hardwareType": "wireless", "row": 1}]
+    out = inject_run_values(code, {}, [], claimed, "L_new")
+    assert out == 'SERIAL = "Q2NEW-AAAA"'
+
+
+def test_inject_maps_tokens_by_hardware_row_not_claim_order():
+    """Claims happen pinned-first, which is NOT hardware-row order — so the recorded row
+    is what makes {{DEVICE_SERIAL_N}} land on the right device."""
+    code = 'a="{{DEVICE_SERIAL_1}}"; b="{{DEVICE_SERIAL_2}}"'
+    claimed = [{"serial": "PINNED", "hardwareType": "camera", "row": 2},
+               {"serial": "GENERIC", "hardwareType": "wireless", "row": 1}]
+    out = inject_run_values(code, {}, [], claimed, "")
+    assert out == 'a="GENERIC"; b="PINNED"'
+
+
+def test_inject_falls_back_to_position_for_devices_without_row():
+    """Runs claimed before the row field existed still resolve, by list position."""
+    code = '"{{DEVICE_SERIAL_1}}"'
+    out = inject_run_values(code, {}, [], [{"serial": "OLD", "hardwareType": "wireless"}], "")
+    assert out == '"OLD"'
+
+
+def test_inject_leaves_token_unresolved_when_no_device_claimed():
+    """Nothing to resolve it with: the token stays so the orchestrator can fail loudly
+    instead of sending a literal '{{...}}' in a URL."""
+    code = '"{{DEVICE_SERIAL_2}}"'
+    out = inject_run_values(code, {}, [], [{"serial": "A", "hardwareType": "wireless", "row": 1}], "")
+    assert "{{DEVICE_SERIAL_2}}" in out
+
+
 # --- registry ----------------------------------------------------------------
 
 def test_registry_resolves_python_and_go():

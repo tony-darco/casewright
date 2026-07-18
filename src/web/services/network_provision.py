@@ -71,12 +71,15 @@ def hardware_type_for_model(model) -> str:
     return ""
 
 
-def _claim_pinned(available, req, network_id, key, on_log, claimed) -> None:
+def _claim_pinned(available, req, network_id, key, on_log, claimed, row) -> None:
     """Claim one specific device by serial (a hardware row pinned to real hardware).
 
     A pinned serial is the one baked into the generated code, so substituting another
     device of the same type would silently run an MR42's test on an MR16. If it isn't
-    claimable, that's an error — never something to paper over."""
+    claimable, that's an error — never something to paper over.
+
+    ``row`` is the 1-based hardware-row index this device satisfies, recorded so the
+    generated code's {{DEVICE_SERIAL_row}} token resolves to exactly this device."""
     serial = (req.get("serial") or "").strip()
     match = next((d for d in available if d.get("serial") == serial), None)
     if match is None:
@@ -88,7 +91,8 @@ def _claim_pinned(available, req, network_id, key, on_log, claimed) -> None:
     available.remove(match)
     meraki.claim_device(network_id, [serial], key)
     claimed.append({"serial": serial, "model": match.get("model", ""),
-                    "hardwareType": hardware_type_for_model(match.get("model", ""))})
+                    "hardwareType": hardware_type_for_model(match.get("model", "")),
+                    "row": row})
     _log(on_log, "provision", f"claimed {match.get('model', '')} {serial} (pinned by this test)")
 
 
@@ -99,17 +103,22 @@ def _claim_hardware(org_id, network_id, hardware_reqs, key, on_log, claimed) -> 
     A requirement either names a specific device (``serial``) — claimed exactly — or is
     generic (``type`` + ``count``) and filled from whatever unclaimed inventory is left.
     Raises ProvisionError if the inventory can't satisfy a requirement (never
-    fabricates)."""
+    fabricates).
+
+    Each claimed device records the 1-based ``row`` of the requirement it satisfies. The
+    claim order here is pinned-first (deliberately — see below), which is NOT the row
+    order, so the index has to be carried explicitly rather than inferred from position:
+    it's what maps a {{DEVICE_SERIAL_N}} token in the code to the right device."""
     if not hardware_reqs:
         return
     available = list(meraki.list_org_inventory(org_id, key, unclaimed_only=True))
 
     # pinned first: they're specific, so they must not lose a device to a generic row
-    for req in hardware_reqs:
+    for row, req in enumerate(hardware_reqs, start=1):
         if req.get("serial"):
-            _claim_pinned(available, req, network_id, key, on_log, claimed)
+            _claim_pinned(available, req, network_id, key, on_log, claimed, row)
 
-    for req in hardware_reqs:
+    for row, req in enumerate(hardware_reqs, start=1):
         if req.get("serial"):
             continue
         hw_type, count = req.get("type"), int(req.get("count", 1) or 1)
@@ -124,7 +133,8 @@ def _claim_hardware(org_id, network_id, hardware_reqs, key, on_log, claimed) -> 
         serials = [d["serial"] for d in picks]
         meraki.claim_device(network_id, serials, key)
         for d in picks:
-            claimed.append({"serial": d["serial"], "model": d.get("model", ""), "hardwareType": hw_type})
+            claimed.append({"serial": d["serial"], "model": d.get("model", ""),
+                            "hardwareType": hw_type, "row": row})
         _log(on_log, "provision", f"claimed {count} {hw_type} device(s): {', '.join(serials)}")
 
 

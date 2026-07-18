@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS runs (
     example_network_id   TEXT NOT NULL DEFAULT '',
     org_id               TEXT NOT NULL DEFAULT '',
     network_id           TEXT NOT NULL DEFAULT '',         -- the ephemeral network, once provisioned
-    claimed_devices_json TEXT NOT NULL DEFAULT '[]',       -- [{serial, model, hardwareType, originalSerial}]
+    claimed_devices_json TEXT NOT NULL DEFAULT '[]',       -- [{serial, model, hardwareType, row}]
     error_message        TEXT NOT NULL DEFAULT '',
     started_at           TEXT,
     finished_at          TEXT,

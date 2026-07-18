@@ -16,6 +16,7 @@ import threading
 
 from web.services import (
     generate, network_provision, run_logs_store, run_settings_store, runs_store,
+    serial_tokens,
 )
 from web.services.network_provision import ProvisionError
 from web.services.runners import registry
@@ -81,12 +82,23 @@ def start_run(job, uid, test, run_id, run_code, org_id, source, example_network_
 
         status("running")
         # org/network/key reach the code via the environment (a fresh network per run, so
-        # no id is baked in). The device serial IS baked in — the user pins a specific
-        # device up front — so inject only maps that baked serial to the actually-claimed
-        # one (a no-op when they're the same), plus any legacy baked-in network id.
+        # no id is baked in). Device serials arrive as {{DEVICE_SERIAL_N}} tokens: any left
+        # unresolved at generation belong to type-only hardware, and inject fills them from
+        # the devices just claimed (plus the legacy literal-serial/network-id swaps).
         code = inject_run_values(
             test.get("code", ""), _loads(test.get("gen_meta_json"), {}),
             _loads(test.get("devices_json"), []), result.claimed_devices, result.network_id)
+        # A token with no device behind it must stop the run. Left alone it would send a
+        # literal '{{DEVICE_SERIAL_2}}' in the URL and 404 — the silent-wrong-serial
+        # failure the token contract exists to eliminate.
+        unresolved = serial_tokens.remaining(code)
+        if unresolved:
+            raise ProvisionError(
+                "No device was claimed for "
+                + ", ".join(serial_tokens.token(i) for i in unresolved)
+                + " — the test references more hardware than its configuration provides. "
+                "Add the missing hardware in the test's Configuration tab and re-run."
+            )
         env = {"MERAKI_API_KEY": key, "MERAKI_ORG_ID": result.org_id,
                "MERAKI_NETWORK_ID": result.network_id}
         runner = registry.get_runner(test.get("language") or "py")

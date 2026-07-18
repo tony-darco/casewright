@@ -19,7 +19,7 @@ import re
 
 from web import config
 from web.deps import get_pipeline
-from web.services import network_provision
+from web.services import network_provision, serial_tokens
 
 logger = logging.getLogger("web.generate")
 
@@ -132,25 +132,47 @@ def pin_mentioned_hardware(hardware, devices):
     return pinned + rest
 
 
-def _device_context(devices):
-    if not devices:
+def device_roster(hardware, devices):
+    """The ordered devices this test targets, one per hardware row — the list the serial
+    tokens are indexed against ({{DEVICE_SERIAL_1}} is row 1).
+
+    Reuses pin_mentioned_hardware so the roster shown to the model is the *same* list, in
+    the same order, as the hardware eventually stored on the test — that's what keeps a
+    token pointing at the same device at generation time and at run time. Rows carry a
+    serial only when one is known now (an @-mention or a device pinned in the picker); a
+    type-only row ("any wireless AP") has none until a run claims hardware."""
+    return pin_mentioned_hardware(hardware, devices)
+
+
+def _device_context(roster):
+    """Present each targeted device by TOKEN, never by serial.
+
+    The model is shown the model number (an MR42 is a dual-band AP — useful for deciding
+    what to assert) but never a serial: it writes the token and we substitute. This is the
+    fix for type-only rows, which have no serial to show at all — previously the model was
+    given nothing and fabricated one (web.services.serial_tokens)."""
+    if not roster:
         return ""
-    # The device(s) the test targets, with the CONCRETE serial to bake into the code. The
-    # user pins a specific device up front, so its serial is known now and stays stable
-    # across runs (the run claims that exact device) — use it literally.
-    lines = ["Referenced devices — use each serial as a literal in the code "
-             "(a model name like 'MR42' is NOT a serial):"]
-    for d in devices:
-        if not isinstance(d, dict):
+    lines = ["Devices this test targets — each already exists and is ready to use:"]
+    for i, row in enumerate(roster, start=1):
+        if not isinstance(row, dict):
             continue
-        lines.append(
-            "- {name}: serial={serial} model={model} mac={mac}".format(
-                name=d.get("name", "?"),
-                serial=d.get("serial", "?"),
-                model=d.get("model", "?"),
-                mac=d.get("mac", "?"),
-            )
-        )
+        label = row.get("name") or row.get("model") or row.get("type") or "device"
+        model = row.get("model") or f"any {row.get('type') or 'device'}"
+        lines.append(f"- {label} (model {model}): its serial is {serial_tokens.token(i)}")
+    # A small model will happily agree to an abstract rule and still emit its habitual
+    # "fetch the device list and filter" pattern, so show the exact line to write and the
+    # exact anti-pattern to avoid. The worked example is what makes the contract stick.
+    first = serial_tokens.token(1)
+    lines += [
+        "",
+        f'Treat {first} as the serial itself — a quoted string constant, e.g. '
+        f'SERIAL = "{first}" — and build device paths from it directly, like '
+        f'"/devices/" + SERIAL + "/...". It is replaced with the real serial before the '
+        "test runs.",
+        "Do NOT fetch a device list and filter it by model or name to find the serial, "
+        "and do NOT write a serial of your own: the token already IS the device.",
+    ]
     return "\n".join(lines)
 
 
@@ -161,7 +183,9 @@ def _concrete_context(meta):
     The org ID, network ID, and API key are supplied through environment variables set by
     the runner — the network is *freshly provisioned* per run, so it can't be a literal,
     and the org id follows the same channel for consistency. The base URL is stable and
-    device serials (a pinned device is known up front) are baked in as literals."""
+    hardcodable. Device serials arrive by token instead of either channel: they may not
+    exist yet at generation time (a type-only hardware row is claimed per run), so the
+    code carries {{DEVICE_SERIAL_N}} and it is substituted before the run."""
     meta = meta or {}
     return "\n".join([
         "Runtime values are provided via environment variables — read them from the "
@@ -170,33 +194,43 @@ def _concrete_context(meta):
         "- MERAKI_ORG_ID: the organization ID",
         "- MERAKI_NETWORK_ID: the network ID (a fresh network provisioned for this run)",
         f"- base URL (a stable constant you may hardcode): {meta.get('base_url') or config.MERAKI_BASE_URL}",
+        "Device serials are NOT environment variables and are NOT literals: write the "
+        f"{serial_tokens.token(1)} token (see the device list above) wherever a serial "
+        "belongs. Never invent a serial and never look one up.",
     ])
 
 
-def expand_mentions(prompt, devices):
-    """Rewrite each ``@name`` in the prompt to ``@name (serial <serial>, model <model>)``
-    using the submitted devices, so the concrete serial travels inline with the mention
-    (not just in the separate device-context block). A device with no serial, or a name
-    that doesn't appear in the prompt, is left alone. Whole-word match on the name so
-    ``@AP1`` isn't expanded inside ``@AP12``."""
-    if not prompt or not devices:
+def expand_mentions(prompt, roster):
+    """Rewrite each ``@name`` in the prompt to ``@name ({{DEVICE_SERIAL_N}}, model <model>)``
+    so the device's TOKEN travels inline with the mention, not just in the separate device
+    context block. The serial itself is never inlined — the model must never see one, or
+    it will copy it (badly) instead of emitting the token.
+
+    ``roster`` is the token-indexed device list (see device_roster). A roster row with no
+    name, or a name that doesn't appear in the prompt, is left alone. Whole-word match on
+    the name so ``@AP1`` isn't expanded inside ``@AP12``."""
+    if not prompt or not roster:
         return prompt or ""
-    for d in devices:
-        if not isinstance(d, dict):
+    for i, row in enumerate(roster, start=1):
+        if not isinstance(row, dict):
             continue
-        name, serial = (d.get("name") or "").strip(), (d.get("serial") or "").strip()
-        if not name or not serial:
+        name = (row.get("name") or "").strip()
+        if not name:
             continue
-        suffix = f" (serial {serial}, model {d.get('model') or '?'})"
-        # match "@name" only when not already followed by our "(serial …)" annotation
-        pat = re.compile(r"@" + re.escape(name) + r"\b(?!\s*\(serial )")
+        suffix = f" ({serial_tokens.token(i)}, model {row.get('model') or '?'})"
+        # match "@name" only when not already followed by our "({{DEVICE_SERIAL_…" note
+        pat = re.compile(r"@" + re.escape(name) + r"\b(?!\s*\(\{\{DEVICE_SERIAL_)")
         prompt = pat.sub("@" + name + suffix, prompt)
     return prompt
 
 
-def _full_prompt(prompt, devices, meta):
-    parts = [expand_mentions(prompt, devices)]
-    ctx = _device_context(devices)
+def _full_prompt(prompt, devices, meta, hardware=None):
+    """Assemble the prompt. ``hardware`` is the user's upfront picker selection; together
+    with the @-mentioned ``devices`` it forms the token-indexed roster the model writes
+    against. No real serial appears anywhere in the returned text."""
+    roster = device_roster(hardware, devices)
+    parts = [expand_mentions(prompt, roster)]
+    ctx = _device_context(roster)
     if ctx:
         parts.append(ctx)
     parts.append(_concrete_context(meta))
@@ -379,7 +413,7 @@ def stream_events(prompt, devices, language="py", meta=None, overrides=None,
 
     final = {}
     try:
-        for kind, payload in pipeline.stream_run(_full_prompt(prompt, devices, meta),
+        for kind, payload in pipeline.stream_run(_full_prompt(prompt, devices, meta, hardware),
                                                  language=language, repair=repair,
                                                  endpoints=endpoints):
             if kind == "stage":
@@ -413,6 +447,28 @@ def stream_events(prompt, devices, language="py", meta=None, overrides=None,
     # guess when the user picked nothing.
     base_hardware = hardware if hardware else final.get("hardware")
     hardware = [] if repair else pin_mentioned_hardware(base_hardware, devices)
+
+    # Resolve the serial tokens we can resolve now: a row pinned to a real device has a
+    # known serial, so bake it in and the saved test stays self-contained/downloadable.
+    # A type-only row has no device until a run claims one, so its token deliberately
+    # survives to run time (web.services.runners.inject). Warn — never block, same as the
+    # graph's validate node — when a test needs hardware but the model emitted no token
+    # at all, which means it ignored the contract and likely invented a serial.
+    roster = hardware if not repair else pin_mentioned_hardware(None, devices)
+    known = {i: (row.get("serial") or "") for i, row in enumerate(roster, start=1)
+             if isinstance(row, dict)}
+    if code:
+        before = serial_tokens.remaining(code)          # distinct token indices emitted
+        code = serial_tokens.substitute(code, known)
+        after = serial_tokens.remaining(code)           # still unresolved -> run time
+        if roster and not before:
+            log.add("generate", "the model wrote no device-serial token — check the code "
+                    "for a hardcoded or invented serial", "error")
+        elif before:
+            log.add("generate", f"serial tokens: {len(before)} emitted, "
+                    f"{len(before) - len(after)} resolved now"
+                    + (f", {len(after)} left for run time (type-only hardware)"
+                       if after else ""))
     if repair:
         log.add("hardware", "hardware unchanged (repair edits the code, not the run config)")
     else:

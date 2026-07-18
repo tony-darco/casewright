@@ -7,21 +7,33 @@ from web.services import generate
 
 # --- issue #9: runtime identifiers come from the environment, not baked-in literals ----
 
-def test_concrete_context_directs_ids_to_env_and_bakes_serial():
-    """Org id and network id come from the environment (per-run, so never literals), but
-    a pinned device's serial IS a concrete literal baked into the prompt (the user picked
-    the device up front, so its serial is known)."""
+def test_concrete_context_directs_ids_to_env_and_serial_to_token():
+    """Org id and network id come from the environment (per-run, so never literals), and
+    the device serial reaches the code as a {{DEVICE_SERIAL_N}} token. The real serial must
+    never appear in the prompt: shown one, the model copies it (often badly) instead of
+    emitting the token we can substitute deterministically."""
     devices = [{"name": "ap1", "serial": "Q2XX-YYYY", "model": "MR16", "orgId": "549236"}]
     meta = {"base_url": None, "org_id": "549236", "network_ids": ["L_123"]}
     fp = generate._full_prompt("list the org devices", devices, meta)
     assert "MERAKI_ORG_ID" in fp        # org id read from the environment
     assert "MERAKI_NETWORK_ID" in fp    # network id read from the environment
-    assert "MERAKI_DEVICE_SERIAL" not in fp  # the serial is baked in, not from env
-    assert "Q2XX-YYYY" in fp            # the device serial is a concrete literal
+    assert "MERAKI_DEVICE_SERIAL" not in fp  # the serial isn't an env var either
+    assert "{{DEVICE_SERIAL_1}}" in fp  # the serial arrives as a token
+    assert "Q2XX-YYYY" not in fp        # ...and the real serial is never shown
     assert "MR16" in fp                 # device model as context
     assert "api.meraki.com" in fp       # base url default (a literal constant)
     # the org/network ids must NOT be baked into the prompt as literals
     assert "549236" not in fp and "L_123" not in fp
+
+
+def test_type_only_hardware_still_gets_a_token():
+    """The regression this contract exists for: a type-only row ('any wireless AP') has no
+    serial at generation time. It must still be tokenized — given nothing, the model
+    fabricated serials like 'MR42-1234567890' and every device call 404'd."""
+    hardware = [{"type": "wireless", "count": 1}]
+    fp = generate._full_prompt("check the AP's wireless status", [], {}, hardware)
+    assert "{{DEVICE_SERIAL_1}}" in fp
+    assert "any wireless" in fp        # the model is told what kind of device it gets
 
 
 def test_concrete_context_env_vars_present_without_meta():

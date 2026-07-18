@@ -67,7 +67,8 @@ def test_full_run_success_and_teardown():
     assert container_env["MERAKI_NETWORK_ID"] == "L_new"
     assert container_env["MERAKI_ORG_ID"] == "O1"
     assert container_env["MERAKI_API_KEY"] == "key"
-    # the device serial is baked into the code (a pinned device), not passed by env
+    # the device serial reaches the code as a substituted {{DEVICE_SERIAL_N}} token,
+    # not through the environment
     assert "MERAKI_DEVICE_SERIAL" not in container_env
 
     events = job._events
@@ -78,6 +79,78 @@ def test_full_run_success_and_teardown():
 
     persisted = runs_store.get_run(uid, run["id"])
     assert persisted["status"] == "success" and persisted["network_id"] == "L_new"
+
+
+def test_token_resolved_into_container_code():
+    """The type-only path end-to-end: the stored test carries {{DEVICE_SERIAL_1}} (no
+    device existed when it was written) and the code handed to the container carries the
+    serial of the device this run actually claimed."""
+    orch._release()
+    db.init()
+    uid = db.create_user(f"orch-tok-{id(object())}", "hash")["id"]
+    code = 'SERIAL = "{{DEVICE_SERIAL_1}}"\n'
+    t = tests_store.create_test(uid, "T", "prompt", "test_generated.py", code, "py", [], [])
+    tests_store.finish_test(uid, t["id"], "test_generated.py", code, [], None, "done",
+                            hardware=[{"type": "wireless", "count": 1}], gen_meta={})
+    test = tests_store.get_test(uid, t["id"])
+    run = runs_store.create_run(uid, t["id"], "example", "L_example")
+    job = Job(test_id=run["id"], user_id=uid)
+
+    docker_client = mock.Mock()
+    docker_client.containers.run.return_value = _fake_container(exit_code=0)
+    with mock.patch.object(np.meraki, "create_network",
+                           return_value={"id": "L_new", "orgId": "O1", "name": "run-1"}), \
+         mock.patch.object(np.meraki, "list_org_inventory",
+                           return_value=[_dev("Q2-REAL", "MR33", "wireless")]), \
+         mock.patch.object(np.meraki, "claim_device"), \
+         mock.patch.object(np.meraki, "remove_device"), \
+         mock.patch.object(np.meraki, "delete_network"), \
+         mock.patch.object(runner_base, "_client", return_value=docker_client):
+        assert orch.begin(run["id"]) is True
+        orch.start_run(job, uid, test, run["id"], run["run_code"], "O1",
+                       "example", "L_example", "key")
+
+    sent = docker_client.containers.run.call_args.kwargs
+    written = job._events  # the run reached the container at all
+    assert any(e.get("status") == "success" for e in written if e["type"] == "status")
+    assert runs_store.get_run(uid, run["id"])["status"] == "success"
+    # no token may survive into the executed code
+    assert "DEVICE_SERIAL" not in str(sent)
+
+
+def test_unresolved_token_fails_the_run():
+    """A token with no device behind it must stop the run. Executing it would send a
+    literal '{{DEVICE_SERIAL_2}}' in the URL and 404 — the silent-wrong-serial failure
+    the token contract exists to eliminate."""
+    orch._release()
+    db.init()
+    uid = db.create_user(f"orch-bad-{id(object())}", "hash")["id"]
+    code = 'A = "{{DEVICE_SERIAL_1}}"\nB = "{{DEVICE_SERIAL_2}}"\n'   # asks for 2 devices
+    t = tests_store.create_test(uid, "T", "prompt", "test_generated.py", code, "py", [], [])
+    tests_store.finish_test(uid, t["id"], "test_generated.py", code, [], None, "done",
+                            hardware=[{"type": "wireless", "count": 1}],  # ...only 1 provided
+                            gen_meta={})
+    test = tests_store.get_test(uid, t["id"])
+    run = runs_store.create_run(uid, t["id"], "example", "L_example")
+    job = Job(test_id=run["id"], user_id=uid)
+
+    docker_client = mock.Mock()
+    with mock.patch.object(np.meraki, "create_network",
+                           return_value={"id": "L_new", "orgId": "O1", "name": "run-1"}), \
+         mock.patch.object(np.meraki, "list_org_inventory",
+                           return_value=[_dev("Q2-REAL", "MR33", "wireless")]), \
+         mock.patch.object(np.meraki, "claim_device"), \
+         mock.patch.object(np.meraki, "remove_device"), \
+         mock.patch.object(np.meraki, "delete_network"), \
+         mock.patch.object(runner_base, "_client", return_value=docker_client):
+        assert orch.begin(run["id"]) is True
+        orch.start_run(job, uid, test, run["id"], run["run_code"], "O1",
+                       "example", "L_example", "key")
+
+    docker_client.containers.run.assert_not_called()   # never executed
+    persisted = runs_store.get_run(uid, run["id"])
+    assert persisted["status"] == "error"
+    assert "DEVICE_SERIAL_2" in persisted["error_message"]
 
 
 def test_second_concurrent_run_rejected():
