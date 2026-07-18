@@ -17,7 +17,7 @@ per-user test library (persisted).
 import json
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 
 from web.auth import require_user
 from web.deps import templates
@@ -129,6 +129,21 @@ def app_home(request: Request, user: dict = Depends(require_user)):
     )
 
 
+@router.get("/app/t/{slug}", response_class=HTMLResponse)
+def app_open_test(request: Request, slug: str, user: dict = Depends(require_user)):
+    """Owner-locked per-test page: renders the same app shell as /app but tells the
+    client which test to auto-open. The slug is opaque and the lookup is scoped to the
+    user, so another user opening the link (or a guessed slug) is bounced to their own
+    /app and the test never opens."""
+    test = tests_store.get_test_by_slug(user["id"], slug)
+    if not test:
+        return RedirectResponse("/app", status_code=303)
+    return templates.TemplateResponse(request, "app.html", {
+        "tests": tests_store.list_tests(user["id"]),
+        "open_test_id": test["id"],
+    })
+
+
 def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language, meta, prov,
                     repair=None, endpoints=None, keep_hardware=None, is_new=True,
                     hardware=None):
@@ -163,9 +178,10 @@ def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language,
             logs_store.record(uid, test_id, vm.get("_log"))
             vm["t"] = {"id": test_id, "name": name}
             vm["version_no"], vm["version_count"], vm["is_latest"] = n, n + 1, True
-            vm.update(_run_context(uid, tests_store.get_test(uid, test_id)))
+            test_row = tests_store.get_test(uid, test_id)
+            vm.update(_run_context(uid, test_row))
             item = templates.get_template("partials/test_item.html").render(
-                {"t": {"id": test_id, "name": name, "status": "done"}})
+                {"t": {"id": test_id, "slug": test_row["slug"], "name": name, "status": "done"}})
         elif is_new:
             tests_store.delete_test(uid, test_id)   # failed/empty: don't leave a placeholder
             item = ""
@@ -173,8 +189,9 @@ def _run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language,
             # A regenerate/repair that fails must not take the existing test with it —
             # deleting here would destroy the stored code and every prior version.
             tests_store.abandon_generation(uid, test_id)
+            slug = (tests_store.get_test(uid, test_id) or {}).get("slug", "")
             item = templates.get_template("partials/test_item.html").render(
-                {"t": {"id": test_id, "name": name, "status": "done"}})
+                {"t": {"id": test_id, "slug": slug, "name": name, "status": "done"}})
         panel = templates.get_template("partials/workspace.html").render(vm)
         job.emit({"type": "done", "panel_html": panel, "item_html": item,
                   "status": "done" if ok else "error", "test_id": test_id})

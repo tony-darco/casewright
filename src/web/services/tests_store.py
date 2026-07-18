@@ -6,20 +6,35 @@ This module is the seam if tests ever move to a document store later.
 """
 
 import json
+import sqlite3
 
 from web import db
 
 
+def _insert_with_slug(conn, columns, values):
+    """INSERT a tests row with a fresh opaque slug, retrying once on the (astronomically
+    rare) slug UNIQUE collision. ``columns``/``values`` are the caller's columns minus
+    the slug. Returns the new row id."""
+    sql = ("INSERT INTO tests (slug, " + ", ".join(columns) + ") "
+           "VALUES (" + ", ".join(["?"] * (len(values) + 1)) + ")")
+    for attempt in range(2):
+        try:
+            return conn.execute(sql, (db.new_slug(), *values)).lastrowid
+        except sqlite3.IntegrityError:
+            if attempt:
+                raise
+
+
 def create_test(user_id, name, prompt, file_name, code, language, endpoints, devices, validation=None):
     with db.cursor() as conn:
-        cur = conn.execute(
-            "INSERT INTO tests (user_id, name, prompt, file_name, code, language, "
-            "endpoints_json, devices_json, validation_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        test_id = _insert_with_slug(
+            conn,
+            ("user_id", "name", "prompt", "file_name", "code", "language",
+             "endpoints_json", "devices_json", "validation_json"),
             (user_id, name.strip(), prompt, file_name, code, language,
              json.dumps(endpoints or []), json.dumps(devices or []),
              json.dumps(validation) if validation else ""),
         )
-        test_id = cur.lastrowid
     return {"id": test_id, "name": name.strip()}
 
 
@@ -28,13 +43,13 @@ def create_generating(user_id, name, prompt, language, devices):
     appears in the sidebar immediately and can be reattached to. Filled in by
     finish_test (or removed by delete_test on failure)."""
     with db.cursor() as conn:
-        cur = conn.execute(
-            "INSERT INTO tests (user_id, name, prompt, language, devices_json, status) "
-            "VALUES (?, ?, ?, ?, ?, 'generating')",
-            (user_id, name.strip(), prompt, language, json.dumps(devices or [])),
+        test_id = _insert_with_slug(
+            conn,
+            ("user_id", "name", "prompt", "language", "devices_json", "status"),
+            (user_id, name.strip(), prompt, language, json.dumps(devices or []), "generating"),
         )
-        test_id = cur.lastrowid
-    return {"id": test_id, "name": name.strip(), "status": "generating"}
+        slug = conn.execute("SELECT slug FROM tests WHERE id = ?", (test_id,)).fetchone()[0]
+    return {"id": test_id, "slug": slug, "name": name.strip(), "status": "generating"}
 
 
 def finish_test(user_id, test_id, file_name, code, endpoints, validation, status="done",
@@ -115,8 +130,8 @@ def restart_generation(user_id, test_id, prompt, language):
         )
         if cur.rowcount == 0:
             return None
-        name = conn.execute("SELECT name FROM tests WHERE id = ?", (test_id,)).fetchone()[0]
-    return {"id": test_id, "name": name, "status": "generating"}
+        row = conn.execute("SELECT name, slug FROM tests WHERE id = ?", (test_id,)).fetchone()
+    return {"id": test_id, "slug": row["slug"], "name": row["name"], "status": "generating"}
 
 
 # --- version history (#12) -------------------------------------------------------
@@ -163,7 +178,7 @@ def list_tests(user_id):
     """Lightweight rows for the sidebar (no code payload), newest first."""
     with db.cursor() as conn:
         rows = conn.execute(
-            "SELECT id, name, status, created_at FROM tests WHERE user_id = ? "
+            "SELECT id, slug, name, status, created_at FROM tests WHERE user_id = ? "
             "ORDER BY created_at DESC, id DESC",
             (user_id,),
         ).fetchall()
@@ -188,6 +203,18 @@ def get_test(user_id, test_id):
     with db.cursor() as conn:
         row = conn.execute(
             "SELECT * FROM tests WHERE id = ? AND user_id = ?", (test_id, user_id)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def get_test_by_slug(user_id, slug):
+    """Look up a test by its opaque URL slug, scoped to the user — the enforcement
+    point for the owner-locked /app/t/{slug} page. Returns None if the slug is
+    unknown or belongs to another user, so a shared link never opens someone else's
+    test."""
+    with db.cursor() as conn:
+        row = conn.execute(
+            "SELECT * FROM tests WHERE slug = ? AND user_id = ?", (slug, user_id)
         ).fetchone()
     return dict(row) if row else None
 

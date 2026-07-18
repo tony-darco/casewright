@@ -5,10 +5,18 @@ survives container restarts (config.DB_PATH). Parameterized queries only. This i
 the seam that a future Postgres backend would replace.
 """
 
+import secrets
 import sqlite3
 from contextlib import contextmanager
 
 from web import config
+
+
+def new_slug() -> str:
+    """An opaque, URL-safe token for a test's shareable-but-owner-locked page URL
+    (/app/t/{slug}). Unguessable so the URL can't be enumerated; access is still
+    owner-scoped in every query."""
+    return secrets.token_urlsafe(12)
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -52,6 +60,7 @@ CREATE TABLE IF NOT EXISTS provider_settings (
 CREATE TABLE IF NOT EXISTS tests (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    slug           TEXT NOT NULL DEFAULT '',
     name           TEXT NOT NULL DEFAULT '',
     prompt         TEXT NOT NULL DEFAULT '',
     file_name      TEXT NOT NULL DEFAULT '',
@@ -240,6 +249,16 @@ def init() -> None:
                           ("dep_endpoints_json", "TEXT NOT NULL DEFAULT '[]'")):
             if name not in test_cols:
                 conn.execute(f"ALTER TABLE tests ADD COLUMN {name} {ddl}")
+        # tests gains an opaque URL slug; backfill existing rows so every test is
+        # reachable at /app/t/{slug}. The unique index is created here (after the
+        # column exists), not in _SCHEMA, so it doesn't run against a pre-slug table
+        # (same idiom as idx_users_email above). Partial index so blank rows don't
+        # collide before the backfill fills them in.
+        if "slug" not in test_cols:
+            conn.execute("ALTER TABLE tests ADD COLUMN slug TEXT NOT NULL DEFAULT ''")
+        for (tid,) in conn.execute("SELECT id FROM tests WHERE slug = ''").fetchall():
+            conn.execute("UPDATE tests SET slug = ? WHERE id = ?", (new_slug(), tid))
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_tests_slug ON tests(slug) WHERE slug <> ''")
         # runs gains the code version it executed (versioned output: each run is an
         # output tagged to the code version it ran, so the Output tab is version-scoped)
         run_cols = {row[1] for row in conn.execute("PRAGMA table_info(runs)").fetchall()}

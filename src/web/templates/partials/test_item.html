@@ -1,7 +1,7 @@
 {# One saved test in the sidebar library. `oob` set when returned from generate,
    so htmx prepends it to #testList; renders inline (no oob) in the list loop and
    the rename response. #}
-<div class="ritem" id="test-{{ t.id }}" data-test-id="{{ t.id }}" data-status="{{ t.status|default('done', true) }}"{% if oob %} hx-swap-oob="afterbegin:#testList"{% endif %}>
+<div class="ritem" id="test-{{ t.id }}" data-test-id="{{ t.id }}" data-slug="{{ t.slug|default('', true) }}" data-status="{{ t.status|default('done', true) }}"{% if oob %} hx-swap-oob="afterbegin:#testList"{% endif %}>
   {# status indicator doubles as the delete control: the middot turns into a red × on
      hover, and clicking it deletes the test (app.js confirms first). #}
   <button type="button" class="ritem-del" title="Delete test" aria-label="Delete test">

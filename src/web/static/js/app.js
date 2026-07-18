@@ -297,9 +297,17 @@
     }, 200);
   }
 
+  // The owner-locked page URL for a sidebar item (opaque slug), or /app as a fallback.
+  function testUrl(item) {
+    var slug = item && item.dataset.slug;
+    return slug ? ('/app/t/' + slug) : '/app';
+  }
+
   // Open a test in the workspace. A still-generating test reattaches to its live
-  // stream (#11); a finished one loads its saved code.
-  function loadTest(item) {
+  // stream (#11); a finished one loads its saved code. ``opts.push`` (default true)
+  // pushes the test's URL so refresh/bookmark/back-forward work; pass false when the
+  // open is itself a response to navigation (initial load / popstate).
+  function loadTest(item, opts) {
     if (!item) return;
     var tt = item.querySelector('.tt');
     var testId = item.dataset.testId;
@@ -312,6 +320,10 @@
       app.dataset.viewing = String(testId);
       workspace.innerHTML = GENNING;
       htmx.ajax('GET', '/app/tests/' + testId, { target: '#workspace', swap: 'innerHTML' });
+    }
+    if (!opts || opts.push !== false) {
+      var url = testUrl(item);
+      if (location.pathname !== url) history.pushState({ slug: item.dataset.slug || '' }, '', url);
     }
   }
 
@@ -521,11 +533,19 @@
   });
 
   /* ---------------- sidebar / new test ---------------- */
-  document.getElementById('newBtn').addEventListener('click', function () {
+  // Reset to the empty "New test" view. ``opts.push`` (default true) restores the /app
+  // URL; ``opts.focus`` (default true) focuses the composer. Both are suppressed when
+  // this reset is a response to navigation (popstate).
+  function resetToNew(opts) {
     app.dataset.view = 'empty'; app.dataset.nav = 'closed'; app.dataset.viewing = '';
     document.querySelectorAll('.ritem').forEach(function (r) { r.classList.remove('active'); });
-    topTitle.textContent = 'New test'; clearComposer(heroInput); heroSend.disabled = true; heroInput.focus();
-  });
+    topTitle.textContent = 'New test'; clearComposer(heroInput); heroSend.disabled = true;
+    if (!opts || opts.push !== false) {
+      if (location.pathname !== '/app') history.pushState({}, '', '/app');
+    }
+    if (!opts || opts.focus !== false) heroInput.focus();
+  }
+  document.getElementById('newBtn').addEventListener('click', function () { resetToNew(); });
   // Delete a test (from the sidebar × or the Test Configuration button), then tidy the
   // UI: drop its sidebar item, reset the workspace if it was open, restore the empty
   // hint when the last test goes. Versions/runs/logs are cascaded server-side.
@@ -686,4 +706,32 @@
 
   wireComposer(heroInput, heroSend, fromHero);
   loadDevices();    // claimable hardware for @-mentions (unclaimed org inventory)
+
+  /* ---------------- per-test URL: initial open + back/forward ---------------- */
+  // Open a test by its sidebar item's slug (used by initial load + popstate). Returns
+  // true if a matching item was found and opened.
+  function openBySlug(slug, opts) {
+    if (!slug) return false;
+    var item = document.querySelector('.ritem[data-slug="' + slug + '"]');
+    if (!item) return false;
+    loadTest(item, opts);
+    return true;
+  }
+  function slugFromPath() {
+    var m = location.pathname.match(/^\/app\/t\/([^/]+)$/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  // Deep-link: the server route /app/t/{slug} renders this shell with data-open-test set
+  // to that test's id, so we open it without pushing another history entry.
+  var openId = app.dataset.openTest;
+  if (openId) {
+    var initItem = document.getElementById('test-' + openId);
+    if (initItem) loadTest(initItem, { push: false });
+  }
+  // Back/forward between test pages (and back to /app) without a full reload.
+  window.addEventListener('popstate', function () {
+    var slug = slugFromPath();
+    if (slug) { if (!openBySlug(slug, { push: false })) location.reload(); }
+    else { resetToNew({ push: false, focus: false }); }
+  });
 })();

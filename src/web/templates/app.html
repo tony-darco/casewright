@@ -4,7 +4,7 @@
 {% block body_class %}route-app{% endblock %}
 
 {% block body %}
-<div class="app" data-view="empty" data-nav="closed" id="appRoot">
+<div class="app" data-view="empty" data-nav="closed" id="appRoot" data-open-test="{{ open_test_id|default('', true) }}">
   <aside class="sidebar">
     <div class="side-head">{{ ui.brand('/') }}</div>
     <button class="newbtn" id="newBtn"><span class="plus">+</span> New test</button>

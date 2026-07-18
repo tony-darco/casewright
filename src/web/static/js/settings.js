@@ -10,7 +10,11 @@
   var setShell = document.getElementById('setShell');
   if (!setBody) return;
 
-  /* ---- category nav + mobile drawer ---- */
+  /* ---- category nav + mobile drawer ----
+     The active section is mirrored in the URL hash (/settings#knowledgebase) so a
+     refresh, bookmark, or back/forward lands on the same section instead of snapping
+     back to Account. A hash (not a path) is used because the /settings/<name> paths are
+     already HTMX fragment endpoints. */
   function closeNav() { setShell.dataset.navOpen = 'false'; }
   var burger = document.getElementById('setBurger');
   if (burger) burger.addEventListener('click', function () {
@@ -18,13 +22,43 @@
   });
   var backdrop = document.getElementById('setBackdrop');
   if (backdrop) backdrop.addEventListener('click', closeNav);
+
+  var CATS = ['account', 'meraki', 'language', 'provider', 'knowledgebase', 'run', 'logs', 'general'];
+  function navBtn(cat) { return document.querySelector('.set-nav-item[data-cat="' + cat + '"]'); }
+  function setActiveCat(cat) {
+    setBody.dataset.cat = cat;
+    document.querySelectorAll('.set-nav-item').forEach(function (x) { x.classList.toggle('active', x.dataset.cat === cat); });
+  }
+  // Load a lazy tab's content (Knowledge base / Logs) from its own hx-get attributes.
+  // Used on restore paths (refresh, deep-link, back/forward) where there's no real
+  // click for HTMX to act on. On a user click, HTMX's native trigger already loads it.
+  function loadLazy(btn) {
+    if (btn && btn.getAttribute('hx-get') && window.htmx) {
+      htmx.ajax('GET', btn.getAttribute('hx-get'),
+        { target: btn.getAttribute('hx-target'), swap: btn.getAttribute('hx-swap') || 'innerHTML' });
+    }
+  }
   document.querySelectorAll('.set-nav-item').forEach(function (b) {
     b.addEventListener('click', function () {
-      setBody.dataset.cat = b.dataset.cat;
-      document.querySelectorAll('.set-nav-item').forEach(function (x) { x.classList.toggle('active', x === b); });
+      setActiveCat(b.dataset.cat);
+      // pushState (not location.hash=) so this doesn't fire hashchange and double-load
+      // the lazy tab HTMX already loads on this same click.
+      if (('#' + b.dataset.cat) !== location.hash) history.pushState(null, '', '#' + b.dataset.cat);
       closeNav();
     });
   });
+  // Restore the section named by the URL hash (refresh / deep-link / back-forward).
+  function restoreFromHash() {
+    var cat = location.hash.slice(1);
+    if (CATS.indexOf(cat) === -1) return;   // no/unknown hash: keep the server default (Account)
+    setActiveCat(cat);
+    loadLazy(navBtn(cat));
+  }
+  window.addEventListener('hashchange', restoreFromHash);
+  // Defer the first restore until the DOM is ready so htmx has finished its own
+  // init and htmx.ajax (for the lazy tabs) actually fires.
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restoreFromHash);
+  else restoreFromHash();
 
   /* ---- output language picker (persists to localStorage; read by the app) ---- */
   var langList = document.getElementById('langList');
