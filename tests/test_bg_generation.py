@@ -97,7 +97,7 @@ class _StubJob:
 
 
 def test_worker_persists_finished_test():
-    from web.routers import app_view
+    from tui import generation
     db.init()
     u = db.create_user("bgok", "hash")
     t = tests_store.create_generating(u["id"], "My test", "list orgs", "py", [])
@@ -106,9 +106,9 @@ def test_worker_persists_finished_test():
                                 {"ok": True, "method": "ast", "detail": "ok", "language": "python", "label": "Python"})
     vm["_log"] = []
     job = _StubJob()
-    with mock.patch.object(app_view.generate, "stream_events", _fake_stream(vm)):
-        app_view._run_generation(job, u["id"], t["id"], "My test", "list orgs",
-                                 [], "[]", "py", {}, None)
+    with mock.patch.object(generation.generate, "stream_events", _fake_stream(vm)):
+        generation.run_generation(job, u["id"], t["id"], "My test", "list orgs",
+                                  [], "[]", "py", {}, None)
 
     row = tests_store.get_test(u["id"], t["id"])
     assert row["status"] == "done"
@@ -116,19 +116,19 @@ def test_worker_persists_finished_test():
     assert row["validation_json"]                      # persisted
     done = job.events[-1]
     assert done["type"] == "done" and done["status"] == "done"
-    assert done["item_html"] and str(t["id"]) in done["item_html"]
+    assert done["test_id"] == t["id"]
 
 
 def test_worker_drops_placeholder_on_error():
-    from web.routers import app_view
+    from tui import generation
     db.init()
     u = db.create_user("bgerr", "hash")
     t = tests_store.create_generating(u["id"], "Bad", "x", "py", [])
     err_vm = {"error": "Couldn't reach the model backend (Ollama).", "prompt": "x", "_log": []}
     job = _StubJob()
-    with mock.patch.object(app_view.generate, "stream_events", _fake_stream(err_vm)):
-        app_view._run_generation(job, u["id"], t["id"], "Bad", "x", [], "[]", "py", {}, None)
+    with mock.patch.object(generation.generate, "stream_events", _fake_stream(err_vm)):
+        generation.run_generation(job, u["id"], t["id"], "Bad", "x", [], "[]", "py", {}, None)
 
     assert tests_store.get_test(u["id"], t["id"]) is None   # placeholder removed
     done = job.events[-1]
-    assert done["status"] == "error" and done["item_html"] == ""
+    assert done["status"] == "error" and done["test_id"] == t["id"]

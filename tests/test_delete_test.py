@@ -1,8 +1,7 @@
-"""Deleting a test: the route removes the test and everything under it (versions,
-runs, and their logs cascade via foreign keys), scoped to the owner."""
+"""Deleting a test removes it and everything under it (versions, runs, and their logs
+cascade via foreign keys), scoped to the owner."""
 
 from web import db
-from web.routers import app_view
 from web.services import run_logs_store, runs_store, tests_store
 
 
@@ -37,8 +36,7 @@ def test_delete_removes_the_test_and_cascades():
     with db.cursor() as conn:
         assert _counts(conn, tid)["tests"] == 1
 
-    resp = app_view.delete_test(tid, {"id": uid})
-    assert resp.status_code == 204
+    assert tests_store.delete_test(uid, tid) is True
 
     with db.cursor() as conn:
         after = _counts(conn, tid)
@@ -53,6 +51,5 @@ def test_delete_is_scoped_to_the_owner():
     other = db.create_user("delother", "h")["id"]
     tid, _ = _seed_test_with_history(owner)
 
-    resp = app_view.delete_test(tid, {"id": other})   # not their test
-    assert resp.status_code == 404
+    assert tests_store.delete_test(other, tid) is False   # not their test
     assert tests_store.get_test(owner, tid) is not None   # still there

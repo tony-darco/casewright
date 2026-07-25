@@ -1,0 +1,98 @@
+/* casewright TUI — austere grayscale, hairline dividers, mono for data. */
+
+Screen {
+    background: $background;
+}
+
+#body {
+    height: 1fr;
+}
+
+#sidebar {
+    width: 32;
+    border-right: solid $panel-darken-1;
+    padding: 1 1;
+}
+
+#sidebar .eyebrow {
+    color: $text-muted;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#library {
+    height: 1fr;
+    background: transparent;
+}
+
+#library > ListItem {
+    padding: 0 1;
+}
+
+#main {
+    width: 1fr;
+    padding: 0 1;
+}
+
+#topbar {
+    height: 1;
+    color: $text-muted;
+    margin: 1 0;
+}
+
+.eyebrow {
+    color: $text-muted;
+    text-style: bold;
+}
+
+#composer {
+    height: 8;
+    border: round $panel-darken-1;
+}
+
+#composer-bar {
+    height: auto;
+    margin: 1 0;
+}
+
+#composer-bar #language {
+    width: 32;
+    margin-right: 2;
+}
+
+#status, #config-status, #run-status, #code-info {
+    height: auto;
+    color: $text-muted;
+    margin-top: 1;
+}
+
+#code {
+    height: 1fr;
+    border: round $panel-darken-1;
+}
+
+#network {
+    width: 50;
+    margin-bottom: 1;
+}
+
+#hardware {
+    height: 8;
+    border: round $panel-darken-1;
+    margin-bottom: 1;
+}
+
+#config-bar, #output-bar {
+    height: auto;
+    margin-top: 1;
+}
+
+#config-bar Button, #output-bar Button {
+    margin-right: 2;
+}
+
+#output {
+    height: 1fr;
+    border: round $panel-darken-1;
+    background: $surface;
+}

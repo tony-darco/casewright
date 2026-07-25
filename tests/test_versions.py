@@ -3,8 +3,8 @@
 from unittest import mock
 
 from web import db
-from web.routers import app_view
 from web.services import generate, tests_store
+from tui import generation
 
 
 def _fake_stream(code, prompt="p"):
@@ -80,13 +80,13 @@ def test_regenerate_snapshots_each_version():
 
     # first generation -> version 0
     job = _StubJob()
-    with mock.patch.object(app_view.generate, "stream_events", _fake_stream("code v0", "v0 prompt")):
-        app_view._run_generation(job, u["id"], tid, "T", "v0 prompt", [], "[]", "py", {}, None)
+    with mock.patch.object(generation.generate, "stream_events", _fake_stream("code v0", "v0 prompt")):
+        generation.run_generation(job, u["id"], tid, "T", "v0 prompt", [], "[]", "py", {}, None)
     # regenerate into the same test -> version 1
     tests_store.restart_generation(u["id"], tid, "v1 prompt", "py")
     job2 = _StubJob()
-    with mock.patch.object(app_view.generate, "stream_events", _fake_stream("code v1", "v1 prompt")):
-        app_view._run_generation(job2, u["id"], tid, "T", "v1 prompt", [], "[]", "py", {}, None)
+    with mock.patch.object(generation.generate, "stream_events", _fake_stream("code v1", "v1 prompt")):
+        generation.run_generation(job2, u["id"], tid, "T", "v1 prompt", [], "[]", "py", {}, None)
 
     vs = tests_store.list_versions(u["id"], tid)
     assert len(vs) == 2
@@ -94,5 +94,5 @@ def test_regenerate_snapshots_each_version():
     assert tests_store.get_version(u["id"], tid, 1)["code"] == "code v1"
     # the tests row mirrors the latest
     assert tests_store.get_test(u["id"], tid)["code"] == "code v1"
-    # the rendered panel shows the version bar now that there are 2 versions
-    assert "version-bar" in job2.events[-1]["panel_html"]
+    # the worker signals success once the second version is persisted
+    assert job2.events[-1]["type"] == "done" and job2.events[-1]["status"] == "done"

@@ -1,23 +1,14 @@
-"""Shared web dependencies: the Jinja2 environment and the pipeline cache.
+"""Shared dependency: the lazily-built, cached generation pipeline.
 
 The generation pipeline (``AutoTestLLM``) is expensive to build (chat model +
 embeddings + Chroma store) and needs Ollama plus ``AUTOTEST_DATA_DIR``. We build
 it *lazily on first use* and cache it — one instance per distinct set of
 per-user provider overrides (Settings → Model provider), so users on the same
 settings share a pipeline and the no-overrides default stays a singleton. We
-swallow build failures so that every non-generate view still serves and a
-generation can surface a clear inline error instead of a 500 (handoff:
-frontend must not hard-depend on a running model).
+swallow build failures so that every non-generate view still works and a
+generation can surface a clear inline error instead of crashing (the front-end
+must not hard-depend on a running model).
 """
-
-from fastapi.templating import Jinja2Templates
-
-from web import config
-
-templates = Jinja2Templates(directory=str(config.TEMPLATES_DIR))
-# Expose the wordmark to every template without threading it through each route.
-templates.env.globals["WORDMARK"] = config.WORDMARK
-
 
 _pipelines = {}   # override-key -> (pipeline, error); exactly one is non-None per entry
 
