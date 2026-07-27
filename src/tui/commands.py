@@ -84,6 +84,27 @@ def parse(text: str) -> Command | None:
     return Command(None, body, "unknown")
 
 
+def suggest(value: str) -> list[tuple[str, str]]:
+    """Commands whose name/aliases match a half-typed slash word.
+
+    Returns ``[(canonical_name, help), …]`` for ``/`` (all commands) or ``/h``
+    (everything starting with ``h``). Returns ``[]`` once a space is typed — the
+    command word is complete — or for plain (non-slash) text.
+    """
+    if not value.startswith("/"):
+        return []
+    body = value[1:]
+    if " " in body:      # a space means the command word is finished (incl. trailing)
+        return []
+    low = body.lower()
+    out, seen = [], set()
+    for name, aliases, _cat, doc in _REGISTRY:
+        if name not in seen and any(a.startswith(low) for a in aliases):
+            seen.add(name)
+            out.append((aliases[0], doc))
+    return out
+
+
 def help_text() -> str:
     """A grouped, Rich-markup list of every command for the /help toast."""
     groups = {"nav": "GO", "action": "DO", "global": "APP"}
@@ -100,12 +121,83 @@ def help_text() -> str:
 
 class CommandBar(Vertical):
     """The always-present command line, styled after the Claude Code prompt:
-    a ``>`` inside a rounded box with a dim hint line beneath. The inner Input
-    keeps id ``command`` so routing and auto-focus are unchanged.
+    a ``>`` inside a rounded box, a live suggestion menu above it, and a dim hint
+    line beneath. The inner Input keeps id ``command`` so routing and auto-focus
+    are unchanged.
+
+    Type ``/h`` and the menu lists matching commands; ↑/↓ move the highlight, Tab
+    completes it, Enter runs the highlighted match (or the literal text).
     """
 
     def compose(self) -> ComposeResult:
+        yield Static(" ", id="command-suggest")
         with Horizontal(id="command-row"):
             yield Static(">", id="command-prompt")
             yield Input(placeholder="Ask for a test, or / for commands", id="command")
-        yield Static("/ for commands  ·  plain text goes where you are", id="command-hint")
+        yield Static("/ for commands  ·  Tab to complete  ·  Enter to run", id="command-hint")
+
+    def on_mount(self) -> None:
+        self._matches: list[tuple[str, str]] = []
+        self._sel = 0
+        self.suggestions_open = False   # #command-suggest starts hidden via CSS
+
+    # --- live suggestions --------------------------------------------------------
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "command":
+            self._matches = suggest(event.value)
+            self._sel = 0
+            self._refresh_menu()
+
+    def _refresh_menu(self) -> None:
+        box = self.query_one("#command-suggest", Static)
+        if not self._matches:
+            box.display = False
+            self.suggestions_open = False
+            return
+        lines = []
+        for i, (name, doc) in enumerate(self._matches):
+            if i == self._sel:
+                lines.append(f"[b]› /{name}[/b]  [dim]{doc}[/dim]")
+            else:
+                lines.append(f"[dim]  /{name}  {doc}[/dim]")
+        box.update("\n".join(lines))
+        box.display = True
+        self.suggestions_open = True
+
+    def on_key(self, event) -> None:
+        # Fires as the key bubbles up from the (focused) Input; only act while the
+        # menu is open so normal typing/focus behaviour is untouched otherwise.
+        if not self.suggestions_open:
+            return
+        if event.key == "down":
+            self._sel = (self._sel + 1) % len(self._matches)
+            self._refresh_menu()
+        elif event.key == "up":
+            self._sel = (self._sel - 1) % len(self._matches)
+            self._refresh_menu()
+        elif event.key == "tab":
+            self._complete()
+        elif event.key == "escape":
+            self.hide()
+        else:
+            return
+        event.stop()
+        event.prevent_default()
+
+    def _complete(self) -> None:
+        inp = self.query_one("#command", Input)
+        inp.value = f"/{self._matches[self._sel][0]} "
+        inp.cursor_position = len(inp.value)   # on_input_changed then clears the menu
+
+    def hide(self) -> None:
+        self._matches = []
+        self.suggestions_open = False
+        self.query_one("#command-suggest").display = False
+
+    def effective(self, raw: str) -> str:
+        """The text to actually run on Enter: a half-typed slash word with an open
+        menu resolves to the highlighted command; everything else is literal."""
+        stripped = raw.strip()
+        if self._matches and stripped.startswith("/") and " " not in stripped[1:]:
+            return "/" + self._matches[self._sel][0]
+        return raw

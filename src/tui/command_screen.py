@@ -29,8 +29,10 @@ class CommandScreen(Screen):
         if event.input.id != "command":
             return
         event.stop()
-        raw = event.value
+        bar = self.query_one(CommandBar)
+        raw = bar.effective(event.value)
         event.input.value = ""
+        bar.hide()
         cmd = parse(raw)
         if cmd is None:
             self.on_text(raw)

@@ -30,6 +30,16 @@ CommandBar {
     padding: 0 1 0 1;
 }
 
+#command-suggest {
+    display: none;
+    height: auto;
+    max-height: 12;
+    margin: 0 1 0 1;
+    padding: 0 2;
+    background: $surface;
+    border: round $panel-darken-1;
+}
+
 #command-row {
     height: 3;
     border: round $panel-lighten-1;
