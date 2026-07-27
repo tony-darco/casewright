@@ -11,12 +11,13 @@ from pathlib import Path
 from textual import work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, VerticalScroll
-from textual.screen import Screen
 from textual.widgets import (
     Button, Footer, Header, Input, Label, ListItem, ListView, Select, Static,
 )
 
 from web.services import kb_ingest, kb_registry, kb_store, provider_store, url_fetch
+from tui.command_screen import CommandScreen
+from tui.commands import Command
 from tui.streaming import pump
 
 _SOURCE = [("From URL", "link"), ("From file", "upload")]
@@ -24,12 +25,8 @@ _SPLIT = [("LangChain split", "langchain"), ("Custom OpenAPI split", "custom")]
 _STORAGE = [("Local (inside the app)", "local"), ("Remote Chroma server", "remote")]
 
 
-class KnowledgeBaseScreen(Screen):
-    BINDINGS = [
-        ("escape", "app.pop_screen", "Back"),
-        ("a", "activate", "Activate"),
-        ("d", "delete", "Delete"),
-    ]
+class KnowledgeBaseScreen(CommandScreen):
+    BINDINGS = [("escape", "app.pop_screen", "Back")]
 
     def __init__(self):
         super().__init__()
@@ -53,9 +50,11 @@ class KnowledgeBaseScreen(Screen):
             yield Button("Start embedding", id="kb-start", variant="primary")
             yield Static("", id="kb-status")
 
-            yield Static("VERSIONS  (a: activate · d: delete errored)", classes="eyebrow")
+            yield Static("VERSIONS  (/activate · /delete — by number, e.g. /activate 2)",
+                         classes="eyebrow")
             yield ListView(id="kb-versions")
 
+        yield self.command_bar()
         yield Footer()
 
     def on_mount(self) -> None:
@@ -67,13 +66,18 @@ class KnowledgeBaseScreen(Screen):
     def _refresh_versions(self) -> None:
         lv = self.query_one("#kb-versions", ListView)
         lv.clear()
-        for v in kb_store.list_versions(self.app.uid):
+        for i, v in enumerate(kb_store.list_versions(self.app.uid), start=1):
             flag = " ★active" if v.get("is_active") else ""
             extra = f" — {v['error_message']}" if v["status"] == "error" and v["error_message"] else ""
-            label = f"[{v['status']}] {v['name']} · {v['doc_count']} docs{flag}{extra}"
+            label = f"{i}. [{v['status']}] {v['name']} · {v['doc_count']} docs{flag}{extra}"
             lv.append(ListItem(Label(label), name=str(v["id"])))
 
-    def _selected_version_id(self):
+    def _selected_version_id(self, ref: str = ""):
+        """The version id for an ``/activate``/``/delete`` — by 1-based number, else the highlighted row."""
+        if ref.strip().isdigit():
+            versions = kb_store.list_versions(self.app.uid)
+            i = int(ref) - 1
+            return versions[i]["id"] if 0 <= i < len(versions) else None
         item = self.query_one("#kb-versions", ListView).highlighted_child
         return int(item.name) if item and item.name else None
 
@@ -149,9 +153,10 @@ class KnowledgeBaseScreen(Screen):
             self._refresh_versions()
 
     # --- activate / delete -------------------------------------------------------
-    def action_activate(self) -> None:
-        vid = self._selected_version_id()
+    def action_activate(self, ref: str = "") -> None:
+        vid = self._selected_version_id(ref)
         if vid is None:
+            self.query_one("#kb-status", Static).update("[yellow]No version selected.[/yellow]")
             return
         if kb_store.set_active(self.app.uid, vid):
             self.query_one("#kb-status", Static).update("[green]Activated.[/green]")
@@ -160,12 +165,30 @@ class KnowledgeBaseScreen(Screen):
                 "[red]Can't activate (not found, or still embedding).[/red]")
         self._refresh_versions()
 
-    def action_delete(self) -> None:
-        vid = self._selected_version_id()
+    def action_delete(self, ref: str = "") -> None:
+        vid = self._selected_version_id(ref)
         if vid is None:
+            self.query_one("#kb-status", Static).update("[yellow]No version selected.[/yellow]")
             return
         kb_store.delete_version(self.app.uid, vid)
         self._refresh_versions()
+
+    # --- command routing ---------------------------------------------------------
+    def on_command(self, cmd: Command) -> bool:
+        if cmd.name == "activate":
+            self.action_activate(cmd.args)
+        elif cmd.name == "delete":
+            self.action_delete(cmd.args)
+        elif cmd.name == "embed":
+            self._start()
+        else:
+            return False
+        return True
+
+    def on_text(self, text: str) -> None:
+        """Plain text becomes the source URL/path to embed."""
+        self.query_one("#kb-input", Input).value = text.strip()
+        self.query_one("#kb-status", Static).update("Source set — /embed to start.")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "kb-save-storage":

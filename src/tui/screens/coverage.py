@@ -6,15 +6,15 @@ screen just renders the tree and an endpoint-detail panel.
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, VerticalScroll
-from textual.screen import Screen
 from textual.widgets import Footer, Header, Static, Tree
 
 from web.services import coverage
+from tui.command_screen import CommandScreen
 
 _STATE_GLYPH = {"none": "·", "never": "○", "covered": "○", "passed": "✓", "failed": "✕"}
 
 
-class CoverageScreen(Screen):
+class CoverageScreen(CommandScreen):
     BINDINGS = [("escape", "app.pop_screen", "Back")]
 
     def compose(self) -> ComposeResult:
@@ -23,6 +23,7 @@ class CoverageScreen(Screen):
             yield Tree("Meraki API spec", id="cov-tree")
             with VerticalScroll(id="cov-detail"):
                 yield Static("Select an endpoint to see the tests that cover it.", id="cov-detail-body")
+        yield self.command_bar()
         yield Footer()
 
     def on_mount(self) -> None:

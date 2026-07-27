@@ -5,19 +5,20 @@ runs_store (list_runs_for_test per test).
 """
 
 from textual.app import ComposeResult
-from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Static
 
 from web.services import runs_store, tests_store
+from tui.command_screen import CommandScreen
 
 
-class RunsScreen(Screen):
+class RunsScreen(CommandScreen):
     BINDINGS = [("escape", "app.pop_screen", "Back")]
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
         yield Static("RUN HISTORY", classes="eyebrow")
         yield DataTable(id="runs-table")
+        yield self.command_bar()
         yield Footer()
 
     def on_mount(self) -> None:

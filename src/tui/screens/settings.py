@@ -8,7 +8,6 @@ the UI never freezes. Knowledge base is its own screen (F3 from the workspace).
 from textual import work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, VerticalScroll
-from textual.screen import Screen
 from textual.widgets import (
     Button, Footer, Header, Input, Label, RichLog, Select, Static, TabbedContent,
     TabPane,
@@ -18,12 +17,13 @@ from web.deps import forget_failed_pipelines
 from web.services import (
     logs_store, meraki, ollama_admin, provider_store, run_settings_store, store,
 )
+from tui.command_screen import CommandScreen
 
 _CLEANUP = [("Always", "always"), ("On success", "on_success"), ("Never", "never")]
 _REASONING = [("Backend default", ""), ("On", "1"), ("Off", "0")]
 
 
-class SettingsScreen(Screen):
+class SettingsScreen(CommandScreen):
     BINDINGS = [("escape", "app.pop_screen", "Back")]
 
     def compose(self) -> ComposeResult:
@@ -37,6 +37,7 @@ class SettingsScreen(Screen):
                 yield from self._run_pane()
             with TabPane("Logs", id="s-logs"):
                 yield from self._logs_pane()
+        yield self.command_bar()
         yield Footer()
 
     # --- Meraki ------------------------------------------------------------------

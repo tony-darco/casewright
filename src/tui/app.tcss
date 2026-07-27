@@ -1,43 +1,22 @@
-/* casewright TUI — austere grayscale, hairline dividers, mono for data. */
+/* casewright TUI — Claude Code layout: banner, transcript, prompt. */
 
 Screen {
     background: $background;
 }
 
-#body {
+/* Launch banner: logo/wordmark + context, hairline divider below. */
+#banner {
+    height: auto;
+    padding: 1 2 1 2;
+    border-bottom: solid $panel-darken-1;
+}
+
+/* The transcript fills the body. */
+#transcript {
     height: 1fr;
-}
-
-#sidebar {
-    width: 32;
-    border-right: solid $panel-darken-1;
-    padding: 1 1;
-}
-
-#sidebar .eyebrow {
-    color: $text-muted;
-    text-style: bold;
-    margin-bottom: 1;
-}
-
-#library {
-    height: 1fr;
+    padding: 1 2;
     background: transparent;
-}
-
-#library > ListItem {
-    padding: 0 1;
-}
-
-#main {
-    width: 1fr;
-    padding: 0 1;
-}
-
-#topbar {
-    height: 1;
-    color: $text-muted;
-    margin: 1 0;
+    scrollbar-size-vertical: 1;
 }
 
 .eyebrow {
@@ -45,54 +24,34 @@ Screen {
     text-style: bold;
 }
 
-#composer {
-    height: 8;
-    border: round $panel-darken-1;
-}
-
-#composer-bar {
+/* --- command bar (Claude Code prompt) --------------------------------------- */
+CommandBar {
     height: auto;
-    margin: 1 0;
+    padding: 0 1 0 1;
 }
 
-#composer-bar #language {
-    width: 32;
-    margin-right: 2;
-}
-
-#status, #config-status, #run-status, #code-info {
-    height: auto;
-    color: $text-muted;
-    margin-top: 1;
-}
-
-#code {
-    height: 1fr;
-    border: round $panel-darken-1;
-}
-
-#network {
-    width: 50;
-    margin-bottom: 1;
-}
-
-#hardware {
-    height: 8;
-    border: round $panel-darken-1;
-    margin-bottom: 1;
-}
-
-#config-bar, #output-bar {
-    height: auto;
-    margin-top: 1;
-}
-
-#config-bar Button, #output-bar Button {
-    margin-right: 2;
-}
-
-#output {
-    height: 1fr;
-    border: round $panel-darken-1;
+#command-row {
+    height: 3;
+    border: round $panel-lighten-1;
     background: $surface;
+}
+
+#command-prompt {
+    width: 3;
+    height: 100%;
+    content-align: center middle;
+    color: $text-muted;
+}
+
+#command {
+    border: none;
+    height: 100%;
+    padding: 0;
+    background: transparent;
+}
+
+#command-hint {
+    height: 1;
+    padding: 0 2;
+    color: $text-muted;
 }
