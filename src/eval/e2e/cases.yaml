@@ -1,0 +1,161 @@
+# Golden end-to-end cases — Meraki wireless / access-point (MR) prompts.
+#
+# Each case: a prompt, the ground-truth endpoints it should exercise, and a reference
+# script (the code that should come out). Endpoints and scripts were DRAFTED from the
+# pinned Meraki OpenAPI spec (data/specs/meraki_open_api_spec.json) and need your review.
+#
+# Notes on ground truth:
+# - expected_endpoints are the TARGET calls the test makes (the wireless operation).
+#   The pipeline may also ground on producer endpoints (e.g. GET /organizations); those
+#   show up as "extra" and are tolerated — recall over expected is the gate, not precision.
+# - org id / network id / api key come from the environment (MERAKI_ORG_ID,
+#   MERAKI_NETWORK_ID, MERAKI_API_KEY); the reference scripts never hardcode or list them.
+# - needs_ap gates the live tier (a real, claimable access point).
+
+- id: ap-ssid-enable
+  prompt: "Write a test that enables SSID 0 on a wireless network and confirms it is enabled."
+  language: py
+  needs_ap: true
+  expected_endpoints:
+    - PUT /networks/{networkId}/wireless/ssids/{number}
+    - GET /networks/{networkId}/wireless/ssids/{number}
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    NETWORK_ID = os.getenv("MERAKI_NETWORK_ID")
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY"),
+               "Content-Type": "application/json"}
+
+
+    def test_enable_ssid_0():
+        url = f"{BASE_URL}/networks/{NETWORK_ID}/wireless/ssids/0"
+        updated = requests.put(url, headers=HEADERS, json={"enabled": True})
+        assert updated.status_code == 200
+        assert updated.json()["enabled"] is True
+
+        confirmed = requests.get(url, headers=HEADERS)
+        assert confirmed.status_code == 200
+        assert confirmed.json()["enabled"] is True
+
+- id: ap-list-ssids
+  prompt: "Write a test that lists the MR SSIDs in a wireless network and checks there are 15 of them."
+  language: py
+  needs_ap: true
+  expected_endpoints:
+    - GET /networks/{networkId}/wireless/ssids
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    NETWORK_ID = os.getenv("MERAKI_NETWORK_ID")
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY")}
+
+
+    def test_list_ssids_returns_fifteen():
+        url = f"{BASE_URL}/networks/{NETWORK_ID}/wireless/ssids"
+        resp = requests.get(url, headers=HEADERS)
+        assert resp.status_code == 200
+        ssids = resp.json()
+        assert isinstance(ssids, list)
+        assert len(ssids) == 15
+
+- id: ap-wireless-settings
+  prompt: "Write a test that reads a network's wireless settings, enables meshing, and confirms the change."
+  language: py
+  needs_ap: true
+  expected_endpoints:
+    - GET /networks/{networkId}/wireless/settings
+    - PUT /networks/{networkId}/wireless/settings
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    NETWORK_ID = os.getenv("MERAKI_NETWORK_ID")
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY"),
+               "Content-Type": "application/json"}
+
+
+    def test_enable_meshing():
+        url = f"{BASE_URL}/networks/{NETWORK_ID}/wireless/settings"
+        before = requests.get(url, headers=HEADERS)
+        assert before.status_code == 200
+
+        updated = requests.put(url, headers=HEADERS, json={"meshingEnabled": True})
+        assert updated.status_code == 200
+        assert updated.json()["meshingEnabled"] is True
+
+- id: ap-status
+  prompt: "Write a test that fetches the SSID statuses of an access point and confirms the response includes its basic service sets."
+  language: py
+  needs_ap: true
+  expected_endpoints:
+    - GET /devices/{serial}/wireless/status
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    SERIAL = "{DEVICE_SERIAL_1}"
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY")}
+
+
+    def test_ap_ssid_statuses():
+        url = f"{BASE_URL}/devices/{SERIAL}/wireless/status"
+        resp = requests.get(url, headers=HEADERS)
+        assert resp.status_code == 200
+        assert "basicServiceSets" in resp.json()
+
+- id: ap-ssid-l3-firewall
+  prompt: "Write a test that updates the L3 firewall rules for SSID 2 on an MR network and verifies the rules were saved."
+  language: py
+  needs_ap: true
+  expected_endpoints:
+    - PUT /networks/{networkId}/wireless/ssids/{number}/firewall/l3FirewallRules
+    - GET /networks/{networkId}/wireless/ssids/{number}/firewall/l3FirewallRules
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    NETWORK_ID = os.getenv("MERAKI_NETWORK_ID")
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY"),
+               "Content-Type": "application/json"}
+
+    RULES = {"rules": [{"comment": "Block RFC1918", "policy": "deny",
+                        "protocol": "any", "destPort": "Any", "destCidr": "10.0.0.0/8"}]}
+
+
+    def test_update_ssid2_l3_firewall():
+        url = f"{BASE_URL}/networks/{NETWORK_ID}/wireless/ssids/2/firewall/l3FirewallRules"
+        updated = requests.put(url, headers=HEADERS, json=RULES)
+        assert updated.status_code == 200
+
+        confirmed = requests.get(url, headers=HEADERS)
+        assert confirmed.status_code == 200
+        comments = [r.get("comment") for r in confirmed.json()["rules"]]
+        assert "Block RFC1918" in comments
+
+- id: ap-rf-profiles
+  prompt: "Write a test that lists the RF profiles for a wireless network and confirms the request succeeds."
+  language: py
+  needs_ap: true
+  expected_endpoints:
+    - GET /networks/{networkId}/wireless/rfProfiles
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    NETWORK_ID = os.getenv("MERAKI_NETWORK_ID")
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY")}
+
+
+    def test_list_rf_profiles():
+        url = f"{BASE_URL}/networks/{NETWORK_ID}/wireless/rfProfiles"
+        resp = requests.get(url, headers=HEADERS)
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), list)
