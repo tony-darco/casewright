@@ -13,8 +13,25 @@ the prompt through the real generation pipeline and scores three things:
    - *offline*: does the code parse/compile for its language (the pipeline's `validate` node).
    - *live* (opt-in): actually run it in Docker against a real Meraki network + claimed AP.
 
-A case **meets the goal** when endpoint recall is perfect, the code compiles, and the judge
-passes.
+A case **meets the goal** when endpoint recall is perfect, the code compiles, the judge
+passes, and — for device-adding cases — the device is correctly added.
+
+## Device-adding specs (`cases_devices.yaml`)
+
+A separate dataset tests whether the app puts a **referenced access point into the test**.
+Each case names a device in the prompt (`@name`) and supplies it under `devices` (name +
+model + a synthetic serial). The runner generates through
+`web.services.generate.stream_events` — the seam that injects `{{DEVICE_SERIAL_N}}` tokens,
+pins the hardware, and bakes a known serial into the code — then adds a **device** check:
+the pinned serial appears in the generated code *and* the pipeline pinned a hardware row.
+
+```bash
+python -m eval.e2e.run_e2e --cases src/eval/e2e/cases_devices.yaml
+```
+
+A device with a serial is a *pinned* row, so the token resolves to that serial in the saved
+code — that's what the device check asserts. Multi-device prompts (`{{DEVICE_SERIAL_1}}`,
+`{{DEVICE_SERIAL_2}}`, …) are supported; every declared device must appear.
 
 ## Run it
 

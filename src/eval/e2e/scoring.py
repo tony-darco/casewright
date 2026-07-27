@@ -18,6 +18,32 @@ def normalize(endpoint: str) -> str:
     return f"{method.upper()} {path.strip()}"
 
 
+def device_markers(devices) -> list:
+    """The string each declared device should leave in the generated code: its serial
+    when one is given (pinned row → serial baked in), else its 1-based serial token
+    ``{{DEVICE_SERIAL_N}}`` (type-only row → token survives to run time)."""
+    out = []
+    for i, d in enumerate(devices or [], start=1):
+        out.append((d.get("serial") or "").strip() or "{{DEVICE_SERIAL_%d}}" % i)
+    return out
+
+
+def score_devices(code, markers, hardware) -> dict:
+    """Did the app add the requested device(s) to the test? A case with no declared
+    devices is not applicable (passes trivially). Otherwise every marker must appear in
+    the code AND the pipeline must have pinned hardware for the run."""
+    if not markers:
+        return {"applicable": False, "passed": True, "missing": [], "hardware_pinned": None}
+    missing = [m for m in markers if m not in (code or "")]
+    hardware_pinned = bool(hardware)
+    return {
+        "applicable": True,
+        "passed": not missing and hardware_pinned,
+        "missing": missing,
+        "hardware_pinned": hardware_pinned,
+    }
+
+
 def score_endpoints(retrieved, expected) -> dict:
     """Score a grounded set against ground truth. Returns precision/recall/F1, the pass
     gate on recall, and the missing/extra diffs (sorted, normalized)."""

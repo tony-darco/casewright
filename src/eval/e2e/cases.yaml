@@ -99,7 +99,7 @@
     import requests
 
     BASE_URL = "https://api.meraki.com/api/v1"
-    SERIAL = "{DEVICE_SERIAL_1}"
+    SERIAL = "{{DEVICE_SERIAL_1}}"
     HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY")}
 
 

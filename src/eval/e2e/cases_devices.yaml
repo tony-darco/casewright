@@ -1,0 +1,147 @@
+# Device-adding specs — does the app put the referenced access point INTO the test?
+#
+# These exercise the @device / hardware path. Each case names a device in the prompt
+# (@name) and supplies it under `devices` (name + model + a synthetic serial). The runner
+# generates through web.services.generate.stream_events — the seam that injects
+# {{DEVICE_SERIAL_N}} tokens, pins the hardware, and bakes a known serial into the code —
+# and then checks:
+#   - device: the pinned serial (baked in from the token) appears in the generated code,
+#             and the pipeline pinned a hardware row for the run;
+#   - endpoints: the device-level target endpoints were grounded (recall gate);
+#   - code / compiles: same as the AP endpoint cases.
+#
+# The serials below are synthetic. A device with a serial is a *pinned* row, so the token
+# is resolved into that serial in the saved code — that's what the device check asserts.
+# needs_ap gates the live tier (a real, claimable AP).
+
+- id: dev-ap-status
+  prompt: "Write a test that fetches the SSID statuses of access point @lobby-ap and confirms it reports basic service sets."
+  language: py
+  needs_ap: true
+  devices:
+    - name: lobby-ap
+      model: MR46
+      serial: Q2PD-1111-AAAA
+  expected_endpoints:
+    - GET /devices/{serial}/wireless/status
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    SERIAL = "Q2PD-1111-AAAA"
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY")}
+
+
+    def test_lobby_ap_ssid_statuses():
+        resp = requests.get(f"{BASE_URL}/devices/{SERIAL}/wireless/status", headers=HEADERS)
+        assert resp.status_code == 200
+        assert "basicServiceSets" in resp.json()
+
+- id: dev-ap-reboot
+  prompt: "Write a test that reboots access point @roof-ap and checks the reboot was accepted."
+  language: py
+  needs_ap: true
+  devices:
+    - name: roof-ap
+      model: MR46
+      serial: Q2PD-2222-BBBB
+  expected_endpoints:
+    - POST /devices/{serial}/reboot
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    SERIAL = "Q2PD-2222-BBBB"
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY")}
+
+
+    def test_reboot_roof_ap():
+        resp = requests.post(f"{BASE_URL}/devices/{SERIAL}/reboot", headers=HEADERS)
+        assert resp.status_code == 202
+        assert resp.json()["success"] is True
+
+- id: dev-ap-connection-stats
+  prompt: "Write a test that pulls the aggregated wireless connection stats for access point @warehouse-ap and confirms the request succeeds."
+  language: py
+  needs_ap: true
+  devices:
+    - name: warehouse-ap
+      model: MR56
+      serial: Q2PD-3333-CCCC
+  expected_endpoints:
+    - GET /devices/{serial}/wireless/connectionStats
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    SERIAL = "Q2PD-3333-CCCC"
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY")}
+
+
+    def test_warehouse_ap_connection_stats():
+        params = {"timespan": 3600}
+        resp = requests.get(f"{BASE_URL}/devices/{SERIAL}/wireless/connectionStats",
+                            headers=HEADERS, params=params)
+        assert resp.status_code == 200
+        assert "connectionStats" in resp.json()
+
+- id: dev-ap-clients
+  prompt: "Write a test that lists the clients seen by access point @lobby-ap over the last day and confirms a list is returned."
+  language: py
+  needs_ap: true
+  devices:
+    - name: lobby-ap
+      model: MR46
+      serial: Q2PD-1111-AAAA
+  expected_endpoints:
+    - GET /devices/{serial}/clients
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    SERIAL = "Q2PD-1111-AAAA"
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY")}
+
+
+    def test_lobby_ap_clients():
+        resp = requests.get(f"{BASE_URL}/devices/{SERIAL}/clients",
+                            headers=HEADERS, params={"timespan": 86400})
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), list)
+
+- id: dev-two-aps-status
+  prompt: "Write a test that compares the SSID statuses of two access points, @ap-north and @ap-south, and confirms both report basic service sets."
+  language: py
+  needs_ap: true
+  devices:
+    - name: ap-north
+      model: MR46
+      serial: Q2PD-4444-DDDD
+    - name: ap-south
+      model: MR46
+      serial: Q2PD-5555-EEEE
+  expected_endpoints:
+    - GET /devices/{serial}/wireless/status
+  reference_script: |
+    import os
+    import requests
+
+    BASE_URL = "https://api.meraki.com/api/v1"
+    NORTH = "Q2PD-4444-DDDD"
+    SOUTH = "Q2PD-5555-EEEE"
+    HEADERS = {"X-Cisco-Meraki-API-Key": os.getenv("MERAKI_API_KEY")}
+
+
+    def _statuses(serial):
+        resp = requests.get(f"{BASE_URL}/devices/{serial}/wireless/status", headers=HEADERS)
+        assert resp.status_code == 200
+        return resp.json()
+
+
+    def test_two_aps_report_bss():
+        assert "basicServiceSets" in _statuses(NORTH)
+        assert "basicServiceSets" in _statuses(SOUTH)

@@ -9,15 +9,21 @@ the code compiles/parses (offline first-run), and the LLM judge passes.
 """
 
 from eval.e2e.judge import judge_code
-from eval.e2e.scoring import score_endpoints
+from eval.e2e.scoring import device_markers, score_devices, score_endpoints
 
 
-def generate_real(prompt: str, language: str = "py") -> dict:
-    """Run the full generation pipeline in-process and return what the harness scores.
+def generate_real(prompt: str, language: str = "py", devices=None) -> dict:
+    """Run generation in-process and return what the harness scores.
 
-    ``endpoints_used`` is the union of the grader's targets and the dependency-graph
-    prerequisites — exactly the set the pipeline grounded the generation on.
+    Without ``devices`` this drives the raw pipeline. With ``devices`` (the device-adding
+    path) it goes through ``web.services.generate.stream_events`` instead — that's the
+    seam that injects ``{{DEVICE_SERIAL_N}}`` tokens, pins the mentioned hardware, and
+    bakes known serials back into the code. ``endpoints_used`` is targets ∪ dependency
+    prerequisites either way.
     """
+    if devices:
+        return _generate_with_devices(prompt, language, devices)
+
     from rag.pipeline import AutoTestLLM
 
     state = AutoTestLLM(eval_mode=False).run(prompt, language)
@@ -25,6 +31,24 @@ def generate_real(prompt: str, language: str = "py") -> dict:
         "code": state.get("tests", "") or "",
         "endpoints_used": list(state.get("endpoints") or []) + list(state.get("dependency_endpoints") or []),
         "validation": state.get("validation") or {},
+        "hardware": [],
+    }
+
+
+def _generate_with_devices(prompt, language, devices) -> dict:
+    """Device-adding path: generate with a device roster so serial tokens are injected
+    and hardware is pinned, then read the final workspace view model."""
+    from web.services import generate as gen_svc
+
+    vm = {}
+    for ev in gen_svc.stream_events(prompt, devices, language=language):
+        if ev.get("type") == "final":
+            vm = ev.get("vm", {}) or {}
+    return {
+        "code": vm.get("code", "") or "",
+        "endpoints_used": list(vm.get("endpoints") or []) + list(vm.get("dep_endpoints") or []),
+        "validation": vm.get("validation") or {},
+        "hardware": vm.get("hardware") or [],
     }
 
 
@@ -33,8 +57,9 @@ def run_case(case: dict, generate=generate_real, judge=judge_code) -> dict:
     prompt = case["prompt"]
     language = case.get("language", "py")
     expected = case.get("expected_endpoints", []) or []
+    devices = case.get("devices") or []
 
-    gen = generate(prompt, language)
+    gen = generate(prompt, language, devices)
     code = gen.get("code", "") or ""
     endpoints_used = gen.get("endpoints_used", []) or []
     validation = gen.get("validation") or {}
@@ -44,8 +69,11 @@ def run_case(case: dict, generate=generate_real, judge=judge_code) -> dict:
     # language. ``ok`` is True (valid), False (invalid/wrong language), or None (unknown).
     compiles = validation.get("ok")
     code_judge = judge(prompt, case.get("reference_script", ""), code, endpoints_used, expected)
+    # Device-adding check: is the declared device pinned + present in the code?
+    devices_score = score_devices(code, device_markers(devices), gen.get("hardware", []))
 
-    met_goal = bool(endpoints["passed"] and compiles is True and code_judge["pass"])
+    met_goal = bool(endpoints["passed"] and compiles is True
+                    and code_judge["pass"] and devices_score["passed"])
     return {
         "id": case.get("id", "?"),
         "prompt": prompt,
@@ -57,6 +85,7 @@ def run_case(case: dict, generate=generate_real, judge=judge_code) -> dict:
         "compiles": compiles,
         "compile_detail": validation.get("detail", ""),
         "code_judge": code_judge,
+        "devices": devices_score,
         "met_goal": met_goal,
     }
 
