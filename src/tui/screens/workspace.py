@@ -19,6 +19,7 @@ from web.services import app_flow, generate, tests_store
 from tui import generation, run_flow
 from tui.command_screen import CommandScreen
 from tui.commands import Command
+from tui.markup import esc
 from tui.streaming import pump
 
 _STATUS_GLYPH = {"done": "✓", "generating": "◴", "error": "✕"}
@@ -28,8 +29,8 @@ _HW_TYPES = {"type:wireless": "Any wireless AP",
 
 
 class WorkspaceScreen(CommandScreen):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, args: str = ""):
+        super().__init__(args)
         self.current_test_id = None
         self._prompt = ""
         self._code_buffer = ""
@@ -60,7 +61,7 @@ class WorkspaceScreen(CommandScreen):
 
     def _echo(self, text: str) -> None:
         """Echo what the user typed, Claude-Code style."""
-        self._log().write(f"[dim]>[/dim] {text}")
+        self._log().write(f"[dim]>[/dim] {esc(text)}")
 
     def _say(self, markup: str) -> None:
         self._log().write(markup)
@@ -135,7 +136,7 @@ class WorkspaceScreen(CommandScreen):
         self._bullet(f"{len(tests)} test(s):")
         for i, t in enumerate(tests, start=1):
             glyph = _STATUS_GLYPH.get(t["status"], "·")
-            self._say(f"  [dim]{i}.[/dim] {glyph} {t['name']}")
+            self._say(f"  [dim]{i}.[/dim] {glyph} {esc(t['name'])}")
         self._say("[dim]/open <number or name> to load one.[/dim]")
 
     # --- loading a test ----------------------------------------------------------
@@ -170,9 +171,9 @@ class WorkspaceScreen(CommandScreen):
                   if self._version_count else "unsaved")
         ro = " · read-only" if self._readonly else ""
         eps = ", ".join(vm.get("endpoints", []) or []) or "(none)"
-        self._bullet(f"[b]{vm.get('name') or 'test'}[/b]  [dim]· {vlabel}{ro}[/dim]")
-        self._say(f"[dim]{vm.get('file_name', '')} · {vm.get('line_count', 0)} lines "
-                  f"· grounded in: {eps}[/dim]")
+        self._bullet(f"[b]{esc(vm.get('name') or 'test')}[/b]  [dim]· {vlabel}{ro}[/dim]")
+        self._say(f"[dim]{esc(vm.get('file_name', ''))} · {vm.get('line_count', 0)} lines "
+                  f"· grounded in: {esc(eps)}[/dim]")
         if show_code and self._code_buffer:
             self._show_code()
 
@@ -203,8 +204,8 @@ class WorkspaceScreen(CommandScreen):
         hw = ", ".join(pinned + types) or "(any claimable)"
         self._bullet("Run config")
         self._say(f"  [dim]source:[/dim] {source}")
-        self._say(f"  [dim]network:[/dim] {net}")
-        self._say(f"  [dim]hardware:[/dim] {hw}")
+        self._say(f"  [dim]network:[/dim] {esc(net)}")
+        self._say(f"  [dim]hardware:[/dim] {esc(hw)}")
 
     def _show_output(self) -> None:
         if not self._need_test():
@@ -215,9 +216,9 @@ class WorkspaceScreen(CommandScreen):
             self._say("[dim]No runs yet. /run to start.[/dim]")
             return
         self._bullet(f"Last run — status: {run['status']}"
-                     + (f" — {run['error_message']}" if run.get("error_message") else ""))
+                     + (f" — {esc(run['error_message'])}" if run.get("error_message") else ""))
         for e in vm.get("logs", []):
-            self._say(f"  [dim]\\[{e['stage']}][/dim] {e['message']}")
+            self._say(f"  [dim]\\[{e['stage']}][/dim] {esc(e['message'])}")
 
     def _open_by_ref(self, ref: str) -> None:
         tests = tests_store.list_tests()
@@ -236,7 +237,7 @@ class WorkspaceScreen(CommandScreen):
             self._echo(f"/open {ref}")
             self.load_test(chosen["id"])
         else:
-            self._say(f"[yellow]No test matches “{ref}”.[/yellow]")
+            self._say(f"[yellow]No test matches “{esc(ref)}”.[/yellow]")
 
     def _version(self, arg: str) -> None:
         if self.current_test_id is None:
@@ -263,7 +264,7 @@ class WorkspaceScreen(CommandScreen):
         job, test_id, name, devices = generation.start_generate(
             prompt, self._language, None, regen_of)
         for d in devices:
-            self._bullet(f"Targeting [b]{d.get('model') or 'device'}[/b] {d['serial']}"
+            self._bullet(f"Targeting [b]{esc(d.get('model') or 'device')}[/b] {esc(d['serial'])}"
                          f" [dim](from your prompt — the run claims this one)[/dim]")
         self.current_test_id = test_id
         self._subscribe(job, self._on_gen_event)
@@ -277,7 +278,7 @@ class WorkspaceScreen(CommandScreen):
         elif kind == "token":
             self._code_buffer += ev.get("text", "")
         elif kind == "error":
-            self._say(f"[red]{ev.get('message', 'Error')}[/red]")
+            self._say(f"[red]{esc(ev.get('message', 'Error'))}[/red]")
         elif kind == "done":
             self._busy = False
             if ev.get("status") == "done":
@@ -296,10 +297,10 @@ class WorkspaceScreen(CommandScreen):
             self.current_test_id, source, net,
             version_no=self._version_no if self._readonly else None)
         if error:
-            self._say(f"[red]{error}[/red]")
+            self._say(f"[red]{esc(error)}[/red]")
             return
         if job is None:
-            self._say(f"[yellow]{run['error_message'] if run else 'Could not start run.'}[/yellow]")
+            self._say(f"[yellow]{esc(run['error_message']) if run else 'Could not start run.'}[/yellow]")
             return
         self._say("[dim]Running…[/dim]")
         self._subscribe(job, self._on_run_event)
@@ -307,11 +308,11 @@ class WorkspaceScreen(CommandScreen):
     def _on_run_event(self, ev: dict) -> None:
         kind = ev.get("type")
         if kind == "log":
-            self._say(f"  [dim]\\[{ev.get('stage', '')}][/dim] {ev.get('message', '')}")
+            self._say(f"  [dim]\\[{ev.get('stage', '')}][/dim] {esc(ev.get('message', ''))}")
         elif kind == "status":
             err = ev.get("error")
             self._say(f"[dim]status: {ev.get('status')}"
-                      + (f" — {err}" if err else "") + "[/dim]")
+                      + (f" — {esc(err)}" if err else "") + "[/dim]")
         elif kind == "done":
             if self.current_test_id:
                 self._load_vm(self.current_test_id,
@@ -323,7 +324,7 @@ class WorkspaceScreen(CommandScreen):
             return
         job, error = generation.start_repair(self.current_test_id)
         if error:
-            self._say(f"[red]{error}[/red]")
+            self._say(f"[red]{esc(error)}[/red]")
             return
         self._busy = True
         self._code_buffer = ""

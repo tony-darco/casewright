@@ -48,15 +48,26 @@ class CasewrightApp(App):
             self.goto(cmd.name, cmd.args)
 
     def goto(self, target: str, arg: str = "") -> None:
-        """Navigate to a place. Sections push a screen; views live on the workspace."""
+        """Navigate to a place. Sections push a screen; views live on the workspace.
+
+        ``arg`` is carried to the section screen, so ``/kb --new …`` works from
+        anywhere. A section that's already on top is handed the arguments in place
+        rather than being torn down and rebuilt — rebuilding would drop a live
+        subscription (an embedding in progress) for no reason."""
         from tui.screens.workspace import WorkspaceScreen
+
+        if target in _SECTIONS:
+            screen_cls = _SECTIONS[target]()
+            if isinstance(self.screen, screen_cls):
+                self.screen.run_args(arg)
+                return
 
         # Unwind back to the workspace, the always-present home screen.
         while not isinstance(self.screen, WorkspaceScreen):
             self.pop_screen()
         workspace = self.screen
         if target in _SECTIONS:
-            self.push_screen(_SECTIONS[target]()())
+            self.push_screen(_SECTIONS[target]()(arg))
         else:
             workspace.goto_view(target, arg)
 

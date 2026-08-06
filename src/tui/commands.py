@@ -9,6 +9,7 @@ This module is pure data + parsing — no Textual imports beyond the bar widget 
 so the vocabulary stays in one place and is easy to test.
 """
 
+import shlex
 from dataclasses import dataclass
 
 from textual.app import ComposeResult
@@ -31,7 +32,7 @@ _REGISTRY = [
     ("output",   ("output", "results", "test results"),     "nav",    "the current test's run output"),
     ("runs",     ("runs",),                                 "nav",    "run history for every test"),
     ("coverage", ("coverage", "cov"),                       "nav",    "spec-coverage tree"),
-    ("kb",       ("kb", "knowledge"),                        "nav",    "knowledge base"),
+    ("kb",       ("kb", "knowledge"),                        "nav",    "knowledge bases (--new, --storage)"),
     ("settings", ("settings",),                             "nav",    "app settings"),
 
     ("generate", ("generate", "gen"),                       "action", "generate from the prompt"),
@@ -43,7 +44,6 @@ _REGISTRY = [
     ("version",  ("version", "ver"),                        "action", "next | prev — step through versions"),
     ("activate", ("activate",),                             "action", "activate a knowledge-base version"),
     ("delete",   ("delete",),                               "action", "delete an errored knowledge-base version"),
-    ("embed",    ("embed",),                                "action", "embed the knowledge-base source"),
 
     ("help",     ("help", "?"),                             "global", "show this list"),
     ("back",     ("back",),                                 "global", "back to the workspace"),
@@ -82,6 +82,82 @@ def parse(text: str) -> Command | None:
         if low.startswith(alias + " "):
             return Command(name, body[len(alias):].strip(), cat)
     return Command(None, body, "unknown")
+
+
+# --- /kb arguments ---------------------------------------------------------------
+
+KB_SPLITS = ("custom", "langchain")
+KB_USAGE = ("/kb                                    list knowledge bases\n"
+            "/kb --new <url|path> --split custom    embed a new one (or --split langchain)\n"
+            "/kb --new <url|path> --split custom --name \"My spec\"\n"
+            "/kb --storage <chroma-url>             keep vectors on a remote Chroma server\n"
+            "/kb --storage local                    keep them inside the app")
+
+
+@dataclass
+class KbRequest:
+    """One parsed ``/kb`` invocation. ``error`` non-empty means don't act — show it."""
+    action: str = "list"     # list | new | storage
+    source: str = ""         # --new: the URL or file path to embed
+    split: str = ""          # --new: custom | langchain
+    name: str = ""           # --new: optional label, else derived from the source
+    storage: str = ""        # --storage: a Chroma URL, or "local"
+    error: str = ""
+
+
+def parse_kb(args: str) -> KbRequest:
+    """Parse the text after ``/kb``.
+
+    Bare ``/kb`` lists. ``--new`` embeds a source — a URL or a local path, told apart
+    when it's actually fetched, not here — and requires ``--split`` because the two
+    methods produce very different corpora from the same file: guessing would quietly
+    give someone a knowledge base that retrieves badly.
+
+    Quoting is shell-style, so ``--name "Meraki v1.53"`` survives as one value.
+    """
+    try:
+        tokens = shlex.split(args or "")
+    except ValueError as exc:                      # an unbalanced quote
+        return KbRequest(error=f"Couldn't read that: {exc}")
+    if not tokens:
+        return KbRequest(action="list")
+
+    req = KbRequest()
+    i = 0
+    while i < len(tokens):
+        tok = tokens[i]
+        value = tokens[i + 1] if i + 1 < len(tokens) else ""
+        if tok in ("--new", "--storage") and req.action != "list":
+            return KbRequest(error="Use one of --new or --storage at a time.\n\n" + KB_USAGE)
+        if tok == "--new":
+            if not value or value.startswith("--"):
+                return KbRequest(error="--new needs a URL or file path.\n\n" + KB_USAGE)
+            req.action, req.source, i = "new", value, i + 2
+        elif tok == "--storage":
+            if not value or value.startswith("--"):
+                return KbRequest(error="--storage needs a Chroma URL, or 'local'.\n\n" + KB_USAGE)
+            req.action, req.storage, i = "storage", value, i + 2
+        elif tok == "--split":
+            if value not in KB_SPLITS:
+                return KbRequest(error="--split takes 'custom' (one document per OpenAPI "
+                                       "operation) or 'langchain' (generic recursive "
+                                       "chunking).")
+            req.split, i = value, i + 2
+        elif tok == "--name":
+            if not value or value.startswith("--"):
+                return KbRequest(error="--name needs a value.")
+            req.name, i = value, i + 2
+        else:
+            return KbRequest(error=f"Don't know {tok!r}.\n\n" + KB_USAGE)
+
+    if req.action == "list":                       # only --split/--name were given
+        return KbRequest(error="Nothing to do — --split and --name describe a --new "
+                               "knowledge base.\n\n" + KB_USAGE)
+    if req.action == "new" and not req.split:
+        return KbRequest(error="--new needs --split custom or --split langchain.\n\n" + KB_USAGE)
+    if req.action == "storage" and req.name:
+        return KbRequest(error="--name describes a knowledge base, not storage.")
+    return req
 
 
 def suggest(value: str) -> list[tuple[str, str]]:

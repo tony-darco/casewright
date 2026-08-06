@@ -1,139 +1,166 @@
-"""Knowledge base — ingest an API spec (URL or file), embed it with live progress,
-activate/delete versions, choose local vs. remote storage.
+"""Knowledge base: a list of versions, driven entirely from the command bar.
 
-Mirrors the KB routes in web.routers.settings. Ingestion runs in a daemon thread via
-``kb_registry`` (same as the web layer); this screen subscribes to the job for stage
-updates.
+The screen shows what exists and nothing else — versions, and where their vectors
+live. Everything that *changes* something is a command, so there is no form to fill
+in and no field left holding a half-typed URL:
+
+    /kb                                     this list
+    /kb --new <url|path> --split custom     embed a new version
+    /kb --storage <chroma-url> | local      where vectors are kept
+    /activate <n> · /delete <n>             by row number, or the highlighted row
+
+Ingestion runs in a daemon thread via ``kb_registry``; this screen subscribes to the
+job for live stage updates.
 """
 
 from pathlib import Path
 
 from textual import work
 from textual.app import ComposeResult
-from textual.containers import Horizontal, VerticalScroll
-from textual.widgets import (
-    Button, Footer, Header, Input, Label, ListItem, ListView, Select, Static,
-)
+from textual.containers import Vertical
+from textual.widgets import DataTable, Footer, Header, Static
 
 from web.services import kb_ingest, kb_registry, kb_store, provider_store, url_fetch
 from tui.command_screen import CommandScreen
-from tui.commands import Command
+from tui.commands import Command, KbRequest, parse_kb
+from tui.markup import esc
 from tui.streaming import pump
 
-_SOURCE = [("From URL", "link"), ("From file", "upload")]
-_SPLIT = [("LangChain split", "langchain"), ("Custom OpenAPI split", "custom")]
-_STORAGE = [("Local (inside the app)", "local"), ("Remote Chroma server", "remote")]
+# status -> (glyph, colour). Colour is the only decoration, btop-style: the row reads
+# at a glance and nothing competes with it.
+_STATUS = {"done": ("●", "green"), "embedding": ("◴", "yellow"), "error": ("✕", "red")}
+_SPLIT_LABEL = {"custom": "OpenAPI", "langchain": "LangChain"}
 
 
 class KnowledgeBaseScreen(CommandScreen):
     BINDINGS = [("escape", "app.pop_screen", "Back")]
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, args: str = ""):
+        super().__init__(args)
         self._busy = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
-        with VerticalScroll(id="kb-main"):
-            yield Static("STORAGE", classes="eyebrow")
-            with Horizontal(classes="row"):
-                yield Select(_STORAGE, id="kb-storage-kind", allow_blank=False)
-                yield Input(placeholder="http://chroma-host:8000 (remote only)", id="kb-storage-url")
-                yield Button("Save storage", id="kb-save-storage")
-            yield Static("", id="kb-storage-status")
-
-            yield Static("ADD A KNOWLEDGE BASE", classes="eyebrow")
-            with Horizontal(classes="row"):
-                yield Select(_SOURCE, value="link", id="kb-source", allow_blank=False)
-                yield Select(_SPLIT, value="langchain", id="kb-split", allow_blank=False)
-            yield Input(placeholder="URL to an OpenAPI spec, or a local file path", id="kb-input")
-            yield Button("Start embedding", id="kb-start", variant="primary")
+        with Vertical(id="kb-main"):
+            table = DataTable(id="kb-versions", cursor_type="row", zebra_stripes=False)
+            table.border_title = "knowledge bases"
+            yield table
+            storage = Static("", id="kb-storage")
+            storage.border_title = "vector store"
+            yield storage
             yield Static("", id="kb-status")
-
-            yield Static("VERSIONS  (/activate · /delete — by number, e.g. /activate 2)",
-                         classes="eyebrow")
-            yield ListView(id="kb-versions")
-
         yield self.command_bar()
         yield Footer()
 
     def on_mount(self) -> None:
-        st = kb_store.get_storage()
-        self.query_one("#kb-storage-kind", Select).value = st["storage_kind"]
-        self.query_one("#kb-storage-url", Input).value = st["storage_url"]
+        self.query_one("#kb-versions", DataTable).add_columns(
+            " ", "#", "name", "docs", "split", "source")
+        self.refresh_view()
+        if self.args:                      # arrived as "/kb --new …" from another screen
+            self.run_args(self.args)
+
+    # --- rendering ---------------------------------------------------------------
+    def refresh_view(self) -> None:
         self._refresh_versions()
+        self._refresh_storage()
 
     def _refresh_versions(self) -> None:
-        lv = self.query_one("#kb-versions", ListView)
-        lv.clear()
-        for i, v in enumerate(kb_store.list_versions(), start=1):
-            flag = " ★active" if v.get("is_active") else ""
-            extra = f" — {v['error_message']}" if v["status"] == "error" and v["error_message"] else ""
-            label = f"{i}. [{v['status']}] {v['name']} · {v['doc_count']} docs{flag}{extra}"
-            lv.append(ListItem(Label(label), name=str(v["id"])))
-
-    def _selected_version_id(self, ref: str = ""):
-        """The version id for an ``/activate``/``/delete`` — by 1-based number, else the highlighted row."""
-        if ref.strip().isdigit():
-            versions = kb_store.list_versions()
-            i = int(ref) - 1
-            return versions[i]["id"] if 0 <= i < len(versions) else None
-        item = self.query_one("#kb-versions", ListView).highlighted_child
-        return int(item.name) if item and item.name else None
-
-    # --- storage -----------------------------------------------------------------
-    def _save_storage(self) -> None:
-        kind = self.query_one("#kb-storage-kind", Select).value
-        url = self.query_one("#kb-storage-url", Input).value.strip()
-        if kind == "remote":
-            if url and not url.startswith(("http://", "https://")):
-                url = "http://" + url
-            if not url:
-                self.query_one("#kb-storage-status", Static).update(
-                    "[red]Enter a Chroma server URL for remote storage.[/red]")
-                return
+        table = self.query_one("#kb-versions", DataTable)
+        row = table.cursor_row
+        table.clear()
+        versions = kb_store.list_versions()
+        for i, v in enumerate(versions, start=1):
+            glyph, colour = _STATUS.get(v["status"], ("·", "white"))
+            active = v.get("is_active")
+            table.add_row(
+                f"[{colour}]{glyph}[/]",
+                f"[b]{i}[/b]" if active else f"[dim]{i}[/dim]",
+                f"[b]{esc(v['name'])}[/b] ★" if active else esc(v["name"]),
+                f"{v['doc_count']:,}" if v["doc_count"] else "[dim]—[/dim]",
+                f"[dim]{_SPLIT_LABEL.get(v['split_method'], v['split_method'])}[/dim]",
+                f"[dim]{esc(v['error_message'] or v['source_label'])}[/dim]",
+            )
+        if versions:
+            table.move_cursor(row=min(row, len(versions) - 1))
         else:
-            url = ""
-        kb_store.set_storage(kind, url)
-        self.query_one("#kb-storage-status", Static).update("[green]Storage saved.[/green]")
+            self._status("No knowledge bases yet. [b]/kb --new <url|path> --split custom[/b] "
+                         "to build one.")
+
+    def _refresh_storage(self) -> None:
+        st = kb_store.get_storage()
+        if st["storage_kind"] == "remote" and st["storage_url"]:
+            body = f"[b]remote[/b]  {esc(st['storage_url'])}"
+        else:
+            from rag.provider import ProviderConfig
+            body = f"[b]local[/b]  [dim]{esc(ProviderConfig().persist_dir)}[/dim]"
+        self.query_one("#kb-storage", Static).update(body)
+
+    def _status(self, markup: str) -> None:
+        self.query_one("#kb-status", Static).update(markup)
+
+    # --- /kb arguments -----------------------------------------------------------
+    def run_args(self, args: str) -> None:
+        """Act on the text after ``/kb``. Called on arrival and on every later ``/kb``."""
+        req = parse_kb(args)
+        if req.error:
+            self._status(f"[red]{esc(req.error)}[/red]")
+        elif req.action == "new":
+            self._start_new(req)
+        elif req.action == "storage":
+            self._set_storage(req.storage)
+        else:
+            self.refresh_view()
+            self._status("")
+
+    def _set_storage(self, target: str) -> None:
+        if target.lower() == "local":
+            kb_store.set_storage("local", "")
+            self._status("[green]Vectors are kept inside the app.[/green]")
+        else:
+            url = target if target.startswith(("http://", "https://")) else "http://" + target
+            kb_store.set_storage("remote", url)
+            self._status(f"[green]New vectors go to {esc(url)}.[/green] "
+                         "[dim]Existing versions stay where they were embedded.[/dim]")
+        self._refresh_storage()
 
     # --- ingest ------------------------------------------------------------------
-    def _start(self) -> None:
+    def _start_new(self, req: KbRequest) -> None:
         if self._busy:
-            return
-        source = self.query_one("#kb-source", Select).value
-        split = self.query_one("#kb-split", Select).value
-        value = self.query_one("#kb-input", Input).value.strip()
-        if not value:
-            self.query_one("#kb-status", Static).update("[red]Enter a URL or file path.[/red]")
+            self._status("[yellow]An embedding is already running…[/yellow]")
             return
         self._busy = True
-        self.query_one("#kb-status", Static).update("Fetching source…")
-        self._fetch_and_ingest(source, split, value)
+        self._status(f"Fetching [b]{esc(req.source)}[/b]…")
+        self._fetch_and_ingest(req)
 
     @work(thread=True)
-    def _fetch_and_ingest(self, source: str, split: str, value: str) -> None:
+    def _fetch_and_ingest(self, req: KbRequest) -> None:
+        """Read the source off the network or the filesystem, then hand it to the worker.
+
+        Which one it is comes from the value itself rather than a flag: an http(s)
+        scheme is unambiguous, and anything else is a path."""
+        is_url = req.source.startswith(("http://", "https://"))
         try:
-            if source == "link":
-                content = url_fetch.fetch_spec_url(value)
-                label = value
+            if is_url:
+                content = url_fetch.fetch_spec_url(req.source)
+                label = req.source
             else:
-                content = Path(value).expanduser().read_bytes()
-                label = Path(value).name
+                path = Path(req.source).expanduser()
+                content = path.read_bytes()
+                label = path.name
         except (url_fetch.FetchError, OSError) as exc:
             self._busy = False
-            self.app.call_from_thread(self.query_one("#kb-status", Static).update,
-                                      f"[red]{exc}[/red]")
+            self.app.call_from_thread(self._status, f"[red]{esc(exc)}[/red]")
             return
-        self.app.call_from_thread(self._begin_ingest, content, split, label)
+        self.app.call_from_thread(self._begin_ingest, req, content,
+                                  "url" if is_url else "file", label)
 
-    def _begin_ingest(self, content: bytes, split: str, label: str) -> None:
-        v = kb_store.create_embedding(label, "url", split, label)
+    def _begin_ingest(self, req: KbRequest, content: bytes, kind: str, label: str) -> None:
+        v = kb_store.create_embedding(req.name or label, kind, req.split, label)
         prov = provider_store.overrides()
         job = kb_registry.start(v["id"], lambda job: kb_ingest.run_ingest(
-            job, v["id"], content, split, label, prov))
+            job, v["id"], content, req.split, label, prov))
         self._refresh_versions()
-        self.query_one("#kb-status", Static).update("Embedding…")
+        self._status(f"Embedding [b]{esc(v['name'])}[/b]…")
         self._subscribe(job)
 
     @work(thread=True)
@@ -142,34 +169,47 @@ class KnowledgeBaseScreen(CommandScreen):
 
     def _on_kb_event(self, ev: dict) -> None:
         if ev.get("type") == "stage":
-            self.query_one("#kb-status", Static).update(f"Embedding… ({ev.get('stage', '')})")
+            self._status(f"Embedding… [dim]({esc(ev.get('stage', ''))})[/dim]")
         elif ev.get("type") == "done":
             self._busy = False
             ok = ev.get("status") == "done"
-            self.query_one("#kb-status", Static).update(
-                f"[green]Embedded {ev.get('doc_count', 0)} docs.[/green]" if ok
-                else f"[red]{ev.get('message', 'Ingest failed.')}[/red]")
+            self._status(f"[green]Embedded {ev.get('doc_count', 0):,} documents.[/green] "
+                         "[dim]/activate <n> to generate against it.[/dim]" if ok
+                         else f"[red]{esc(ev.get('message', 'Ingest failed.'))}[/red]")
             self._refresh_versions()
 
     # --- activate / delete -------------------------------------------------------
+    def _version_id(self, ref: str = ""):
+        """The version an ``/activate``/``/delete`` refers to — by 1-based number, else
+        the highlighted row."""
+        versions = kb_store.list_versions()
+        if ref.strip().isdigit():
+            i = int(ref) - 1
+            return versions[i]["id"] if 0 <= i < len(versions) else None
+        row = self.query_one("#kb-versions", DataTable).cursor_row
+        return versions[row]["id"] if 0 <= row < len(versions) else None
+
     def action_activate(self, ref: str = "") -> None:
-        vid = self._selected_version_id(ref)
+        vid = self._version_id(ref)
         if vid is None:
-            self.query_one("#kb-status", Static).update("[yellow]No version selected.[/yellow]")
+            self._status("[yellow]No version selected — /activate <number>.[/yellow]")
             return
         if kb_store.set_active(vid):
-            self.query_one("#kb-status", Static).update("[green]Activated.[/green]")
+            self._status("[green]Activated — generation now retrieves against it.[/green]")
         else:
-            self.query_one("#kb-status", Static).update(
-                "[red]Can't activate (not found, or still embedding).[/red]")
+            self._status("[red]Can't activate that one (still embedding, or it errored).[/red]")
         self._refresh_versions()
 
     def action_delete(self, ref: str = "") -> None:
-        vid = self._selected_version_id(ref)
+        vid = self._version_id(ref)
         if vid is None:
-            self.query_one("#kb-status", Static).update("[yellow]No version selected.[/yellow]")
+            self._status("[yellow]No version selected — /delete <number>.[/yellow]")
             return
-        kb_store.delete_version(vid)
+        if kb_store.delete_version(vid):
+            self._status("[green]Deleted.[/green]")
+        else:
+            self._status("[yellow]Only errored versions can be deleted — a finished one "
+                         "owns embedded vectors.[/yellow]")
         self._refresh_versions()
 
     # --- command routing ---------------------------------------------------------
@@ -178,19 +218,10 @@ class KnowledgeBaseScreen(CommandScreen):
             self.action_activate(cmd.args)
         elif cmd.name == "delete":
             self.action_delete(cmd.args)
-        elif cmd.name == "embed":
-            self._start()
         else:
             return False
         return True
 
     def on_text(self, text: str) -> None:
-        """Plain text becomes the source URL/path to embed."""
-        self.query_one("#kb-input", Input).value = text.strip()
-        self.query_one("#kb-status", Static).update("Source set — /embed to start.")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "kb-save-storage":
-            self._save_storage()
-        elif event.button.id == "kb-start":
-            self._start()
+        self._status("[dim]Knowledge bases are managed with commands — "
+                     "[b]/kb --new <url|path> --split custom[/b].[/dim]")

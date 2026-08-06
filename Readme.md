@@ -94,7 +94,7 @@ Everything happens through the text box at the bottom of the screen.
 | | `/output` | the current test's latest run output |
 | | `/runs` | run history across all tests |
 | | `/coverage` | spec-coverage tree |
-| | `/kb` | knowledge base |
+| | `/kb` | knowledge bases (see below) |
 | | `/settings` | app settings |
 | **Do** | `/generate` | (re)generate from the current prompt |
 | | `/run` | run the current test |
@@ -103,8 +103,9 @@ Everything happens through the text box at the bottom of the screen.
 | | `/open <name or #>` | load a test from the library |
 | | `/version next \| prev` | step through a test's versions |
 | | `/save` | save the code or config you're viewing |
+| | `/kb --new <url\|path> --split custom` | embed a new knowledge base |
+| | `/kb --storage <chroma-url> \| local` | where vectors are kept |
 | | `/activate <#>` | activate a knowledge-base version |
-| | `/embed` | embed the knowledge-base source |
 | | `/delete <#>` | delete an errored knowledge-base version |
 | **App** | `/help` | show the full command list |
 | | `/back` | return to the workspace |

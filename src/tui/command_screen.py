@@ -19,8 +19,19 @@ class CommandScreen(Screen):
     # Focus the command bar on mount so typing always lands there.
     AUTO_FOCUS = "#command"
 
+    def __init__(self, args: str = ""):
+        """``args`` is whatever followed the command that opened this screen, e.g. the
+        ``--new …`` of a ``/kb --new …`` typed from the workspace. Screens that take
+        none simply ignore it."""
+        super().__init__()
+        self.args = args
+
     def command_bar(self) -> CommandBar:
         return CommandBar()
+
+    def run_args(self, args: str) -> None:
+        """Act on arguments for a screen already on top (see App.goto). Screens that
+        take arguments override this; the default is to ignore them."""
 
     # --- routing -----------------------------------------------------------------
     def on_input_submitted(self, event: Input.Submitted) -> None:

@@ -21,14 +21,15 @@ def test_parse_longest_alias_and_args():
 def test_suggest_matches_prefix():
     assert suggest("/h") == [("help", "show this list")]
     assert [n for n, _ in suggest("/s")] == ["settings", "save"]
-    assert len(suggest("/")) == 23                     # bare slash → every command
+    assert len(suggest("/")) == 22                     # bare slash → every command
     assert suggest("/help ") == []                     # trailing space → word complete
     assert suggest("plain") == []                      # not a slash command
 
 
 def test_menu_completion_and_enter_resolves_highlight():
     async def scenario():
-        app = CasewrightApp(startup())
+        startup()
+        app = CasewrightApp()
         async with app.run_test() as pilot:
             await pilot.pause()
             bar = app.screen.query_one(CommandBar)
@@ -53,7 +54,8 @@ def test_menu_completion_and_enter_resolves_highlight():
 
 def test_command_bar_navigates_and_writes_transcript():
     async def scenario():
-        app = CasewrightApp(startup())
+        startup()
+        app = CasewrightApp()
         async with app.run_test() as pilot:
             await pilot.pause()
             # The command bar is the default focus.

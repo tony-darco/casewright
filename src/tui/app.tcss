@@ -24,6 +24,47 @@ Screen {
     text-style: bold;
 }
 
+/* --- knowledge base: boxed panels, dense rows, colour as the only decoration --- */
+#kb-main {
+    height: 1fr;
+    padding: 1 2 0 2;
+}
+
+#kb-versions {
+    height: 1fr;
+    border: round $panel-lighten-1;
+    border-title-color: $text-muted;
+    border-title-style: bold;
+    padding: 0 1;
+    background: transparent;
+    scrollbar-size-vertical: 1;
+}
+
+#kb-versions > .datatable--header {
+    color: $text-muted;
+    text-style: bold;
+    background: transparent;
+}
+
+#kb-versions > .datatable--cursor {
+    background: $panel-lighten-1;
+}
+
+#kb-storage {
+    height: 3;
+    border: round $panel-lighten-1;
+    border-title-color: $text-muted;
+    border-title-style: bold;
+    padding: 0 1;
+    margin-top: 1;
+}
+
+#kb-status {
+    height: auto;
+    padding: 1 1 0 1;
+    color: $text-muted;
+}
+
 /* --- command bar (Claude Code prompt) --------------------------------------- */
 CommandBar {
     height: auto;
