@@ -40,23 +40,29 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-No configuration file is needed — the model provider, vector store, and Meraki integration
-are all configured at runtime from `/settings`. For development, set:
+## Configuration
 
-```bash
-export CASEWRIGHT_DEV=1   # skip the production secret check, use dev-only defaults
-```
+Nothing to set up before the first run — casewright writes its own config on startup and
+you can do everything from `/settings`. Configuration lives in two files at the repo root,
+and the app reads *and writes* both, so what `/settings` shows and what the files say can
+never disagree:
 
-In production one secret is required, because the app needs it before it can read its own
-database (it encrypts the stored Meraki API key at rest):
+| File | Holds | Notes |
+| --- | --- | --- |
+| `config.yaml` | every non-secret setting — model provider, knowledge-base storage, run-container images and limits | written with the defaults on first run, commented, safe to hand-edit |
+| `.env` | secrets (`MERAKI_API_KEY`) and deployment knobs (database path, Meraki base URL) | kept `0600`, gitignored — see [.env.example](.env.example) |
 
-```bash
-export CASEWRIGHT_ENC_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
-export CASEWRIGHT_DEV=0
-```
+Edit either by hand or from `/settings`; both paths end up in the same place. A real
+exported environment variable wins over `.env`, so a container or CI secret store can
+inject the API key without a file.
 
-See [.env.example](.env.example) for optional overrides (database path, spec directory,
-Meraki base URL, and the Ollama/Chroma host allowlist).
+> The Meraki API key is stored in plaintext in `.env`, the usual arrangement for a local
+> single-user tool. It's readable by anything that can read your home directory — use a
+> key scoped to the org you're testing against.
+
+The database (`~/.config/casewright/casewright.db`, or `CASEWRIGHT_DB_PATH`) holds records
+only: tests, runs, knowledge-base versions, and the cached Meraki org tree. Upgrading from
+a build that kept settings in there migrates them into the files on first run.
 
 ## Start
 
