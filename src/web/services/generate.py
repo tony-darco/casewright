@@ -48,30 +48,89 @@ def parse_devices(raw):
 # An @-mention token in the prompt: '@' then a name/serial/model-ish run.
 _MENTION_RE = re.compile(r"@([A-Za-z0-9][\w.-]*)")
 
+# A device serial typed straight into the prompt — Meraki's three 4-character groups,
+# e.g. "Q2KD-DEMR-82P7". No '@' needed: a serial already names one exact device, and
+# writing it in the prompt is the plainest way to ask for a test against that unit.
+_SERIAL_RE = re.compile(r"\b[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}\b")
+
+# A Meraki model named in the prompt ("the MR42 in the lobby"). Only the families a run
+# can provision (network_provision._MODEL_PREFIXES); anything else has no hardware type.
+_MODEL_RE = re.compile(r"\b(?:MR|MX|MV|CW)\d{2,4}[A-Za-z]*\b|\bZ\d\b", re.I)
+
+
+def prompt_serials(prompt):
+    """Device serials typed directly into the prompt — uppercased, in order, de-duped.
+
+    A candidate must mix letters and digits, so a plain dashed number ("1234-5678-9012")
+    isn't pinned as hardware that provisioning then fails to claim."""
+    out = []
+    for m in _SERIAL_RE.finditer(prompt or ""):
+        s = m.group(0).upper()
+        if s in out or not (any(c.isdigit() for c in s) and any(c.isalpha() for c in s)):
+            continue
+        out.append(s)
+    return out
+
+
+def _model_hint(prompt):
+    """The Meraki model the prompt names, when it names exactly one ("test the MR42 at
+    Q2KD-DEMR-82P7"). Used only for a serial inventory couldn't resolve: the model is
+    what decides a device's hardware type, and therefore the product type the run's
+    ephemeral network is created with. Two models named at once is ambiguous — which
+    serial is which? — so nothing is guessed."""
+    models = {m.group(0).upper() for m in _MODEL_RE.finditer(prompt or "")}
+    return models.pop() if len(models) == 1 else ""
+
 
 def has_unresolved_mentions(prompt, devices):
-    """True if the prompt @-mentions something the composer did NOT send as a device
-    (a plain-text '@MR42' that never became a chip). Used to avoid an inventory lookup
-    when every mention already arrived as a resolved device."""
+    """True if the prompt names a device the composer did NOT send as a resolved one —
+    a plain-text '@MR42' that never became a chip, or a bare serial. Used to avoid an
+    inventory lookup when every device the prompt names already arrived resolved."""
+    devices = [d for d in devices or [] if isinstance(d, dict)]
+    have_serials = {(d.get("serial") or "").upper() for d in devices}
+    if any(s not in have_serials for s in prompt_serials(prompt)):
+        return True
     if not prompt or "@" not in prompt:
         return False
-    have = {(d.get("name") or "").upper() for d in devices or [] if isinstance(d, dict)}
+    have = {(d.get("name") or "").upper() for d in devices}
     return any(m.group(1).upper() not in have for m in _MENTION_RE.finditer(prompt))
 
 
-def resolve_prompt_mentions(prompt, devices, inventory):
-    """Attach real devices for @-mentions the composer sent as plain text, so a bare
-    '@MR42' still resolves to a concrete serial instead of leaving the model to guess
-    one (which it does badly — using the model name as the serial).
+def resolve_prompt_mentions(prompt, devices, inventory=None):
+    """Attach real devices for the ones the prompt names as plain text, so the model is
+    never left to guess a serial (which it does badly — it uses the model name).
 
-    A mention token is matched against each inventory device's name, serial, or model
-    (case-insensitive). Only a UNIQUE match is added, and only if it isn't already among
-    ``devices``; an ambiguous token (e.g. a model shared by several devices) is left
-    alone, since we can't know which one the user meant."""
+    Two ways a prompt names a device:
+
+    - **a bare serial** ("Q2KD-DEMR-82P7") — the user pointing at one exact unit. It is
+      attached whether or not inventory knows it: the serial is already unambiguous, and
+      a device that can't be claimed has to fail loudly at provisioning rather than let
+      the test quietly run against some other AP. Inventory supplies its model and name
+      when it has them, otherwise a model named in the prompt does (``_model_hint``).
+    - **an @-mention** ("@MR42") — matched case-insensitively against each inventory
+      device's name, serial, or model. Only a UNIQUE match is added; an ambiguous token
+      (a model shared by several devices) is left alone, since we can't know which one
+      the user meant.
+
+    Neither adds a device already among ``devices``."""
     devices = list(devices or [])
+    inventory = inventory or []
+    have_serials = {(d.get("serial") or "").upper() for d in devices if isinstance(d, dict)}
+
+    by_serial = {(d.get("serial") or "").upper(): d for d in inventory}
+    for serial in prompt_serials(prompt):
+        if serial in have_serials:
+            continue
+        known = by_serial.get(serial) or {}
+        devices.append({"name": known.get("name") or serial,
+                        "serial": known.get("serial") or serial,
+                        "mac": known.get("mac", ""),
+                        "model": known.get("model") or _model_hint(prompt),
+                        "orgId": known.get("orgId", "")})
+        have_serials.add(serial)
+
     if not prompt or "@" not in prompt or not inventory:
         return devices
-    have_serials = {(d.get("serial") or "").upper() for d in devices if isinstance(d, dict)}
     have_names = {(d.get("name") or "").upper() for d in devices if isinstance(d, dict)}
     for token in dict.fromkeys(m.group(1) for m in _MENTION_RE.finditer(prompt)):
         tu = token.upper()
@@ -91,13 +150,14 @@ def resolve_prompt_mentions(prompt, devices, inventory):
 
 
 def pin_mentioned_hardware(hardware, devices):
-    """Fold the prompt's @-mentioned devices into the model's hardware requirements,
-    as one row per device.
+    """Fold the devices the prompt names into the model's hardware requirements, as one
+    row per device.
 
-    The model only guesses *types* ("a wireless AP"), but an @-mention names the actual
-    device the test is written against — so it becomes a row pinned to that serial, and
-    consumes one unit of the matching generic requirement instead of adding to it. A
-    mention with no matching requirement still pins (the test clearly needs that device);
+    The model only guesses *types* ("a wireless AP"), but a device named in the prompt —
+    an @-mention or a typed-in serial — is the actual device the test is written against,
+    so it becomes a row pinned to that serial, and consumes one unit of the matching
+    generic requirement instead of adding to it. A named device with no matching
+    requirement still pins (the test clearly needs that device);
     requirements nothing mentions stay generic, expanded to one row each so the Config
     tab needs no count field.
 
@@ -139,8 +199,8 @@ def device_roster(hardware, devices):
     Reuses pin_mentioned_hardware so the roster shown to the model is the *same* list, in
     the same order, as the hardware eventually stored on the test — that's what keeps a
     token pointing at the same device at generation time and at run time. Rows carry a
-    serial only when one is known now (an @-mention or a device pinned in the picker); a
-    type-only row ("any wireless AP") has none until a run claims hardware."""
+    serial only when one is known now (a device named in the prompt, or pinned in the
+    picker); a type-only row ("any wireless AP") has none until a run claims hardware."""
     return pin_mentioned_hardware(hardware, devices)
 
 
@@ -157,7 +217,13 @@ def _device_context(roster):
     for i, row in enumerate(roster, start=1):
         if not isinstance(row, dict):
             continue
-        label = row.get("name") or row.get("model") or row.get("type") or "device"
+        # A device with no name of its own carries its serial as the name — Meraki does
+        # that, and so does a serial typed into the prompt. Never echo that back as a
+        # label: it would show the model the very serial the token exists to hide.
+        name = row.get("name") or ""
+        if name.upper() == (row.get("serial") or "").upper():
+            name = ""
+        label = name or row.get("model") or row.get("type") or "device"
         model = row.get("model") or f"any {row.get('type') or 'device'}"
         lines.append(f"- {label} (model {model}): its serial is {serial_tokens.token(i)}")
     # A small model will happily agree to an abstract rule and still emit its habitual
@@ -201,23 +267,34 @@ def _concrete_context(meta):
 
 
 def expand_mentions(prompt, roster):
-    """Rewrite each ``@name`` in the prompt to ``@name ({{DEVICE_SERIAL_N}}, model <model>)``
-    so the device's TOKEN travels inline with the mention, not just in the separate device
-    context block. The serial itself is never inlined — the model must never see one, or
-    it will copy it (badly) instead of emitting the token.
+    """Rewrite each device the prompt names so the device's TOKEN travels inline with it,
+    not just in the separate device-context block::
 
-    ``roster`` is the token-indexed device list (see device_roster). A roster row with no
-    name, or a name that doesn't appear in the prompt, is left alone. Whole-word match on
-    the name so ``@AP1`` isn't expanded inside ``@AP12``."""
+        @AP-lobby       ->  @AP-lobby ({{DEVICE_SERIAL_1}}, model MR42)
+        Q2KD-DEMR-82P7  ->  {{DEVICE_SERIAL_1}} (model MR42)
+
+    A serial the user typed is *replaced*, not annotated: the model must never see a real
+    serial, or it will copy it (badly) instead of emitting the token — and the token is
+    the only form the deterministic substitution can find later.
+
+    ``roster`` is the token-indexed device list (see device_roster). A roster row the
+    prompt doesn't name is left alone. Whole-word match on the name so ``@AP1`` isn't
+    expanded inside ``@AP12``."""
     if not prompt or not roster:
         return prompt or ""
     for i, row in enumerate(roster, start=1):
         if not isinstance(row, dict):
             continue
+        token, model = serial_tokens.token(i), row.get("model") or "?"
+        serial = (row.get("serial") or "").strip()
+        if serial:
+            # optional '@' so an @-mentioned serial collapses to the token as well
+            pat = re.compile(r"@?\b" + re.escape(serial) + r"\b", re.I)
+            prompt = pat.sub(f"{token} (model {model})", prompt)
         name = (row.get("name") or "").strip()
-        if not name:
-            continue
-        suffix = f" ({serial_tokens.token(i)}, model {row.get('model') or '?'})"
+        if not name or name.upper() == serial.upper():
+            continue   # an unnamed device's "name" is its serial, already handled above
+        suffix = f" ({token}, model {model})"
         # match "@name" only when not already followed by our "({{DEVICE_SERIAL_…" note
         pat = re.compile(r"@" + re.escape(name) + r"\b(?!\s*\(\{\{DEVICE_SERIAL_)")
         prompt = pat.sub("@" + name + suffix, prompt)

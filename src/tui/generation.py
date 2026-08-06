@@ -55,12 +55,15 @@ def run_generation(job, uid, test_id, name, prompt, dev, devices_raw, language, 
 def start_generate(uid, prompt, language, hardware_rows=None, regen_of=None):
     """Kick off a generation in the background (mirrors app_view.app_generate_start).
 
-    Returns ``(job, test_id, name)``; ``regen_of`` regenerates into an existing test as
-    a new version, otherwise a fresh placeholder test is created."""
+    Returns ``(job, test_id, name, dev)`` — ``dev`` being the devices the prompt named,
+    so the caller can show what the test is being pinned to. ``regen_of`` regenerates
+    into an existing test as a new version, otherwise a fresh placeholder test is
+    created."""
     prompt = (prompt or "").strip()
     dev = []
-    # Resolve plain-text @-mentions the composer didn't send as chips (a bare "@MR42")
-    # against the org's claimable inventory, best-effort.
+    # Resolve the devices named in the prompt as plain text — a bare "@MR42", or a serial
+    # typed straight in ("Q2KD-DEMR-82P7") — against the org's claimable inventory. The
+    # lookup is best-effort: a serial pins even when inventory can't be reached.
     if generate.has_unresolved_mentions(prompt, dev):
         inventory, _ = app_flow.claimable_devices(uid)
         dev = generate.resolve_prompt_mentions(prompt, dev, inventory)
@@ -79,7 +82,7 @@ def start_generate(uid, prompt, language, hardware_rows=None, regen_of=None):
     job = gen_registry.start(test_id, uid, lambda job: run_generation(
         job, uid, test_id, name, prompt, dev, devices_raw, language, meta, prov,
         is_new=is_new, hardware=user_hardware))
-    return job, test_id, name
+    return job, test_id, name, dev
 
 
 def start_repair(uid, test_id):

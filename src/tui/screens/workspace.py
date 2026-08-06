@@ -261,8 +261,11 @@ class WorkspaceScreen(CommandScreen):
         self._busy = True
         self._code_buffer = ""
         self._say(f"[dim]Generating ({self._language})…[/dim]")
-        job, test_id, name = generation.start_generate(
+        job, test_id, name, devices = generation.start_generate(
             self.app.uid, prompt, self._language, None, regen_of)
+        for d in devices:
+            self._bullet(f"Targeting [b]{d.get('model') or 'device'}[/b] {d['serial']}"
+                         f" [dim](from your prompt — the run claims this one)[/dim]")
         self.current_test_id = test_id
         self._subscribe(job, self._on_gen_event)
 

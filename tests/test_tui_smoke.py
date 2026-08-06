@@ -6,9 +6,10 @@ so this runs offline.
 """
 
 import asyncio
+import json
 from unittest import mock
 
-from web.services import generate as gen_svc
+from web.services import generate as gen_svc, tests_store
 from tui.bootstrap import startup
 from tui.app import CasewrightApp
 
@@ -42,5 +43,28 @@ def test_plain_text_generates_into_transcript():
             assert "assert True" in ws._code_buffer
             assert ws.current_test_id is not None
             assert ws._version_count == 1
+
+    asyncio.run(scenario())
+
+
+def test_serial_typed_into_the_prompt_targets_that_device():
+    """A serial in the description is picked up by the workspace itself — no '@', no
+    picker — and the test is generated against that one device."""
+    async def scenario():
+        app = CasewrightApp(startup())
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ws = app.screen
+
+            with mock.patch.object(gen_svc, "stream_events", _fake_stream_events):
+                ws.on_text("Verify the SSID is broadcasting on Q2KD-DEMR-82P7, an MR42")
+                for _ in range(80):
+                    await pilot.pause(0.05)
+                    if not ws._busy:
+                        break
+
+            test = tests_store.get_test(app.uid, ws.current_test_id)
+            devices = json.loads(test["devices_json"])
+            assert [(d["serial"], d["model"]) for d in devices] == [("Q2KD-DEMR-82P7", "MR42")]
 
     asyncio.run(scenario())
