@@ -1,8 +1,6 @@
 """SSRF-safe fetch for a user-supplied spec URL (Knowledge Base feature).
 
-This is the inverse policy of web.services.ollama_admin's guard: that one only
-allows loopback (Ollama is expected to run locally). Here we want the opposite —
-allow the public internet (real spec-hosting URLs), but block private/loopback/
+We allow the public internet (real spec-hosting URLs), but block private/loopback/
 link-local/reserved/multicast addresses, since we're fetching a user-supplied URL
 server-side (classic SSRF surface).
 """
@@ -45,10 +43,9 @@ def _guard_public(url: str) -> str:
 
 def fetch_spec_url(url: str, timeout: int = _TIMEOUT) -> bytes:
     """Fetch a user-supplied spec URL, refusing anything that resolves to a private/
-    internal address. Known limitation (shared with ollama_admin._guard_ssrf's own
-    resolve-then-connect approach): a DNS answer could change between this check and
-    the actual request (DNS rebinding) — an accepted residual risk, not a blocker
-    for this feature."""
+    internal address. Known limitation of the resolve-then-connect approach: a DNS
+    answer could change between this check and the actual request (DNS rebinding) —
+    an accepted residual risk, not a blocker for this feature."""
     url = _guard_public((url or "").strip())
     try:
         resp = requests.get(url, timeout=timeout, stream=True,
