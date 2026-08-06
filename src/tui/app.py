@@ -7,7 +7,7 @@ home screen; Settings, Knowledge base, Coverage, and Runs are pushed on top of i
 from textual.app import App
 
 from web import config
-from tui.commands import Command, help_text
+from tui.commands import Command
 
 # Sections that live on their own screen; everything else is a view of the
 # workspace. Values are lazy factories so the import graph stays shallow.
@@ -40,8 +40,6 @@ class CasewrightApp(App):
         """Handle nav + app-wide commands from any screen's command bar."""
         if cmd.name == "quit":
             self.exit()
-        elif cmd.name == "help":
-            self.notify(help_text(), title="commands", timeout=12)
         elif cmd.name == "back":
             self.goto("workspace")
         else:

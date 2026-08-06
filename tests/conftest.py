@@ -20,6 +20,11 @@ os.environ.setdefault("AUTOTEST_DATA_DIR", str(ROOT / "data" / "chroma"))
 # Tests run in dev mode so the fail-closed secret check doesn't abort startup; the
 # check itself is exercised directly in test_config_secrets.
 os.environ.setdefault("CASEWRIGHT_DEV", "1")
+# Every test that exercises the pipeline mocks it, so nothing here should reach a model
+# backend. Point the provider at a closed port: a test that accidentally starts a real
+# generation then fails fast instead of quietly succeeding against whatever .env points
+# at — which is slow, non-deterministic, and burns someone's GPU to assert on a menu.
+os.environ["AUTOTEST_OLLAMA_URL"] = "http://127.0.0.1:1"
 
 
 @pytest.fixture(autouse=True)

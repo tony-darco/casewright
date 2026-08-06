@@ -15,6 +15,8 @@ _STATE_GLYPH = {"none": "·", "never": "○", "covered": "○", "passed": "✓",
 
 
 class CoverageScreen(CommandScreen):
+    PLACE = "coverage"
+    PLACE_LABEL = "coverage"
     BINDINGS = [("escape", "app.pop_screen", "Back")]
 
     def compose(self) -> ComposeResult:

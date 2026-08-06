@@ -12,6 +12,8 @@ from tui.command_screen import CommandScreen
 
 
 class RunsScreen(CommandScreen):
+    PLACE = "runs"
+    PLACE_LABEL = "runs"
     BINDINGS = [("escape", "app.pop_screen", "Back")]
 
     def compose(self) -> ComposeResult:

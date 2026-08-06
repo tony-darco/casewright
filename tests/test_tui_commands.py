@@ -19,9 +19,9 @@ def test_parse_longest_alias_and_args():
 
 
 def test_suggest_matches_prefix():
-    assert suggest("/h") == [("help", "show this list")]
-    assert [n for n, _ in suggest("/s")] == ["settings", "save"]
-    assert len(suggest("/")) == 22                     # bare slash → every command
+    assert suggest("/h") == [("help", "everything you can do here")]
+    assert [n for n, _ in suggest("/s")] == ["settings", "save"]   # unscoped
+    assert len(suggest("/")) == 23                     # bare slash → every command
     assert suggest("/help ") == []                     # trailing space → word complete
     assert suggest("plain") == []                      # not a slash command
 
@@ -35,18 +35,18 @@ def test_menu_completion_and_enter_resolves_highlight():
             bar = app.screen.query_one(CommandBar)
             inp = app.screen.query_one("#command")
 
-            inp.value = "/s"
+            inp.value = "/"                             # every command available here
             await pilot.pause()
             assert bar.suggestions_open and bar._sel == 0
-            assert bar.effective("/s") == "/settings"   # Enter would run the highlight
+            assert bar.effective("/") == "/tests"        # Enter would run the highlight
 
-            await pilot.press("down")                   # move to /save
+            await pilot.press("down")                   # move to the next one
             await pilot.pause()
-            assert bar.effective("/s") == "/save"
+            assert bar.effective("/") == "/new"
 
             await pilot.press("tab")                    # completes into the input
             await pilot.pause()
-            assert inp.value == "/save "
+            assert inp.value == "/new "
             assert not bar.suggestions_open
 
     asyncio.run(scenario())

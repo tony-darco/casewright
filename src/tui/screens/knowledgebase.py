@@ -33,6 +33,8 @@ _SPLIT_LABEL = {"custom": "OpenAPI", "langchain": "LangChain"}
 
 
 class KnowledgeBaseScreen(CommandScreen):
+    PLACE = "kb"
+    PLACE_LABEL = "knowledge base"
     BINDINGS = [("escape", "app.pop_screen", "Back")]
 
     def __init__(self, args: str = ""):

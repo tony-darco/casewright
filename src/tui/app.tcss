@@ -74,7 +74,7 @@ CommandBar {
 #command-suggest {
     display: none;
     height: auto;
-    max-height: 12;
+    max-height: 14;   /* _MENU_ROWS + the two 'N more' markers + border */
     margin: 0 1 0 1;
     padding: 0 2;
     background: $surface;
@@ -102,6 +102,41 @@ CommandBar {
 }
 
 #command-hint {
+    height: 1;
+    padding: 0 2;
+    color: $text-muted;
+}
+
+/* Where you are, directly above the input. */
+#command-place {
+    height: 1;
+    padding: 0 2;
+    color: $text-muted;
+    text-style: bold;
+}
+
+/* --- /edit: a modal text area over the workspace ----------------------------- */
+EditorScreen {
+    align: center middle;
+    background: $background 92%;
+}
+
+#editor-box {
+    width: 88%;
+    height: 82%;
+}
+
+#editor-area {
+    height: 1fr;
+    border: round $panel-lighten-1;
+    border-title-color: $text-muted;
+    border-title-style: bold;
+    border-subtitle-color: $text-muted;
+    background: $surface;
+    scrollbar-size-vertical: 1;
+}
+
+#editor-hint {
     height: 1;
     padding: 0 2;
     color: $text-muted;

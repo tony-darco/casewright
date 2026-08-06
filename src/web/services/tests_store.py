@@ -177,6 +177,20 @@ def get_test(test_id):
     return dict(row) if row else None
 
 
+def set_prompt(test_id, prompt):
+    """Persist an edit to the description a test was generated from.
+
+    Only the prompt: the stored code stays as it is, so the two can disagree until a
+    regenerate. That's deliberate — rewriting the prompt is how you set up the next
+    generation, and silently discarding working code to do it would be worse."""
+    with db.cursor() as conn:
+        cur = conn.execute(
+            "UPDATE tests SET prompt = ?, updated_at = datetime('now') WHERE id = ?",
+            (prompt, test_id),
+        )
+        return cur.rowcount > 0
+
+
 def update_code(test_id, code):
     """Persist edits to a test's code. Returns True if the test exists."""
     with db.cursor() as conn:

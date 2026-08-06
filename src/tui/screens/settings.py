@@ -24,6 +24,8 @@ _REASONING = [("Backend default", ""), ("On", "1"), ("Off", "0")]
 
 
 class SettingsScreen(CommandScreen):
+    PLACE = "settings"
+    PLACE_LABEL = "settings"
     BINDINGS = [("escape", "app.pop_screen", "Back")]
 
     def compose(self) -> ComposeResult:
