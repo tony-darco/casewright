@@ -1,8 +1,7 @@
 """The casewright Textual application.
 
-Holds the single local user and wires up the screens. The workspace (the core
-generate → review → run loop) is the home screen; Settings, Knowledge base,
-Coverage, and Runs are pushed on top of it.
+Wires up the screens. The workspace (the core generate → review → run loop) is the
+home screen; Settings, Knowledge base, Coverage, and Runs are pushed on top of it.
 """
 
 from textual.app import App
@@ -21,7 +20,7 @@ _SECTIONS = {
 
 
 class CasewrightApp(App):
-    """Root app. Carries the local user so every screen can pass ``uid`` to services."""
+    """Root app."""
 
     CSS_PATH = "app.tcss"
     TITLE = config.WORDMARK
@@ -29,14 +28,6 @@ class CasewrightApp(App):
     BINDINGS = [
         ("ctrl+q", "quit", "Quit"),
     ]
-
-    def __init__(self, user: dict):
-        super().__init__()
-        self.user = user
-
-    @property
-    def uid(self) -> int:
-        return self.user["id"]
 
     def on_mount(self) -> None:
         # Imported lazily so the module import graph stays shallow (and testable).
@@ -74,8 +65,8 @@ def main() -> None:
     """Console entry point (``casewright`` / ``python -m tui``)."""
     from tui.bootstrap import startup
 
-    user = startup()
-    CasewrightApp(user).run()
+    startup()
+    CasewrightApp().run()
 
 
 if __name__ == "__main__":

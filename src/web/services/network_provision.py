@@ -138,7 +138,7 @@ def _claim_hardware(org_id, network_id, hardware_reqs, key, on_log, claimed) -> 
         _log(on_log, "provision", f"claimed {count} {hw_type} device(s): {', '.join(serials)}")
 
 
-def provision(user_id, run_code, org_id, hardware_reqs, source, example_network_id,
+def provision(run_code, org_id, hardware_reqs, source, example_network_id,
               key, on_log=None) -> ProvisionResult:
     """Create the run's ephemeral network and claim the hardware the test asks for. On
     any failure after the network exists, best-effort tears down what was created before

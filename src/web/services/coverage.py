@@ -4,9 +4,9 @@ Two layers, deliberately kept apart:
 
 - The **spec tree** (groups -> subgroups -> endpoints) is global and immutable, so it
   is parsed once from the pinned OpenAPI snapshot and cached for the process.
-- The **coverage overlay** (endpoint -> tests -> latest run status) is per-user and
-  changes whenever a test is generated or a run finishes, so it is rebuilt per request.
-  Caching it would show stale coverage, which is the one thing this page must get right.
+- The **coverage overlay** (endpoint -> tests -> latest run status) changes whenever a
+  test is generated or a run finishes, so it is rebuilt on every view. Caching it would
+  show stale coverage, which is the one thing this page must get right.
 
 Grouping is by Meraki product family, read off the operation's tags. ``tags[0]`` is the
 scope and partitions all 957 operations cleanly (verified: no operation lands in two
@@ -78,16 +78,16 @@ def _spec_tree():
     return _tree
 
 
-def _usage_index(user_id):
-    """endpoint id -> [{test_id, name, role, run_status}], for one user's tests.
+def _usage_index():
+    """endpoint id -> [{test_id, name, role, run_status}] across every test.
 
     A test reaches an endpoint as a 'target' (the pipeline retrieved it as what the
     test is for) or a 'prereq' (an upstream producer it calls to set up). If both,
     target wins — it's the stronger claim.
     """
-    latest = runs_store.latest_status_by_test(user_id)
+    latest = runs_store.latest_status_by_test()
     index = {}
-    for t in tests_store.list_endpoint_usage(user_id):
+    for t in tests_store.list_endpoint_usage():
         targets = generate.parse_devices(t["endpoints_json"])
         prereqs = generate.parse_devices(t["dep_endpoints_json"])
         for eid in dict.fromkeys(list(targets) + list(prereqs)):
@@ -113,9 +113,9 @@ def _leaf_state(entries):
     return "covered"
 
 
-def tree_view(user_id):
-    """The whole tree with each user's coverage overlaid, plus rollup counts."""
-    index = _usage_index(user_id)
+def tree_view():
+    """The whole tree with coverage overlaid, plus rollup counts."""
+    index = _usage_index()
     groups = []
     for g in _spec_tree()["groups"]:
         subgroups, g_total, g_covered = [], 0, 0
@@ -136,13 +136,13 @@ def tree_view(user_id):
     }
 
 
-def endpoint_detail(user_id, ep):
+def endpoint_detail(ep):
     """Every test that uses ``ep``, or None if it isn't an endpoint in the spec —
     which also keeps arbitrary input from reaching the template."""
     tree = _spec_tree()
     if ep not in tree["summaries"]:
         return None
-    entries = _usage_index(user_id).get(ep, [])
+    entries = _usage_index().get(ep, [])
     return {
         "endpoint": ep,
         "summary": tree["summaries"][ep],

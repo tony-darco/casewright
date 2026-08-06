@@ -1,6 +1,5 @@
-"""Test the endpoint coverage tree: spec grouping, and the per-user overlay."""
+"""Test the endpoint coverage tree: spec grouping, and the usage overlay."""
 
-from web import db
 from web.services import coverage, runs_store, tests_store
 
 
@@ -64,61 +63,50 @@ def _user(name):
     return db.create_user(name, "h")["id"]
 
 
-def _finished_test(uid, name, endpoints, deps=None):
-    t = tests_store.create_generating(uid, name, "p", "py", [])
-    tests_store.finish_test(uid, t["id"], "f.test.py", "code", endpoints, None,
+def _finished_test(name, endpoints, deps=None):
+    t = tests_store.create_generating(name, "p", "py", [])
+    tests_store.finish_test(t["id"], "f.test.py", "code", endpoints, None,
                             dep_endpoints=deps)
     return t["id"]
 
 
 def test_usage_index_separates_targets_from_prerequisites():
-    uid = _user("covidx")
-    _finished_test(uid, "T", ["GET /organizations/{organizationId}/networks"],
+    _finished_test("T", ["GET /organizations/{organizationId}/networks"],
                    deps=["GET /organizations"])
-    index = coverage._usage_index(uid)
+    index = coverage._usage_index()
     assert index["GET /organizations/{organizationId}/networks"][0]["role"] == "target"
     assert index["GET /organizations"][0]["role"] == "prereq"
 
 
 def test_target_wins_when_an_endpoint_is_both():
-    uid = _user("covboth")
-    _finished_test(uid, "T", ["GET /organizations"], deps=["GET /organizations"])
-    entries = coverage._usage_index(uid)["GET /organizations"]
+    _finished_test("T", ["GET /organizations"], deps=["GET /organizations"])
+    entries = coverage._usage_index()["GET /organizations"]
     assert len(entries) == 1 and entries[0]["role"] == "target"
 
 
 def test_generating_tests_are_not_counted():
-    uid = _user("covgen")
-    tests_store.create_generating(uid, "half-built", "p", "py", [])
-    assert coverage._usage_index(uid) == {}
-
-
-def test_overlay_is_scoped_to_the_user():
-    a, b = _user("cova"), _user("covb")
-    _finished_test(a, "mine", ["GET /organizations"])
-    assert coverage._usage_index(b) == {}
+    tests_store.create_generating("half-built", "p", "py", [])
+    assert coverage._usage_index() == {}
 
 
 def test_latest_terminal_run_wins_and_in_flight_is_ignored():
     """A queued run says nothing yet — it must not mask the last real result."""
-    uid = _user("covrun")
-    tid = _finished_test(uid, "T", ["GET /organizations"])
-    r1 = runs_store.create_run(uid, tid, "example")
+    tid = _finished_test("T", ["GET /organizations"])
+    r1 = runs_store.create_run(tid, "example")
     runs_store.update_status(r1["id"], "success")
-    assert coverage._usage_index(uid)["GET /organizations"][0]["run_status"] == "success"
+    assert coverage._usage_index()["GET /organizations"][0]["run_status"] == "success"
 
-    runs_store.create_run(uid, tid, "example")          # queued, non-terminal
-    assert runs_store.latest_status_by_test(uid)[tid] == "success"
+    runs_store.create_run(tid, "example")          # queued, non-terminal
+    assert runs_store.latest_status_by_test()[tid] == "success"
 
-    r3 = runs_store.create_run(uid, tid, "example")
+    r3 = runs_store.create_run(tid, "example")
     runs_store.update_status(r3["id"], "failed")
-    assert runs_store.latest_status_by_test(uid)[tid] == "failed"
+    assert runs_store.latest_status_by_test()[tid] == "failed"
 
 
 def test_tree_view_rolls_up_counts():
-    uid = _user("covroll")
-    _finished_test(uid, "T", ["GET /organizations"])
-    vm = coverage.tree_view(uid)
+    _finished_test("T", ["GET /organizations"])
+    vm = coverage.tree_view()
     assert vm["total"] == 957 and vm["covered"] == 1
     other = next(g for g in vm["groups"] if g["name"] == "Other")
     assert other["covered"] == 1
@@ -130,10 +118,9 @@ def test_tree_view_rolls_up_counts():
 # --- detail --------------------------------------------------------------------
 
 def test_endpoint_detail_lists_tests():
-    uid = _user("covdet")
-    _finished_test(uid, "Net test", ["GET /organizations/{organizationId}/networks"],
+    _finished_test("Net test", ["GET /organizations/{organizationId}/networks"],
                    deps=["GET /organizations"])
-    vm = coverage.endpoint_detail(uid, "GET /organizations")
+    vm = coverage.endpoint_detail("GET /organizations")
     assert vm["state"] == "covered"
     assert [t["name"] for t in vm["tests"]] == ["Net test"]
     assert vm["tests"][0]["role"] == "prereq"
@@ -142,13 +129,11 @@ def test_endpoint_detail_lists_tests():
 
 def test_endpoint_detail_rejects_unknown_endpoints():
     """Guards the template from arbitrary input: only real spec endpoints resolve."""
-    uid = _user("covbad")
-    assert coverage.endpoint_detail(uid, "GET /nope") is None
-    assert coverage.endpoint_detail(uid, "<script>alert(1)</script>") is None
-    assert coverage.endpoint_detail(uid, "") is None
+    assert coverage.endpoint_detail("GET /nope") is None
+    assert coverage.endpoint_detail("<script>alert(1)</script>") is None
+    assert coverage.endpoint_detail("") is None
 
 
 def test_uncovered_endpoint_has_no_tests():
-    uid = _user("covnone")
-    vm = coverage.endpoint_detail(uid, "GET /organizations")
+    vm = coverage.endpoint_detail("GET /organizations")
     assert vm["state"] == "none" and vm["tests"] == []

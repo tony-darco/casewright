@@ -1,13 +1,12 @@
-"""Logging for the Logs page (issue #8).
+"""Logging for the Logs page.
 
 Two sources, one module:
 
 - **Per-test logs** — pipeline stages + errors for a single generation, persisted in
-  ``test_logs`` (SQLite) tied to a test id and scoped to a user. A user only ever sees
-  their own test logs.
-- **App-wide log** — recent server log records, kept in a bounded in-memory ring
-  buffer (a logging handler) rather than the DB: it's the whole application log, high
-  volume, and not per-user. Bounded size doubles as retention.
+  ``test_logs`` (SQLite) tied to a test id.
+- **App-wide log** — recent application log records, kept in a bounded in-memory ring
+  buffer (a logging handler) rather than the DB: it's the whole application log and
+  high volume. Bounded size doubles as retention.
 """
 
 import logging
@@ -15,35 +14,33 @@ from collections import deque
 
 from web import db
 
-# --- per-test logs (persisted, per-user) -----------------------------------------
+# --- per-test logs (persisted) ---------------------------------------------------
 
 
-def record(user_id, test_id, entries) -> None:
+def record(test_id, entries) -> None:
     """Persist a generation's log entries (``[{stage, level, message}, ...]``)."""
     if not entries:
         return
     rows = [
-        (user_id, test_id, e.get("stage", ""), e.get("level", "info"), e.get("message", ""))
+        (test_id, e.get("stage", ""), e.get("level", "info"), e.get("message", ""))
         for e in entries
     ]
     with db.cursor() as conn:
         conn.executemany(
-            "INSERT INTO test_logs (user_id, test_id, stage, level, message) "
-            "VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO test_logs (test_id, stage, level, message) VALUES (?, ?, ?, ?)",
             rows,
         )
 
 
-def tests_with_logs(user_id) -> list:
-    """This user's tests that have logs, newest test first, each with its ordered
-    entries: ``[{id, name, created_at, entries: [{stage, level, message, created_at}]}]``."""
+def tests_with_logs() -> list:
+    """Tests that have logs, newest test first, each with its ordered entries:
+    ``[{id, name, created_at, entries: [{stage, level, message, created_at}]}]``."""
     with db.cursor() as conn:
         rows = conn.execute(
             "SELECT l.test_id AS test_id, t.name AS name, t.created_at AS test_created_at, "
             "l.stage AS stage, l.level AS level, l.message AS message, l.created_at AS created_at "
             "FROM test_logs l JOIN tests t ON t.id = l.test_id "
-            "WHERE l.user_id = ? ORDER BY t.created_at DESC, t.id DESC, l.id ASC",
-            (user_id,),
+            "ORDER BY t.created_at DESC, t.id DESC, l.id ASC"
         ).fetchall()
 
     grouped = {}

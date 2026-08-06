@@ -24,10 +24,9 @@ class RunsScreen(CommandScreen):
     def on_mount(self) -> None:
         table = self.query_one("#runs-table", DataTable)
         table.add_columns("Test", "Status", "Source", "Started", "Error")
-        uid = self.app.uid
         rows = []
-        for t in tests_store.list_tests(uid):
-            for r in runs_store.list_runs_for_test(uid, t["id"]):
+        for t in tests_store.list_tests():
+            for r in runs_store.list_runs_for_test(t["id"]):
                 rows.append((r["created_at"], t["name"], r["status"], r["source"],
                              r.get("finished_at") or "", r.get("error_message") or ""))
         rows.sort(reverse=True)  # newest first by created_at

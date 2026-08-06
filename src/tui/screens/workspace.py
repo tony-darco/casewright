@@ -128,7 +128,7 @@ class WorkspaceScreen(CommandScreen):
         self._say("[dim]New test — describe what you want to test.[/dim]")
 
     def _list_tests(self) -> None:
-        tests = tests_store.list_tests(self.app.uid)
+        tests = tests_store.list_tests()
         if not tests:
             self._say("[dim]No tests yet. Describe one to generate.[/dim]")
             return
@@ -140,24 +140,23 @@ class WorkspaceScreen(CommandScreen):
 
     # --- loading a test ----------------------------------------------------------
     def _load_vm(self, test_id: int, version_no: int = None) -> bool:
-        uid = self.app.uid
-        test = tests_store.get_test(uid, test_id)
+        test = tests_store.get_test(test_id)
         if not test:
             return False
         self.current_test_id = test_id
         self._prompt = test.get("prompt", "") or self._prompt
-        versions = tests_store.list_versions(uid, test_id)
+        versions = tests_store.list_versions(test_id)
         self._version_count = len(versions)
         if version_no is None or version_no >= self._version_count - 1:
             vm = generate.view_model_from_test(test)
             self._version_no = max(self._version_count - 1, 0)
             self._readonly = False
         else:
-            version = tests_store.get_version(uid, test_id, version_no)
+            version = tests_store.get_version(test_id, version_no)
             vm = generate.view_model_from_version(version, test_id, test["name"], self._version_count)
             self._version_no = version_no
             self._readonly = True
-        vm.update(app_flow.run_context(uid, test, self._version_no if self._readonly else None))
+        vm.update(app_flow.run_context(test, self._version_no if self._readonly else None))
         self._vm = vm
         self._code_buffer = vm.get("code", "")
         self._language = vm.get("language", "py")
@@ -221,7 +220,7 @@ class WorkspaceScreen(CommandScreen):
             self._say(f"  [dim]\\[{e['stage']}][/dim] {e['message']}")
 
     def _open_by_ref(self, ref: str) -> None:
-        tests = tests_store.list_tests(self.app.uid)
+        tests = tests_store.list_tests()
         if not ref:
             self._say("[yellow]Usage: /open <number or name>[/yellow]")
             return
@@ -262,7 +261,7 @@ class WorkspaceScreen(CommandScreen):
         self._code_buffer = ""
         self._say(f"[dim]Generating ({self._language})…[/dim]")
         job, test_id, name, devices = generation.start_generate(
-            self.app.uid, prompt, self._language, None, regen_of)
+            prompt, self._language, None, regen_of)
         for d in devices:
             self._bullet(f"Targeting [b]{d.get('model') or 'device'}[/b] {d['serial']}"
                          f" [dim](from your prompt — the run claims this one)[/dim]")
@@ -294,7 +293,7 @@ class WorkspaceScreen(CommandScreen):
         source = "scratch" if self._vm.get("run_source") == "scratch" else "example"
         net = self._vm.get("source_network_id") or ""
         run, error, job = run_flow.start_run(
-            self.app.uid, self.current_test_id, source, net,
+            self.current_test_id, source, net,
             version_no=self._version_no if self._readonly else None)
         if error:
             self._say(f"[red]{error}[/red]")
@@ -322,7 +321,7 @@ class WorkspaceScreen(CommandScreen):
     def _repair(self) -> None:
         if not self._need_test() or self._busy:
             return
-        job, error = generation.start_repair(self.app.uid, self.current_test_id)
+        job, error = generation.start_repair(self.current_test_id)
         if error:
             self._say(f"[red]{error}[/red]")
             return
@@ -335,7 +334,7 @@ class WorkspaceScreen(CommandScreen):
     def _export(self) -> None:
         if not self._need_test():
             return
-        test = tests_store.get_test(self.app.uid, self.current_test_id)
+        test = tests_store.get_test(self.current_test_id)
         if test:
             self.app.copy_to_clipboard(test.get("code", ""))
             self._say("[dim]Code copied to clipboard.[/dim]")

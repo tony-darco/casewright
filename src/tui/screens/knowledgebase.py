@@ -58,7 +58,7 @@ class KnowledgeBaseScreen(CommandScreen):
         yield Footer()
 
     def on_mount(self) -> None:
-        st = kb_store.get_storage(self.app.uid)
+        st = kb_store.get_storage()
         self.query_one("#kb-storage-kind", Select).value = st["storage_kind"]
         self.query_one("#kb-storage-url", Input).value = st["storage_url"]
         self._refresh_versions()
@@ -66,7 +66,7 @@ class KnowledgeBaseScreen(CommandScreen):
     def _refresh_versions(self) -> None:
         lv = self.query_one("#kb-versions", ListView)
         lv.clear()
-        for i, v in enumerate(kb_store.list_versions(self.app.uid), start=1):
+        for i, v in enumerate(kb_store.list_versions(), start=1):
             flag = " ★active" if v.get("is_active") else ""
             extra = f" — {v['error_message']}" if v["status"] == "error" and v["error_message"] else ""
             label = f"{i}. [{v['status']}] {v['name']} · {v['doc_count']} docs{flag}{extra}"
@@ -75,7 +75,7 @@ class KnowledgeBaseScreen(CommandScreen):
     def _selected_version_id(self, ref: str = ""):
         """The version id for an ``/activate``/``/delete`` — by 1-based number, else the highlighted row."""
         if ref.strip().isdigit():
-            versions = kb_store.list_versions(self.app.uid)
+            versions = kb_store.list_versions()
             i = int(ref) - 1
             return versions[i]["id"] if 0 <= i < len(versions) else None
         item = self.query_one("#kb-versions", ListView).highlighted_child
@@ -94,7 +94,7 @@ class KnowledgeBaseScreen(CommandScreen):
                 return
         else:
             url = ""
-        kb_store.set_storage(self.app.uid, kind, url)
+        kb_store.set_storage(kind, url)
         self.query_one("#kb-storage-status", Static).update("[green]Storage saved.[/green]")
 
     # --- ingest ------------------------------------------------------------------
@@ -128,11 +128,10 @@ class KnowledgeBaseScreen(CommandScreen):
         self.app.call_from_thread(self._begin_ingest, content, split, label)
 
     def _begin_ingest(self, content: bytes, split: str, label: str) -> None:
-        uid = self.app.uid
-        v = kb_store.create_embedding(uid, label, "link", split, label)
-        prov = provider_store.overrides(uid)
-        job = kb_registry.start(v["id"], uid, lambda job: kb_ingest.run_ingest(
-            job, uid, v["id"], content, split, label, prov))
+        v = kb_store.create_embedding(label, "url", split, label)
+        prov = provider_store.overrides()
+        job = kb_registry.start(v["id"], lambda job: kb_ingest.run_ingest(
+            job, v["id"], content, split, label, prov))
         self._refresh_versions()
         self.query_one("#kb-status", Static).update("Embedding…")
         self._subscribe(job)
@@ -158,7 +157,7 @@ class KnowledgeBaseScreen(CommandScreen):
         if vid is None:
             self.query_one("#kb-status", Static).update("[yellow]No version selected.[/yellow]")
             return
-        if kb_store.set_active(self.app.uid, vid):
+        if kb_store.set_active(vid):
             self.query_one("#kb-status", Static).update("[green]Activated.[/green]")
         else:
             self.query_one("#kb-status", Static).update(
@@ -170,7 +169,7 @@ class KnowledgeBaseScreen(CommandScreen):
         if vid is None:
             self.query_one("#kb-status", Static).update("[yellow]No version selected.[/yellow]")
             return
-        kb_store.delete_version(self.app.uid, vid)
+        kb_store.delete_version(vid)
         self._refresh_versions()
 
     # --- command routing ---------------------------------------------------------

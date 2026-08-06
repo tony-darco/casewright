@@ -50,7 +50,7 @@ def run_live(cases: list, source: str) -> list:
     from tui import generation, run_flow
     from web.services import tests_store
 
-    uid = startup()["id"]
+    startup()
 
     def drain(job):
         last = {}
@@ -63,19 +63,19 @@ def run_live(cases: list, source: str) -> list:
     for c in live_cases:
         row = {"id": c.get("id", "?"), "prompt": c["prompt"]}
         try:
-            job, test_id, _ = generation.start_generate(uid, c["prompt"], c.get("language", "py"))
+            job, test_id, _, _ = generation.start_generate(c["prompt"], c.get("language", "py"))
             done = drain(job)
             if done.get("status") != "done":
                 row.update(ran=False, status="generation_failed")
                 results.append(row)
                 continue
-            run, error, run_job = run_flow.start_run(uid, test_id, source, "")
+            run, error, run_job = run_flow.start_run(test_id, source, "")
             if error or run_job is None:
                 row.update(ran=False, status=f"start_failed: {error or (run and run.get('error_message'))}")
                 results.append(row)
                 continue
             fin = drain(run_job)
-            final = tests_store.get_test(uid, test_id)  # refresh for status if needed
+            final = tests_store.get_test(test_id)  # refresh for status if needed
             status = fin.get("status") or (final or {}).get("status") or "unknown"
             row.update(ran=True, status=status, first_run_pass=status in ("success", "passed"))
         except Exception as exc:  # noqa: BLE001 — a live case blowing up shouldn't kill the sweep

@@ -62,19 +62,18 @@ class SettingsScreen(CommandScreen):
             yield Static("", id="default-status")
 
     def _refresh_meraki(self) -> None:
-        uid = self.app.uid
         self.query_one("#meraki-status", Static).update(
-            "Key: configured" if store.key_configured(uid)
+            "Key: configured" if store.key_configured()
             else "[dim]No API key set.[/dim]")
         lines = []
-        for org in store.list_orgs(uid):
+        for org in store.list_orgs():
             nets = org.get("networks", [])
             lines.append(f"• {org.get('name') or org['id']} ({org['id']}) — {len(nets)} network(s)")
         self.query_one("#orgs", Static).update("\n".join(lines) or "[dim]No organizations.[/dim]")
-        nets = store.verified_networks(uid)
+        nets = store.verified_networks()
         sel = self.query_one("#default-net", Select)
         sel.set_options([(f"{n['name']} · {n['orgName']}", n["id"]) for n in nets])
-        cur = store.get_default_network_id(uid)
+        cur = store.get_default_network_id()
         if cur and cur in [n["id"] for n in nets]:
             sel.value = cur
 
@@ -82,7 +81,7 @@ class SettingsScreen(CommandScreen):
     def _save_key(self, key: str) -> None:
         try:
             identity = meraki.validate_key(key)
-            store.set_meraki_key(self.app.uid, key)
+            store.set_meraki_key(key)
             msg = f"[green]Key saved.[/green] {identity}"
         except meraki.MerakiError as exc:
             msg = f"[red]{exc}[/red]"
@@ -91,16 +90,15 @@ class SettingsScreen(CommandScreen):
 
     @work(thread=True)
     def _add_org(self, org_id: str) -> None:
-        uid = self.app.uid
-        if store.org_exists(uid, org_id):
+        if store.org_exists(org_id):
             msg = f"[yellow]Organization {org_id} is already connected.[/yellow]"
         else:
             try:
-                key = store.get_meraki_key(uid)
+                key = store.get_meraki_key()
                 org = meraki.verify_org(org_id, key)
                 networks = meraki.list_networks(org_id, key)
-                store.save_org(uid, org)
-                store.set_networks_for_org(uid, org["id"], networks)
+                store.save_org(org)
+                store.set_networks_for_org(org["id"], networks)
                 msg = f"[green]Added {org.get('name') or org['id']}.[/green]"
             except meraki.MerakiError as exc:
                 msg = f"[red]{exc}[/red]"
@@ -109,7 +107,7 @@ class SettingsScreen(CommandScreen):
 
     # --- model provider ----------------------------------------------------------
     def _provider_pane(self):
-        s = provider_store.get_settings(self.app.uid)
+        s = provider_store.get_settings()
         with VerticalScroll():
             yield Static("OLLAMA SERVER", classes="eyebrow")
             with Horizontal(classes="row"):
@@ -162,14 +160,14 @@ class SettingsScreen(CommandScreen):
                                       f"[red]{exc}[/red]")
             return
         reason = None if not reasoning_raw else reasoning_raw == "1"
-        provider_store.save_settings(self.app.uid, "ollama", u, chat, embed, temp, reasoning=reason)
+        provider_store.save_settings("ollama", u, chat, embed, temp, reasoning=reason)
         forget_failed_pipelines()
         self.app.call_from_thread(self.query_one("#provider-status", Static).update,
                                   "[green]Provider settings saved.[/green]")
 
     # --- run containers ----------------------------------------------------------
     def _run_pane(self):
-        r = run_settings_store.get_settings(self.app.uid)
+        r = run_settings_store.get_settings()
         with VerticalScroll():
             yield Static("CONTAINER IMAGES", classes="eyebrow")
             yield Input(value=r["python_image"], id="py-image")
@@ -196,7 +194,7 @@ class SettingsScreen(CommandScreen):
                 "[red]Timeout, CPU, and memory must be positive numbers.[/red]")
             return
         run_settings_store.save_settings(
-            self.app.uid, self.query_one("#py-image", Input).value,
+            self.query_one("#py-image", Input).value,
             self.query_one("#go-image", Input).value, self.query_one("#script-image", Input).value,
             timeout, cpu, mem, self.query_one("#cleanup", Select).value)
         self.query_one("#run-settings-status", Static).update("[green]Saved.[/green]")
@@ -227,7 +225,7 @@ class SettingsScreen(CommandScreen):
             if key:
                 self._save_key(key)
         elif bid == "remove-key":
-            store.clear_meraki_key(self.app.uid)
+            store.clear_meraki_key()
             self._refresh_meraki()
         elif bid == "add-org":
             oid = self.query_one("#orgid", Input).value.strip()
@@ -235,7 +233,7 @@ class SettingsScreen(CommandScreen):
                 self._add_org(oid)
         elif bid == "set-default":
             val = self.query_one("#default-net", Select).value
-            store.set_default_network_id(self.app.uid, val if isinstance(val, str) else "")
+            store.set_default_network_id(val if isinstance(val, str) else "")
             self.query_one("#default-status", Static).update("[green]Default network set.[/green]")
         elif bid == "check-provider":
             self._check_provider(self.query_one("#ollama-url", Input).value)

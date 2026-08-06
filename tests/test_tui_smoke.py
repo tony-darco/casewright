@@ -26,7 +26,8 @@ def _fake_stream_events(prompt, devices, language="py", meta=None, overrides=Non
 
 def test_plain_text_generates_into_transcript():
     async def scenario():
-        app = CasewrightApp(startup())
+        startup()
+        app = CasewrightApp()
         async with app.run_test() as pilot:
             await pilot.pause()
             ws = app.screen
@@ -51,7 +52,8 @@ def test_serial_typed_into_the_prompt_targets_that_device():
     """A serial in the description is picked up by the workspace itself — no '@', no
     picker — and the test is generated against that one device."""
     async def scenario():
-        app = CasewrightApp(startup())
+        startup()
+        app = CasewrightApp()
         async with app.run_test() as pilot:
             await pilot.pause()
             ws = app.screen
@@ -63,7 +65,7 @@ def test_serial_typed_into_the_prompt_targets_that_device():
                     if not ws._busy:
                         break
 
-            test = tests_store.get_test(app.uid, ws.current_test_id)
+            test = tests_store.get_test(ws.current_test_id)
             devices = json.loads(test["devices_json"])
             assert [(d["serial"], d["model"]) for d in devices] == [("Q2KD-DEMR-82P7", "MR42")]
 

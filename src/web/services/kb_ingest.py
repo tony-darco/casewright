@@ -2,14 +2,14 @@
 
 Parses the fetched/uploaded content, splits it (custom OpenAPI split or generic
 LangChain split), embeds it into a per-version Chroma collection, and records the
-outcome — emitting stage events onto a kb_registry Job as it goes so the Settings UI
-can show live progress over SSE.
+outcome — emitting stage events onto a kb_registry Job as it goes so the Knowledge
+Base screen can show live progress.
 
 The ``rag`` package (LangChain/Chroma/Ollama) is imported lazily inside
 ``run_ingest``, not at module level — mirroring ``web.deps.get_pipeline`` — so that
-importing this module (and therefore ``web.routers.settings``) never requires the
-RAG stack to be installed. A deployment without it simply gets a clear per-run
-error the first time someone tries to ingest, not a startup crash.
+importing this module never requires the RAG stack to be installed. An install
+without it simply gets a clear per-run error the first time someone tries to ingest,
+not a startup crash.
 """
 
 import json
@@ -30,8 +30,8 @@ def _parse_spec_dict(text: str) -> dict:
         return yaml.safe_load(text) or {}
 
 
-def run_ingest(job, user_id, version_id, content: bytes, split_method: str,
-              source_label: str, provider_overrides: dict) -> None:
+def run_ingest(job, version_id, content: bytes, split_method: str,
+               source_label: str, provider_overrides: dict) -> None:
     """Parse -> split -> embed -> mark_done/mark_error. Emits {"type": "stage", ...}
     events onto ``job`` and a final {"type": "done", ...}."""
     def stage(name, **extra):
@@ -60,18 +60,18 @@ def run_ingest(job, user_id, version_id, content: bytes, split_method: str,
             )
 
         stage("embedding", doc_count=len(docs))
-        version = kb_store.get_version(user_id, version_id)
-        storage = kb_store.get_storage(user_id)
+        version = kb_store.get_version(version_id)
+        storage = kb_store.get_storage()
         cfg = ProviderConfig(**provider_overrides)
         cfg.collection_name = version["collection_name"]
         if storage["storage_kind"] == "remote" and storage["storage_url"]:
             cfg.chroma_url = storage["storage_url"]
         n = embed_documents(docs, cfg)
 
-        kb_store.mark_done(user_id, version_id, n)
+        kb_store.mark_done(version_id, n)
         job.emit({"type": "done", "status": "done", "doc_count": n})
     except Exception as exc:  # noqa: BLE001 — reported as the version's error, never a 500
         message = str(exc) or exc.__class__.__name__
         logger.exception("kb ingest %s failed", version_id)
-        kb_store.mark_error(user_id, version_id, message)
+        kb_store.mark_error(version_id, message)
         job.emit({"type": "done", "status": "error", "message": message})

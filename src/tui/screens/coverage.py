@@ -27,7 +27,7 @@ class CoverageScreen(CommandScreen):
         yield Footer()
 
     def on_mount(self) -> None:
-        view = coverage.tree_view(self.app.uid)
+        view = coverage.tree_view()
         tree = self.query_one("#cov-tree", Tree)
         tree.root.set_label(f"Meraki API spec — {view['covered']}/{view['total']} endpoints covered")
         tree.root.expand()
@@ -43,7 +43,7 @@ class CoverageScreen(CommandScreen):
         ep = event.node.data
         if not ep:
             return
-        detail = coverage.endpoint_detail(self.app.uid, ep)
+        detail = coverage.endpoint_detail(ep)
         body = self.query_one("#cov-detail-body", Static)
         if detail is None:
             body.update("Unknown endpoint.")

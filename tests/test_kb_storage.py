@@ -4,39 +4,25 @@ connection)."""
 
 from unittest import mock
 
-from web import db
 from web.services import kb_store
 
 
 def test_default_storage_is_local():
-    db.init()
-    u = db.create_user("kbstore1", "h")
-    assert kb_store.get_storage(u["id"]) == {"storage_kind": "local", "storage_url": ""}
+    assert kb_store.get_storage() == {"storage_kind": "local", "storage_url": ""}
 
 
 def test_set_and_get_remote_storage():
-    db.init()
-    u = db.create_user("kbstore2", "h")
-    kb_store.set_storage(u["id"], "remote", "http://localhost:8000")
-    assert kb_store.get_storage(u["id"]) == {"storage_kind": "remote", "storage_url": "http://localhost:8000"}
+    kb_store.set_storage("remote", "http://localhost:8000")
+    assert kb_store.get_storage() == {"storage_kind": "remote", "storage_url": "http://localhost:8000"}
 
 
 def test_set_storage_does_not_clobber_active_version():
-    db.init()
-    u = db.create_user("kbstore3", "h")
-    v = kb_store.create_embedding(u["id"], "S", "upload", "custom", "spec.json")
-    kb_store.mark_done(u["id"], v["id"], 1)
-    kb_store.set_active(u["id"], v["id"])
+    v = kb_store.create_embedding("S", "upload", "custom", "spec.json")
+    kb_store.mark_done(v["id"], 1)
+    kb_store.set_active(v["id"])
 
-    kb_store.set_storage(u["id"], "remote", "http://localhost:8000")
-    assert kb_store.get_active(u["id"])["id"] == v["id"]
-
-
-def test_storage_is_user_scoped():
-    db.init()
-    owner, other = db.create_user("kbstore4", "h"), db.create_user("kbstore5", "h")
-    kb_store.set_storage(owner["id"], "remote", "http://localhost:8000")
-    assert kb_store.get_storage(other["id"])["storage_kind"] == "local"
+    kb_store.set_storage("remote", "http://localhost:8000")
+    assert kb_store.get_active()["id"] == v["id"]
 
 
 def test_build_vector_store_uses_remote_client_when_chroma_url_set():

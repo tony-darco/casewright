@@ -1,10 +1,10 @@
-"""Per-user model-provider settings (Settings → Model provider).
+"""Model-provider settings (Settings → Model provider).
 
-One row per user in SQLite (db.provider_settings). Blank fields mean "use the
+A single row in SQLite (db.provider_settings). Blank fields mean "use the
 backend default" — the .env / ProviderConfig defaults (rag.provider) stay
-authoritative, the UI only layers overrides on top. ``overrides()`` maps just
-the fields the user actually set onto ProviderConfig attribute names, so an
-empty settings row leaves the pipeline exactly on its defaults.
+authoritative, Settings only layers overrides on top. ``overrides()`` maps just
+the fields actually set onto ProviderConfig attribute names, so an empty settings
+row leaves the pipeline exactly on its defaults.
 """
 
 from web import db
@@ -13,35 +13,35 @@ DEFAULTS = {"provider": "ollama", "ollama_url": "", "chat_model": "", "embed_mod
             "temperature": None, "reasoning": None}
 
 
-def get_settings(user_id: int) -> dict:
+def get_settings() -> dict:
     with db.cursor() as conn:
         r = conn.execute(
             "SELECT provider, ollama_url, chat_model, embed_model, temperature, reasoning "
-            "FROM provider_settings WHERE user_id = ?", (user_id,)
+            "FROM provider_settings WHERE id = 1"
         ).fetchone()
     return dict(r) if r else dict(DEFAULTS)
 
 
-def save_settings(user_id: int, provider: str, ollama_url: str, chat_model: str,
+def save_settings(provider: str, ollama_url: str, chat_model: str,
                   embed_model: str, temperature, reasoning=None) -> None:
     with db.cursor() as conn:
         conn.execute(
-            "INSERT INTO provider_settings (user_id, provider, ollama_url, chat_model, "
-            "embed_model, temperature, reasoning) VALUES (?, ?, ?, ?, ?, ?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET provider = excluded.provider, "
+            "INSERT INTO provider_settings (id, provider, ollama_url, chat_model, "
+            "embed_model, temperature, reasoning) VALUES (1, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET provider = excluded.provider, "
             "ollama_url = excluded.ollama_url, chat_model = excluded.chat_model, "
             "embed_model = excluded.embed_model, temperature = excluded.temperature, "
             "reasoning = excluded.reasoning",
-            (user_id, provider.strip(), ollama_url.strip(), chat_model.strip(),
+            (provider.strip(), ollama_url.strip(), chat_model.strip(),
              embed_model.strip(), temperature,
              None if reasoning is None else (1 if reasoning else 0)),
         )
 
 
-def overrides(user_id: int) -> dict:
-    """The fields this user set, as ProviderConfig attribute overrides.
+def overrides() -> dict:
+    """The fields that are set, as ProviderConfig attribute overrides.
     ``{}`` when nothing is set (i.e. run entirely on backend defaults)."""
-    s = get_settings(user_id)
+    s = get_settings()
     out = {}
     if s["ollama_url"]:
         out["provider"] = s["provider"] or "ollama"

@@ -10,7 +10,6 @@ must be reported as "the code never ran", not dressed up as a test failure.
 
 from unittest import mock
 
-from web import db
 from web.services import generate, tests_store
 
 
@@ -191,19 +190,17 @@ def test_docs_for_endpoints_degrades_to_empty_when_the_store_fails():
 # --- a failed repair must not destroy the test -----------------------------------
 
 def test_abandon_generation_keeps_the_code_and_versions():
-    db.init()
-    u = db.create_user("repairkeep", "h")
-    t = tests_store.create_test(u["id"], "n", "p", "f.py", "GOOD CODE", "py", ["GET /x"], [])
+    t = tests_store.create_test("n", "p", "f.py", "GOOD CODE", "py", ["GET /x"], [])
     tests_store.add_version(t["id"], "p", "f.py", "GOOD CODE", "py", ["GET /x"], None)
-    tests_store.restart_generation(u["id"], t["id"], "p", "py")
+    tests_store.restart_generation(t["id"], "p", "py")
 
-    tests_store.abandon_generation(u["id"], t["id"])
+    tests_store.abandon_generation(t["id"])
 
-    row = tests_store.get_test(u["id"], t["id"])
+    row = tests_store.get_test(t["id"])
     assert row is not None, "a failed repair must never delete the test"
     assert row["code"] == "GOOD CODE"          # prior code intact
     assert row["status"] == "done"             # not stuck in 'generating'
-    assert len(tests_store.list_versions(u["id"], t["id"])) == 1
+    assert len(tests_store.list_versions(t["id"])) == 1
 
 
 # --- end to end through the graph (LLM + store mocked) ----------------------------

@@ -7,14 +7,13 @@ import threading
 import time
 from unittest import mock
 
-from web import db
 from web.services import gen_registry, generate, tests_store
 
 
 # --- Job: replay + live + multi-subscriber ---------------------------------------
 
 def test_subscribe_replays_then_follows_live():
-    job = gen_registry.Job(test_id=1, user_id=1)
+    job = gen_registry.Job(test_id=1)
     job.emit({"type": "stage", "label": "a"})
     job.emit({"type": "token", "text": "x"})
 
@@ -35,7 +34,7 @@ def test_subscribe_replays_then_follows_live():
 
 
 def test_multiple_subscribers_each_get_everything():
-    job = gen_registry.Job(2, 1)
+    job = gen_registry.Job(2)
     results = [[], []]
     def consume(i):
         for ev in job.subscribe(timeout=2):
@@ -58,7 +57,7 @@ def test_registry_retains_finished_job_then_prunes_stale():
     def target(job):
         job.emit({"type": "stage", "label": "go"})
         ran.set()
-    gen_registry.start(test_id=999, user_id=7, target=target)
+    gen_registry.start(test_id=999, target=target)
     assert ran.wait(2)
     time.sleep(0.05)
     job = gen_registry.get(999)
@@ -67,16 +66,9 @@ def test_registry_retains_finished_job_then_prunes_stale():
     assert [e["type"] for e in job.subscribe(timeout=2)] == ["stage"]
     # a stale finished job is pruned when the next generation starts
     job.done_at -= (gen_registry._GRACE_SECONDS + 1)
-    gen_registry.start(test_id=1000, user_id=7, target=lambda j: None)
+    gen_registry.start(test_id=1000, target=lambda j: None)
     time.sleep(0.05)
     assert gen_registry.get(999) is None
-
-
-def test_get_is_user_scoped():
-    job = gen_registry.Job(3, user_id=42)
-    with mock.patch.dict(gen_registry._jobs, {3: job}, clear=False):
-        assert gen_registry.get(3, user_id=42) is job
-        assert gen_registry.get(3, user_id=99) is None    # not this user's job
 
 
 # --- worker: persists on success, drops placeholder on failure -------------------
@@ -98,19 +90,17 @@ class _StubJob:
 
 def test_worker_persists_finished_test():
     from tui import generation
-    db.init()
-    u = db.create_user("bgok", "hash")
-    t = tests_store.create_generating(u["id"], "My test", "list orgs", "py", [])
+    t = tests_store.create_generating("My test", "list orgs", "py", [])
     vm = generate._workspace_vm("list orgs", "import requests\n", "orgs.test.py",
                                 ["GET /organizations"], "py",
                                 {"ok": True, "method": "ast", "detail": "ok", "language": "python", "label": "Python"})
     vm["_log"] = []
     job = _StubJob()
     with mock.patch.object(generation.generate, "stream_events", _fake_stream(vm)):
-        generation.run_generation(job, u["id"], t["id"], "My test", "list orgs",
+        generation.run_generation(job, t["id"], "My test", "list orgs",
                                   [], "[]", "py", {}, None)
 
-    row = tests_store.get_test(u["id"], t["id"])
+    row = tests_store.get_test(t["id"])
     assert row["status"] == "done"
     assert row["code"] == "import requests\n"
     assert row["validation_json"]                      # persisted
@@ -121,14 +111,12 @@ def test_worker_persists_finished_test():
 
 def test_worker_drops_placeholder_on_error():
     from tui import generation
-    db.init()
-    u = db.create_user("bgerr", "hash")
-    t = tests_store.create_generating(u["id"], "Bad", "x", "py", [])
+    t = tests_store.create_generating("Bad", "x", "py", [])
     err_vm = {"error": "Couldn't reach the model backend (Ollama).", "prompt": "x", "_log": []}
     job = _StubJob()
     with mock.patch.object(generation.generate, "stream_events", _fake_stream(err_vm)):
-        generation.run_generation(job, u["id"], t["id"], "Bad", "x", [], "[]", "py", {}, None)
+        generation.run_generation(job, t["id"], "Bad", "x", [], "[]", "py", {}, None)
 
-    assert tests_store.get_test(u["id"], t["id"]) is None   # placeholder removed
+    assert tests_store.get_test(t["id"]) is None   # placeholder removed
     done = job.events[-1]
     assert done["status"] == "error" and done["test_id"] == t["id"]
