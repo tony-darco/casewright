@@ -58,7 +58,7 @@ class KnowledgeBaseScreen(CommandScreen):
         yield Footer()
 
     def on_mount(self) -> None:
-        st = kb_store.get_storage(self.app.uid)
+        st = kb_store.get_storage()
         self.query_one("#kb-storage-kind", Select).value = st["storage_kind"]
         self.query_one("#kb-storage-url", Input).value = st["storage_url"]
         self._refresh_versions()
@@ -94,7 +94,7 @@ class KnowledgeBaseScreen(CommandScreen):
                 return
         else:
             url = ""
-        kb_store.set_storage(self.app.uid, kind, url)
+        kb_store.set_storage(kind, url)
         self.query_one("#kb-storage-status", Static).update("[green]Storage saved.[/green]")
 
     # --- ingest ------------------------------------------------------------------
@@ -130,7 +130,7 @@ class KnowledgeBaseScreen(CommandScreen):
     def _begin_ingest(self, content: bytes, split: str, label: str) -> None:
         uid = self.app.uid
         v = kb_store.create_embedding(uid, label, "link", split, label)
-        prov = provider_store.overrides(uid)
+        prov = provider_store.overrides()
         job = kb_registry.start(v["id"], uid, lambda job: kb_ingest.run_ingest(
             job, uid, v["id"], content, split, label, prov))
         self._refresh_versions()

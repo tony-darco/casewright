@@ -1,4 +1,4 @@
-"""Model-provider settings: the per-user store and the Ollama admin client."""
+"""Model-provider settings: the config.yaml-backed store and the Ollama admin client."""
 
 import json
 from unittest import mock
@@ -6,35 +6,23 @@ from unittest import mock
 import pytest
 import requests
 
-from web import db
 from web.services import ollama_admin, provider_store
-
-
-@pytest.fixture(autouse=True, scope="module")
-def _db():
-    db.init()
-
-
-def _user(name):
-    return db.create_user(name, "x")["id"]
 
 
 # --- provider_store ---------------------------------------------------------------
 
 def test_defaults_when_unset():
-    uid = _user("prov_defaults")
-    assert provider_store.get_settings(uid) == provider_store.DEFAULTS
-    assert provider_store.overrides(uid) == {}   # nothing set -> pipeline stays on env defaults
+    assert provider_store.get_settings() == provider_store.DEFAULTS
+    assert provider_store.overrides() == {}   # nothing set -> pipeline stays on env defaults
 
 
 def test_save_and_overrides_roundtrip():
-    uid = _user("prov_roundtrip")
-    provider_store.save_settings(uid, "ollama", "http://box:11434", "mistral-small:22b",
+    provider_store.save_settings("ollama", "http://box:11434", "mistral-small:22b",
                                  "nomic-embed-text:latest", 0.2)
-    s = provider_store.get_settings(uid)
+    s = provider_store.get_settings()
     assert s["ollama_url"] == "http://box:11434"
     assert s["chat_model"] == "mistral-small:22b"
-    assert provider_store.overrides(uid) == {
+    assert provider_store.overrides() == {
         "provider": "ollama",
         "base_url": "http://box:11434",
         "chat_model": "mistral-small:22b",
@@ -44,18 +32,16 @@ def test_save_and_overrides_roundtrip():
 
 
 def test_blank_fields_are_not_overrides():
-    uid = _user("prov_blanks")
-    provider_store.save_settings(uid, "ollama", "http://box:11434", "", "", None)
-    ov = provider_store.overrides(uid)
+    provider_store.save_settings("ollama", "http://box:11434", "", "", None)
+    ov = provider_store.overrides()
     assert "chat_model" not in ov and "embed_model" not in ov and "temperature" not in ov
     assert ov["base_url"] == "http://box:11434"
 
 
-def test_save_is_upsert():
-    uid = _user("prov_upsert")
-    provider_store.save_settings(uid, "ollama", "http://a:11434", "m1", "", None)
-    provider_store.save_settings(uid, "ollama", "http://b:11434", "m2", "", 1.0)
-    s = provider_store.get_settings(uid)
+def test_save_overwrites_the_previous_values():
+    provider_store.save_settings("ollama", "http://a:11434", "m1", "", None)
+    provider_store.save_settings("ollama", "http://b:11434", "m2", "", 1.0)
+    s = provider_store.get_settings()
     assert (s["ollama_url"], s["chat_model"], s["temperature"]) == ("http://b:11434", "m2", 1.0)
 
 
@@ -127,14 +113,12 @@ def test_pull_model_server_lost_mid_stream():
 def test_reasoning_tristate_unset_on_off():
     """reasoning follows temperature's contract: NULL/unset = keep the backend
     default (absent from overrides), while On/Off are explicit user choices."""
-    uid = _user("prov_reasoning")
+    provider_store.save_settings("ollama", "http://box:11434", "", "", None, reasoning=None)
+    assert provider_store.get_settings()["reasoning"] is None
+    assert "reasoning" not in provider_store.overrides()
 
-    provider_store.save_settings(uid, "ollama", "http://box:11434", "", "", None, reasoning=None)
-    assert provider_store.get_settings(uid)["reasoning"] is None
-    assert "reasoning" not in provider_store.overrides(uid)
+    provider_store.save_settings("ollama", "http://box:11434", "", "", None, reasoning=True)
+    assert provider_store.overrides()["reasoning"] is True
 
-    provider_store.save_settings(uid, "ollama", "http://box:11434", "", "", None, reasoning=True)
-    assert provider_store.overrides(uid)["reasoning"] is True
-
-    provider_store.save_settings(uid, "ollama", "http://box:11434", "", "", None, reasoning=False)
-    assert provider_store.overrides(uid)["reasoning"] is False
+    provider_store.save_settings("ollama", "http://box:11434", "", "", None, reasoning=False)
+    assert provider_store.overrides()["reasoning"] is False

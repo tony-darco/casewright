@@ -1,13 +1,14 @@
 """Per-user persistence for knowledge-base embedding runs (SQLite `kb_versions` +
-`kb_settings` tables).
+`kb_settings` tables), plus the storage-location *setting*, which lives in
+config.yaml (web.settings) instead.
 
-Every call is scoped to user_id — a user only ever sees or controls their own
+Every version call is scoped to user_id — a user only ever sees or controls their own
 versions. Mirrors tests_store.py's shape: a two-phase create (insert, then a
 follow-up update once the row id is known) since collection_name embeds the
 version's own id (``kb_u{user_id}_v{version_id}``).
 """
 
-from web import db
+from web import db, settings
 
 
 def create_embedding(user_id, name, source_kind, split_method, source_label) -> dict:
@@ -104,22 +105,14 @@ def delete_version(user_id, version_id) -> bool:
         return cur.rowcount > 0
 
 
-def get_storage(user_id) -> dict:
-    """Where this user's vector store lives: {'storage_kind': 'local'|'remote',
+def get_storage() -> dict:
+    """Where the vector store lives: {'storage_kind': 'local'|'remote',
     'storage_url': ...}. 'local' (the default) means the shared AUTOTEST_DATA_DIR
-    persist directory; 'remote' means a Chroma server URL."""
-    with db.cursor() as conn:
-        row = conn.execute(
-            "SELECT storage_kind, storage_url FROM kb_settings WHERE user_id = ?", (user_id,)
-        ).fetchone()
-    return dict(row) if row else {"storage_kind": "local", "storage_url": ""}
+    persist directory; 'remote' means a Chroma server URL. A setting, so it lives in
+    config.yaml — unlike the versions above, which are records."""
+    return settings.section("knowledge_base")
 
 
-def set_storage(user_id, storage_kind, storage_url) -> None:
-    with db.cursor() as conn:
-        conn.execute(
-            "INSERT INTO kb_settings (user_id, storage_kind, storage_url) VALUES (?, ?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET storage_kind = excluded.storage_kind, "
-            "storage_url = excluded.storage_url",
-            (user_id, storage_kind, storage_url.strip()),
-        )
+def set_storage(storage_kind, storage_url) -> None:
+    settings.save("knowledge_base", {"storage_kind": storage_kind,
+                                     "storage_url": storage_url.strip()})

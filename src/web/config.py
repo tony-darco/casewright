@@ -39,31 +39,8 @@ def _config_dir() -> Path:
     return Path(base).expanduser() / "casewright"
 
 
-# --- runtime mode ----------------------------------------------------------------
-# Development mode. When set, an insecure-but-convenient fallback is tolerated: the
-# at-rest encryption key (for the stored Meraki API key) may be auto-generated to a
-# local file instead of being supplied explicitly. It MUST be unset in production,
-# where the app fails closed at startup on a missing key rather than inventing one.
-DEV_MODE = os.environ.get("CASEWRIGHT_DEV", "").strip().lower() in ("1", "true", "yes", "on")
-
-# SQLite database (users + per-user data). In Docker, point this at a mounted
-# volume, e.g. CASEWRIGHT_DB_PATH=/data/casewright.db.
+# SQLite database — records only (tests, runs, knowledge-base versions, the cached
+# Meraki org tree). Settings are not in here; they're in config.yaml and .env
+# (web.settings). In Docker, point this at a mounted volume, e.g.
+# CASEWRIGHT_DB_PATH=/data/casewright.db.
 DB_PATH = Path(os.environ.get("CASEWRIGHT_DB_PATH", str(_config_dir() / "casewright.db"))).expanduser()
-
-
-def validate_startup_secrets() -> None:
-    """Fail closed on an insecure at-rest key.
-
-    Outside DEV_MODE, refuse to start if CASEWRIGHT_ENC_KEY is unset — otherwise the
-    at-rest key for the Meraki API key falls back to an auto-generated local file
-    (web.services.crypto), which is convenient for local use but wrong for a shared
-    deployment. In DEV_MODE the fallback is tolerated. Raise ``RuntimeError`` so
-    startup aborts rather than silently encrypting with an ephemeral key.
-    """
-    if DEV_MODE:
-        return
-    if not os.environ.get("CASEWRIGHT_ENC_KEY", "").strip():
-        raise RuntimeError(
-            "Refusing to start — CASEWRIGHT_ENC_KEY is unset. Set it in the environment, "
-            "or set CASEWRIGHT_DEV=1 for local development."
-        )

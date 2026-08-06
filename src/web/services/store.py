@@ -1,60 +1,51 @@
-"""Per-user Meraki store — the API key (encrypted) and the connected
-organizations / networks / devices, all scoped to a user_id and persisted in
-SQLite (db.meraki_data). Every function takes user_id and only ever touches that
-user's row, so users can't see or modify each other's keys or data.
+"""The Meraki API key, and the connected organizations / networks / devices.
 
-The API key additionally gets the secret treatment: encrypted at rest (crypto),
-write-only from the UI, never returned to the browser, never logged.
+The key is a secret and lives in ``.env`` (web.settings); the default example
+network is a setting and lives in config.yaml. What's left here is *data* — the
+fetched org -> network -> device tree — which stays in SQLite (db.meraki_data),
+scoped to a user_id like the rest of the cached records.
 """
 
 import json
 
-from web import db
-from web.services import crypto
+from web import db, settings
 
 
 def _row(user_id: int) -> dict:
     with db.cursor() as conn:
-        r = conn.execute(
-            "SELECT api_key_enc, orgs_json, default_network_id FROM meraki_data WHERE user_id = ?",
-            (user_id,),
-        ).fetchone()
-    return dict(r) if r else {"api_key_enc": None, "orgs_json": "[]", "default_network_id": ""}
+        r = conn.execute("SELECT orgs_json FROM meraki_data WHERE user_id = ?", (user_id,)).fetchone()
+    return dict(r) if r else {"orgs_json": "[]"}
 
 
-def _save(user_id: int, api_key_enc, orgs: list) -> None:
+def _save(user_id: int, orgs: list) -> None:
     with db.cursor() as conn:
         conn.execute(
-            "INSERT INTO meraki_data (user_id, api_key_enc, orgs_json) VALUES (?, ?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET api_key_enc = excluded.api_key_enc, "
-            "orgs_json = excluded.orgs_json",
-            (user_id, api_key_enc, json.dumps(orgs)),
+            "INSERT INTO meraki_data (user_id, orgs_json) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET orgs_json = excluded.orgs_json",
+            (user_id, json.dumps(orgs)),
         )
 
 
-# --- API key (secret) ------------------------------------------------------------
+# --- API key (secret, in .env) ----------------------------------------------------
 
-def get_meraki_key(user_id: int) -> str:
-    enc = _row(user_id)["api_key_enc"]
-    return crypto.decrypt(enc) if enc else ""
-
-
-def set_meraki_key(user_id: int, key: str) -> None:
-    row = _row(user_id)
-    _save(user_id, crypto.encrypt(key.strip()), json.loads(row["orgs_json"] or "[]"))
+def get_meraki_key() -> str:
+    return settings.secret(settings.MERAKI_API_KEY)
 
 
-def clear_meraki_key(user_id: int) -> None:
-    row = _row(user_id)
-    _save(user_id, None, json.loads(row["orgs_json"] or "[]"))
+def set_meraki_key(key: str) -> None:
+    settings.set_secret(settings.MERAKI_API_KEY, key)
 
 
-def key_configured(user_id: int) -> bool:
-    return bool(_row(user_id)["api_key_enc"])
+def clear_meraki_key() -> None:
+    settings.clear_secret(settings.MERAKI_API_KEY)
 
 
-def masked_meraki_key(user_id: int) -> str:
-    key = get_meraki_key(user_id)
+def key_configured() -> bool:
+    return bool(get_meraki_key())
+
+
+def masked_meraki_key() -> str:
+    key = get_meraki_key()
     if not key:
         return ""
     return ("•" * 8 + key[-4:]) if len(key) >= 4 else "•" * len(key)
@@ -87,9 +78,9 @@ def remove_org(user_id: int, org_id: str) -> bool:
         return False
     dropped_nets = {n.get("id") for o in orgs if o.get("id") == org_id
                     for n in o.get("networks", [])}
-    _save(user_id, row["api_key_enc"], remaining)
-    if row["default_network_id"] in dropped_nets:
-        set_default_network_id(user_id, "")
+    _save(user_id, remaining)
+    if get_default_network_id() in dropped_nets:
+        set_default_network_id("")
     return True
 
 
@@ -104,7 +95,7 @@ def save_org(user_id: int, org: dict) -> dict:
     else:
         org = {**org, "networks": []}
         orgs.append(org)
-    _save(user_id, row["api_key_enc"], orgs)
+    _save(user_id, orgs)
     return org
 
 
@@ -122,7 +113,7 @@ def add_network(user_id: int, org_id: str, net: dict, devices: list) -> dict:
             else:
                 nets.append(entry)
             break
-    _save(user_id, row["api_key_enc"], orgs)
+    _save(user_id, orgs)
     return entry
 
 
@@ -135,7 +126,7 @@ def set_network_devices(user_id: int, network_id: str, devices: list) -> None:
         for net in org.get("networks", []):
             if net.get("id") == network_id:
                 net["devices"] = devices
-                _save(user_id, row["api_key_enc"], orgs)
+                _save(user_id, orgs)
                 return
 
 
@@ -172,7 +163,7 @@ def default_or_first_network_id(user_id: int, org_id: str = "") -> str:
     Run feature swaps this for the ephemeral network at run time, so any real network
     id works — the point is to hand the model a literal instead of nothing, which is
     what pushes it to invent network-discovery code."""
-    default = get_default_network_id(user_id)
+    default = get_default_network_id()
     if default:
         return default
     nets = verified_networks(user_id)
@@ -183,19 +174,12 @@ def default_or_first_network_id(user_id: int, org_id: str = "") -> str:
     return next((n["id"] for n in nets if n.get("id")), "")
 
 
-def get_default_network_id(user_id: int) -> str:
-    return _row(user_id)["default_network_id"] or ""
+def get_default_network_id() -> str:
+    return settings.section("meraki")["default_network_id"] or ""
 
 
-def set_default_network_id(user_id: int, network_id: str) -> None:
-    """Set the account's default example network (targeted update that leaves the
-    api key / orgs tree untouched)."""
-    with db.cursor() as conn:
-        conn.execute(
-            "INSERT INTO meraki_data (user_id, default_network_id) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET default_network_id = excluded.default_network_id",
-            (user_id, network_id.strip()),
-        )
+def set_default_network_id(network_id: str) -> None:
+    settings.save("meraki", {"default_network_id": network_id.strip()})
 
 
 def set_networks_for_org(user_id: int, org_id: str, networks: list) -> None:
@@ -209,4 +193,4 @@ def set_networks_for_org(user_id: int, org_id: str, networks: list) -> None:
             existing = {n.get("id"): n.get("devices", []) for n in org.get("networks", [])}
             org["networks"] = [{**net, "devices": existing.get(net.get("id"), [])} for net in networks]
             break
-    _save(user_id, row["api_key_enc"], orgs)
+    _save(user_id, orgs)

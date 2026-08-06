@@ -7,6 +7,8 @@ data/chroma
 .claude
 .venv
 .env
+# written by the app on first run, and machine-specific (Ollama URL, container images)
+config.yaml
 __pycache__
 *.egg-info
 .preview*

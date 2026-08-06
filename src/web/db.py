@@ -3,6 +3,10 @@
 One file, WAL mode, on a path that in Docker points at a mounted volume so it
 survives container restarts (config.DB_PATH). Parameterized queries only. This is
 the seam that a future Postgres backend would replace.
+
+Records only — *settings* moved out to config.yaml and .env (web.settings). The
+settings tables below are kept so ``web.settings.migrate_from_db`` can read an
+install that predates that move; nothing writes to them any more.
 """
 
 import secrets
@@ -31,8 +35,9 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Per-user Meraki data (isolation: one row per user, always filtered by user_id).
--- api_key_enc is Fernet-encrypted (never plaintext); orgs_json holds the connected
--- orgs -> networks -> devices tree for that user.
+-- orgs_json holds the connected orgs -> networks -> devices tree for that user.
+-- api_key_enc and default_network_id are legacy (migration-only): the key now lives
+-- in .env and the default network in config.yaml — see web.settings.
 CREATE TABLE IF NOT EXISTS meraki_data (
     user_id            INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     api_key_enc        TEXT,
@@ -40,10 +45,9 @@ CREATE TABLE IF NOT EXISTS meraki_data (
     default_network_id TEXT NOT NULL DEFAULT ''
 );
 
--- Per-user model-provider settings (Settings → Model provider). Blank/NULL text
--- fields mean "use the backend default" (the ProviderConfig defaults keep working
--- untouched — see web.services.provider_store). reasoning is nullable for the same
--- reason temperature is: NULL = unset = keep the backend default.
+-- Legacy (migration-only): model-provider settings now live in config.yaml's
+-- `provider` section. Kept so web.settings.migrate_from_db can read a pre-move
+-- install; web.services.provider_store no longer touches it.
 CREATE TABLE IF NOT EXISTS provider_settings (
     user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     provider    TEXT NOT NULL DEFAULT 'ollama',
@@ -129,10 +133,10 @@ CREATE TABLE IF NOT EXISTS kb_versions (
 );
 CREATE INDEX IF NOT EXISTS idx_kb_versions_user ON kb_versions(user_id, created_at DESC);
 
--- Per-user active knowledge-base version pointer (mirrors provider_settings' shape).
--- storage_kind/storage_url pick where the vector store itself lives: 'local' (inside
--- the application itself — ProviderConfig.persist_dir, default data/chroma) or
--- 'remote' (a Chroma server URL, wherever it happens to be hosted).
+-- Per-user active knowledge-base version pointer — a reference to a kb_versions row,
+-- so it stays with the records rather than moving into config.yaml.
+-- storage_kind/storage_url are legacy (migration-only): where the vector store lives
+-- is a setting and now lives in config.yaml's `knowledge_base` section.
 CREATE TABLE IF NOT EXISTS kb_settings (
     user_id           INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     active_version_id INTEGER REFERENCES kb_versions(id) ON DELETE SET NULL,
@@ -175,8 +179,8 @@ CREATE TABLE IF NOT EXISTS run_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_run_logs_run ON run_logs(run_id, id);
 
--- Per-user ephemeral-container settings (Settings → Run / Containers). One row per
--- user, same pattern as provider_settings.
+-- Legacy (migration-only): ephemeral-container settings now live in config.yaml's
+-- `run` section. Same story as provider_settings above.
 CREATE TABLE IF NOT EXISTS run_settings (
     user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     python_image    TEXT NOT NULL DEFAULT 'python:3.12-slim',

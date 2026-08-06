@@ -61,7 +61,7 @@ def run_ingest(job, user_id, version_id, content: bytes, split_method: str,
 
         stage("embedding", doc_count=len(docs))
         version = kb_store.get_version(user_id, version_id)
-        storage = kb_store.get_storage(user_id)
+        storage = kb_store.get_storage()
         cfg = ProviderConfig(**provider_overrides)
         cfg.collection_name = version["collection_name"]
         if storage["storage_kind"] == "remote" and storage["storage_url"]:

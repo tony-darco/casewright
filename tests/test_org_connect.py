@@ -56,23 +56,23 @@ def test_remove_org_is_reported_when_absent(uid):
 
 
 def test_remove_org_keeps_the_api_key(uid):
-    store.set_meraki_key(uid, "secret-key")
+    store.set_meraki_key("secret-key")
     store.save_org(uid, _mk_org())
 
     store.remove_org(uid, "123")
 
-    assert store.get_meraki_key(uid) == "secret-key"
+    assert store.get_meraki_key() == "secret-key"
 
 
 def test_remove_org_clears_a_default_network_it_owned(uid):
     store.save_org(uid, _mk_org())
     store.set_networks_for_org(uid, "123", [_net("N_1", "home")])
-    store.set_default_network_id(uid, "N_1")
+    store.set_default_network_id("N_1")
 
     store.remove_org(uid, "123")
 
     # otherwise a run would try to clone a network we no longer know anything about
-    assert store.get_default_network_id(uid) == ""
+    assert store.get_default_network_id() == ""
 
 
 def test_remove_org_leaves_an_unrelated_default_network_alone(uid):
@@ -80,29 +80,30 @@ def test_remove_org_leaves_an_unrelated_default_network_alone(uid):
     store.save_org(uid, _mk_org("456"))
     store.set_networks_for_org(uid, "123", [_net("N_1", "home")])
     store.set_networks_for_org(uid, "456", [_net("N_2", "lab")])
-    store.set_default_network_id(uid, "N_2")
+    store.set_default_network_id("N_2")
 
     store.remove_org(uid, "123")
 
-    assert store.get_default_network_id(uid) == "N_2"
+    assert store.get_default_network_id() == "N_2"
 
 
 def test_default_network_survives_an_org_refresh(uid):
-    """_save() rewrites the orgs tree on the same row default_network_id lives on."""
+    """Refreshing the cached org tree (SQLite) must not disturb the default network
+    (config.yaml)."""
     store.save_org(uid, _mk_org())
     store.set_networks_for_org(uid, "123", [_net("N_1", "home")])
-    store.set_default_network_id(uid, "N_1")
+    store.set_default_network_id("N_1")
 
     store.set_networks_for_org(uid, "123", [_net("N_1", "home renamed")])
 
-    assert store.get_default_network_id(uid) == "N_1"
+    assert store.get_default_network_id() == "N_1"
 
 
 def test_default_network_survives_an_api_key_change(uid):
     store.save_org(uid, _mk_org())
     store.set_networks_for_org(uid, "123", [_net("N_1", "home")])
-    store.set_default_network_id(uid, "N_1")
+    store.set_default_network_id("N_1")
 
-    store.set_meraki_key(uid, "rotated")
+    store.set_meraki_key("rotated")
 
-    assert store.get_default_network_id(uid) == "N_1"
+    assert store.get_default_network_id() == "N_1"

@@ -36,7 +36,7 @@ def claimable_devices(user_id: int):
     devices a run can actually claim. Returns (devices, error): a Meraki failure yields
     an error string rather than an empty list, so the picker never implies "you have no
     hardware" when it simply couldn't ask."""
-    key = store.get_meraki_key(user_id)
+    key = store.get_meraki_key()
     if not key:
         return [], "Add a Meraki API key in Settings to pick specific hardware."
     devices, errors = [], []
@@ -95,7 +95,7 @@ def run_context(user_id: int, test: dict, version_no: int = None) -> dict:
     claimable, claimable_error = claimable_devices(user_id)
     ctx = {
         "networks": store.verified_networks(user_id),
-        "default_network_id": store.get_default_network_id(user_id),
+        "default_network_id": store.get_default_network_id(),
         "claimable": claimable,
         "claimable_error": claimable_error,
         "run_source": test.get("run_source", "example") if test else "example",

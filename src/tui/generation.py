@@ -22,11 +22,11 @@ def _default_name(prompt: str) -> str:
 def build_overrides(user_id: int) -> dict:
     """The user's provider overrides plus the active knowledge-base collection, exactly
     as the web routers assembled them before every generation."""
-    prov = provider_store.overrides(user_id)
+    prov = provider_store.overrides()
     active_kb = kb_store.get_active(user_id)   # only ever a 'done' version
     if active_kb:
         prov = {**prov, "collection_name": active_kb["collection_name"]}
-        storage = kb_store.get_storage(user_id)
+        storage = kb_store.get_storage()
         if storage["storage_kind"] == "remote" and storage["storage_url"]:
             prov = {**prov, "chroma_url": storage["storage_url"]}
     return prov

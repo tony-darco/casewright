@@ -68,3 +68,37 @@ def test_serial_typed_into_the_prompt_targets_that_device():
             assert [(d["serial"], d["model"]) for d in devices] == [("Q2KD-DEMR-82P7", "MR42")]
 
     asyncio.run(scenario())
+
+
+def test_settings_screen_reads_and_writes_the_config_file():
+    """The Settings screen is populated from config.yaml and saves straight back to
+    it — no database round trip in between."""
+    from textual.widgets import Input
+
+    from web import settings
+    from web.services import run_settings_store
+    from tui.screens.settings import SettingsScreen
+
+    run_settings_store.save_settings("python:3.11-slim", "golang:1.22-alpine",
+                                     "ubuntu:24.04", 90, 1.0, 256, "never")
+
+    async def scenario():
+        app = CasewrightApp(startup())
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            app.push_screen(SettingsScreen())
+            await pilot.pause()
+            screen = app.screen
+
+            # populated from the file, not from defaults
+            assert screen.query_one("#py-image", Input).value == "python:3.11-slim"
+            assert screen.query_one("#timeout", Input).value == "90"
+
+            screen.query_one("#py-image", Input).value = "python:3.13-slim"
+            screen._save_run_settings()
+
+    asyncio.run(scenario())
+
+    assert settings.section("run")["python_image"] == "python:3.13-slim"
+    on_disk = settings.CONFIG_PATH.read_text()
+    assert "python:3.13-slim" in on_disk and "cleanup_policy: never" in on_disk

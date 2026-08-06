@@ -102,7 +102,7 @@ def start_run(job, uid, test, run_id, run_code, org_id, source, example_network_
         env = {"MERAKI_API_KEY": key, "MERAKI_ORG_ID": result.org_id,
                "MERAKI_NETWORK_ID": result.network_id}
         runner = registry.get_runner(test.get("language") or "py")
-        outcome = runner.run(code, env, run_settings_store.get_settings(uid), on_log)
+        outcome = runner.run(code, env, run_settings_store.get_settings(), on_log)
         status("success" if outcome.ok else "failed")
     except ProvisionError as exc:
         on_log({"stage": "provision", "level": "error", "message": str(exc)})

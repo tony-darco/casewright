@@ -35,18 +35,18 @@ def start_run(uid, test_id, run_source="example", network_id="", version_no=None
     source = "scratch" if run_source == "scratch" else "example"
     tests_store.set_run_config(uid, test_id, source, network_id.strip())
 
-    key = store.get_meraki_key(uid)
+    key = store.get_meraki_key()
     if not key:
         return None, "Add a Meraki API key in Settings first.", None
 
     if source == "example":
-        example_network_id = network_id.strip() or store.get_default_network_id(uid)
+        example_network_id = network_id.strip() or store.get_default_network_id()
         if not example_network_id:
             return None, "Select an example network (or set a default in Settings).", None
         org_id = store.org_id_for_network(uid, example_network_id)
     else:
         example_network_id = ""
-        org_id = store.org_id_for_network(uid, store.get_default_network_id(uid))
+        org_id = store.org_id_for_network(uid, store.get_default_network_id())
     if not org_id:
         return None, "Connect a Meraki organization in Settings first.", None
 
