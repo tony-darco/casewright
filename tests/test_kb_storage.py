@@ -1,14 +1,9 @@
 """kb_store storage location (local vs. remote Chroma) + ProviderConfig/
 build_vector_store's remote branch (chromadb.HttpClient mocked, no real
-connection).
-
-Storage location is a *setting*, so it lives in config.yaml (web.settings) and is
-global; the active-version pointer is a reference to a record and stays per-user in
-SQLite. These tests cover the seam between the two."""
+connection)."""
 
 from unittest import mock
 
-from web import db
 from web.services import kb_store
 
 
@@ -22,16 +17,12 @@ def test_set_and_get_remote_storage():
 
 
 def test_set_storage_does_not_clobber_active_version():
-    """The two now live in different places — the setting in config.yaml, the pointer
-    in SQLite — so saving one must leave the other alone."""
-    db.init()
-    u = db.create_user("kbstore3", "h")
-    v = kb_store.create_embedding(u["id"], "S", "upload", "custom", "spec.json")
-    kb_store.mark_done(u["id"], v["id"], 1)
-    kb_store.set_active(u["id"], v["id"])
+    v = kb_store.create_embedding("S", "upload", "custom", "spec.json")
+    kb_store.mark_done(v["id"], 1)
+    kb_store.set_active(v["id"])
 
     kb_store.set_storage("remote", "http://localhost:8000")
-    assert kb_store.get_active(u["id"])["id"] == v["id"]
+    assert kb_store.get_active()["id"] == v["id"]
 
 
 def test_build_vector_store_uses_remote_client_when_chroma_url_set():

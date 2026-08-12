@@ -2,7 +2,6 @@
 
 from unittest import mock
 
-from web import db
 from web.services import generate, tests_store
 from tui import generation
 
@@ -27,34 +26,21 @@ class _StubJob:
 # --- store --------------------------------------------------------------------
 
 def test_add_list_get_versions():
-    db.init()
-    u = db.create_user("verstore", "h")
-    t = tests_store.create_generating(u["id"], "T", "p0", "py", [])
+    t = tests_store.create_generating("T", "p0", "py", [])
     assert tests_store.add_version(t["id"], "p0", "f.py", "code0", "py", [], None) == 0
     assert tests_store.add_version(t["id"], "p1", "f.py", "code1", "py", [], None) == 1
-    vs = tests_store.list_versions(u["id"], t["id"])
+    vs = tests_store.list_versions(t["id"])
     assert [v["version_no"] for v in vs] == [0, 1]
-    assert tests_store.get_version(u["id"], t["id"], 0)["code"] == "code0"
-    assert tests_store.get_version(u["id"], t["id"], 1)["prompt"] == "p1"
-
-
-def test_versions_user_scoped():
-    db.init()
-    owner, other = db.create_user("vo", "h"), db.create_user("vp", "h")
-    t = tests_store.create_generating(owner["id"], "T", "p", "py", [])
-    tests_store.add_version(t["id"], "p", "f", "c", "py", [], None)
-    assert tests_store.list_versions(other["id"], t["id"]) == []
-    assert tests_store.get_version(other["id"], t["id"], 0) is None
+    assert tests_store.get_version(t["id"], 0)["code"] == "code0"
+    assert tests_store.get_version(t["id"], 1)["prompt"] == "p1"
 
 
 def test_restart_generation_updates_prompt_and_status():
-    db.init()
-    u = db.create_user("vrestart", "h")
-    t = tests_store.create_generating(u["id"], "T", "old prompt", "py", [])
-    tests_store.finish_test(u["id"], t["id"], "f", "c", [], None, "done")
-    r = tests_store.restart_generation(u["id"], t["id"], "new prompt", "ts")
+    t = tests_store.create_generating("T", "old prompt", "py", [])
+    tests_store.finish_test(t["id"], "f", "c", [], None, "done")
+    r = tests_store.restart_generation(t["id"], "new prompt", "ts")
     assert r["id"] == t["id"]
-    row = tests_store.get_test(u["id"], t["id"])
+    row = tests_store.get_test(t["id"])
     assert row["status"] == "generating" and row["prompt"] == "new prompt" and row["language"] == "ts"
 
 
@@ -73,26 +59,24 @@ def test_view_model_from_version_readonly_flags():
 # --- worker appends a version per (re)generation ------------------------------
 
 def test_regenerate_snapshots_each_version():
-    db.init()
-    u = db.create_user("verworker", "h")
-    t = tests_store.create_generating(u["id"], "T", "v0 prompt", "py", [])
+    t = tests_store.create_generating("T", "v0 prompt", "py", [])
     tid = t["id"]
 
     # first generation -> version 0
     job = _StubJob()
     with mock.patch.object(generation.generate, "stream_events", _fake_stream("code v0", "v0 prompt")):
-        generation.run_generation(job, u["id"], tid, "T", "v0 prompt", [], "[]", "py", {}, None)
+        generation.run_generation(job, tid, "T", "v0 prompt", [], "[]", "py", {}, None)
     # regenerate into the same test -> version 1
-    tests_store.restart_generation(u["id"], tid, "v1 prompt", "py")
+    tests_store.restart_generation(tid, "v1 prompt", "py")
     job2 = _StubJob()
     with mock.patch.object(generation.generate, "stream_events", _fake_stream("code v1", "v1 prompt")):
-        generation.run_generation(job2, u["id"], tid, "T", "v1 prompt", [], "[]", "py", {}, None)
+        generation.run_generation(job2, tid, "T", "v1 prompt", [], "[]", "py", {}, None)
 
-    vs = tests_store.list_versions(u["id"], tid)
+    vs = tests_store.list_versions(tid)
     assert len(vs) == 2
-    assert tests_store.get_version(u["id"], tid, 0)["code"] == "code v0"
-    assert tests_store.get_version(u["id"], tid, 1)["code"] == "code v1"
+    assert tests_store.get_version(tid, 0)["code"] == "code v0"
+    assert tests_store.get_version(tid, 1)["code"] == "code v1"
     # the tests row mirrors the latest
-    assert tests_store.get_test(u["id"], tid)["code"] == "code v1"
+    assert tests_store.get_test(tid)["code"] == "code v1"
     # the worker signals success once the second version is persisted
     assert job2.events[-1]["type"] == "done" and job2.events[-1]["status"] == "done"

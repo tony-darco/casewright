@@ -5,7 +5,6 @@ single-run guard rejects a second concurrent run.
 
 from unittest import mock
 
-from web import db
 from web.services import network_provision as np
 from web.services import run_orchestrator as orch
 from web.services import runs_store, tests_store
@@ -27,18 +26,16 @@ def _fake_container(exit_code=0):
 
 def test_full_run_success_and_teardown():
     orch._release()  # ensure clean slate regardless of test order
-    db.init()
 
-    uid = db.create_user(f"orch-{id(object())}", "hash")["id"]
-    t = tests_store.create_test(uid, "T", "prompt", "test_generated.py", "NET='L_old'\n",
+    t = tests_store.create_test("T", "prompt", "test_generated.py", "NET='L_old'\n",
                                 "py", [], [])
-    tests_store.finish_test(uid, t["id"], "test_generated.py", "NET='L_old'\n", [], None, "done",
+    tests_store.finish_test(t["id"], "test_generated.py", "NET='L_old'\n", [], None, "done",
                             hardware=[{"type": "wireless", "count": 1}],
                             gen_meta={"network_ids": ["L_old"]})
-    test = tests_store.get_test(uid, t["id"])
-    run = runs_store.create_run(uid, t["id"], "example", "L_example")
+    test = tests_store.get_test(t["id"])
+    run = runs_store.create_run(t["id"], "example", "L_example")
 
-    job = Job(test_id=run["id"], user_id=uid)
+    job = Job(test_id=run["id"])
 
     docker_client = mock.Mock()
     docker_client.containers.run.return_value = _fake_container(exit_code=0)
@@ -53,7 +50,7 @@ def test_full_run_success_and_teardown():
          mock.patch.object(runner_base, "_client", return_value=docker_client):
         assert orch.begin(run["id"]) is True
         assert orch.is_busy() is True
-        orch.start_run(job, uid, test, run["id"], run["run_code"], "O1",
+        orch.start_run(job, test, run["id"], run["run_code"], "O1",
                        "example", "L_example", "key")
 
     claim.assert_called_once_with("L_new", ["Q2-A"], "key")
@@ -77,7 +74,7 @@ def test_full_run_success_and_teardown():
     assert any(e["type"] == "status" and e["status"] == "success" for e in events)
     assert events[-1]["type"] == "done"  # teardown logs (if any) precede it
 
-    persisted = runs_store.get_run(uid, run["id"])
+    persisted = runs_store.get_run(run["id"])
     assert persisted["status"] == "success" and persisted["network_id"] == "L_new"
 
 
@@ -86,15 +83,13 @@ def test_token_resolved_into_container_code():
     device existed when it was written) and the code handed to the container carries the
     serial of the device this run actually claimed."""
     orch._release()
-    db.init()
-    uid = db.create_user(f"orch-tok-{id(object())}", "hash")["id"]
     code = 'SERIAL = "{{DEVICE_SERIAL_1}}"\n'
-    t = tests_store.create_test(uid, "T", "prompt", "test_generated.py", code, "py", [], [])
-    tests_store.finish_test(uid, t["id"], "test_generated.py", code, [], None, "done",
+    t = tests_store.create_test("T", "prompt", "test_generated.py", code, "py", [], [])
+    tests_store.finish_test(t["id"], "test_generated.py", code, [], None, "done",
                             hardware=[{"type": "wireless", "count": 1}], gen_meta={})
-    test = tests_store.get_test(uid, t["id"])
-    run = runs_store.create_run(uid, t["id"], "example", "L_example")
-    job = Job(test_id=run["id"], user_id=uid)
+    test = tests_store.get_test(t["id"])
+    run = runs_store.create_run(t["id"], "example", "L_example")
+    job = Job(test_id=run["id"])
 
     docker_client = mock.Mock()
     docker_client.containers.run.return_value = _fake_container(exit_code=0)
@@ -107,13 +102,13 @@ def test_token_resolved_into_container_code():
          mock.patch.object(np.meraki, "delete_network"), \
          mock.patch.object(runner_base, "_client", return_value=docker_client):
         assert orch.begin(run["id"]) is True
-        orch.start_run(job, uid, test, run["id"], run["run_code"], "O1",
+        orch.start_run(job, test, run["id"], run["run_code"], "O1",
                        "example", "L_example", "key")
 
     sent = docker_client.containers.run.call_args.kwargs
     written = job._events  # the run reached the container at all
     assert any(e.get("status") == "success" for e in written if e["type"] == "status")
-    assert runs_store.get_run(uid, run["id"])["status"] == "success"
+    assert runs_store.get_run(run["id"])["status"] == "success"
     # no token may survive into the executed code
     assert "DEVICE_SERIAL" not in str(sent)
 
@@ -123,16 +118,14 @@ def test_unresolved_token_fails_the_run():
     literal '{{DEVICE_SERIAL_2}}' in the URL and 404 — the silent-wrong-serial failure
     the token contract exists to eliminate."""
     orch._release()
-    db.init()
-    uid = db.create_user(f"orch-bad-{id(object())}", "hash")["id"]
     code = 'A = "{{DEVICE_SERIAL_1}}"\nB = "{{DEVICE_SERIAL_2}}"\n'   # asks for 2 devices
-    t = tests_store.create_test(uid, "T", "prompt", "test_generated.py", code, "py", [], [])
-    tests_store.finish_test(uid, t["id"], "test_generated.py", code, [], None, "done",
+    t = tests_store.create_test("T", "prompt", "test_generated.py", code, "py", [], [])
+    tests_store.finish_test(t["id"], "test_generated.py", code, [], None, "done",
                             hardware=[{"type": "wireless", "count": 1}],  # ...only 1 provided
                             gen_meta={})
-    test = tests_store.get_test(uid, t["id"])
-    run = runs_store.create_run(uid, t["id"], "example", "L_example")
-    job = Job(test_id=run["id"], user_id=uid)
+    test = tests_store.get_test(t["id"])
+    run = runs_store.create_run(t["id"], "example", "L_example")
+    job = Job(test_id=run["id"])
 
     docker_client = mock.Mock()
     with mock.patch.object(np.meraki, "create_network",
@@ -144,11 +137,11 @@ def test_unresolved_token_fails_the_run():
          mock.patch.object(np.meraki, "delete_network"), \
          mock.patch.object(runner_base, "_client", return_value=docker_client):
         assert orch.begin(run["id"]) is True
-        orch.start_run(job, uid, test, run["id"], run["run_code"], "O1",
+        orch.start_run(job, test, run["id"], run["run_code"], "O1",
                        "example", "L_example", "key")
 
     docker_client.containers.run.assert_not_called()   # never executed
-    persisted = runs_store.get_run(uid, run["id"])
+    persisted = runs_store.get_run(run["id"])
     assert persisted["status"] == "error"
     assert "DEVICE_SERIAL_2" in persisted["error_message"]
 

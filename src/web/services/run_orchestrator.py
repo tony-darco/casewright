@@ -6,8 +6,8 @@ always tearing the network/hardware down in a ``finally``. Runs in a background
 thread (via run_registry), emitting log/status events onto the job for the SSE
 stream and persisting logs to run_logs.
 
-Concurrency: an MVP single-run-at-a-time guard (one uvicorn worker). ``begin`` is the
-atomic gate — the route rejects a second run while one is active rather than queuing.
+Concurrency: a single-run-at-a-time guard. ``begin`` is the atomic gate — a second
+run is rejected while one is active rather than queued.
 """
 
 import json
@@ -58,7 +58,7 @@ def _loads(raw, default):
         return default
 
 
-def start_run(job, uid, test, run_id, run_code, org_id, source, example_network_id, key):
+def start_run(job, test, run_id, run_code, org_id, source, example_network_id, key):
     """Background worker: the full provision -> inject -> run -> teardown lifecycle for
     one run. Emits {type: log|status|done} events onto ``job`` and persists logs."""
     def on_log(entry):
@@ -72,10 +72,10 @@ def start_run(job, uid, test, run_id, run_code, org_id, source, example_network_
     result = None
     try:
         status("provisioning")
-        # hardware rows pinned to a serial (from the prompt's @-mentions, or chosen in
-        # the Config tab) are claimed exactly, so the test runs on the device it names
+        # hardware rows pinned to a serial (named in the prompt, or chosen in the run
+        # config) are claimed exactly, so the test runs on the device it names
         hardware = _loads(test.get("hardware_json"), [])
-        result = network_provision.provision(uid, run_code, org_id, hardware, source,
+        result = network_provision.provision(run_code, org_id, hardware, source,
                                              example_network_id, key, on_log)
         runs_store.set_network(run_id, result.network_id, result.org_id)
         runs_store.set_claimed_devices(run_id, result.claimed_devices)
@@ -97,7 +97,7 @@ def start_run(job, uid, test, run_id, run_code, org_id, source, example_network_
                 "No device was claimed for "
                 + ", ".join(serial_tokens.token(i) for i in unresolved)
                 + " — the test references more hardware than its configuration provides. "
-                "Add the missing hardware in the test's Configuration tab and re-run."
+                "Add the missing hardware to the test's run configuration and re-run."
             )
         env = {"MERAKI_API_KEY": key, "MERAKI_ORG_ID": result.org_id,
                "MERAKI_NETWORK_ID": result.network_id}

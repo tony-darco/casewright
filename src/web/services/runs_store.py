@@ -1,10 +1,8 @@
-"""Per-user persistence for test runs (SQLite `runs` table).
+"""Persistence for test runs (SQLite `runs` table).
 
-A run is one invocation of a test's code (Run feature). Every call is scoped to
-user_id — a user only ever sees or controls their own runs. Each run carries an
+A run is one invocation of a test's code (Run feature). Each run carries an
 8-digit ``run_code`` used to name its ephemeral Meraki network; the code is random
-with insert-time collision-retry (same idiom as the username-collision retry in
-web.db).
+with insert-time collision-retry.
 
 Status lifecycle: queued -> provisioning -> running -> {success | error | failed},
 where ``error`` means our own infrastructure failed (Meraki API, no inventory,
@@ -25,7 +23,7 @@ def _new_code() -> str:
     return f"{random.randint(0, 99_999_999):08d}"
 
 
-def create_run(user_id, test_id, source, example_network_id="", version_no=0) -> dict:
+def create_run(test_id, source, example_network_id="", version_no=0) -> dict:
     """Create a queued run with a unique 8-digit code. Retries on the rare code
     collision (UNIQUE constraint) before giving up. ``version_no`` records which code
     version this run executes, so its output can be browsed under that version."""
@@ -34,9 +32,9 @@ def create_run(user_id, test_id, source, example_network_id="", version_no=0) ->
         try:
             with db.cursor() as conn:
                 cur = conn.execute(
-                    "INSERT INTO runs (run_code, user_id, test_id, source, example_network_id, version_no) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
-                    (code, user_id, test_id, source, example_network_id, version_no),
+                    "INSERT INTO runs (run_code, test_id, source, example_network_id, version_no) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (code, test_id, source, example_network_id, version_no),
                 )
                 return {"id": cur.lastrowid, "run_code": code, "status": "queued"}
         except sqlite3.IntegrityError:
@@ -44,43 +42,41 @@ def create_run(user_id, test_id, source, example_network_id="", version_no=0) ->
     raise RuntimeError("could not allocate a unique run code")
 
 
-def get_run(user_id, run_id):
+def get_run(run_id):
     with db.cursor() as conn:
-        row = conn.execute(
-            "SELECT * FROM runs WHERE id = ? AND user_id = ?", (run_id, user_id)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
     return dict(row) if row else None
 
 
-def list_runs_for_test(user_id, test_id) -> list:
+def list_runs_for_test(test_id) -> list:
     with db.cursor() as conn:
         rows = conn.execute(
             "SELECT id, run_code, status, source, error_message, created_at, finished_at "
-            "FROM runs WHERE user_id = ? AND test_id = ? ORDER BY created_at DESC, id DESC",
-            (user_id, test_id),
+            "FROM runs WHERE test_id = ? ORDER BY created_at DESC, id DESC",
+            (test_id,),
         ).fetchall()
     return [dict(r) for r in rows]
 
 
-def version_runs(user_id, test_id, version_no) -> list:
+def version_runs(test_id, version_no) -> list:
     """Runs of one code version, oldest-first — the browsable outputs the Output tab
     pages through for that version."""
     with db.cursor() as conn:
         rows = conn.execute(
             "SELECT id, run_code, status, error_message, created_at, finished_at "
-            "FROM runs WHERE user_id = ? AND test_id = ? AND version_no = ? "
+            "FROM runs WHERE test_id = ? AND version_no = ? "
             "ORDER BY created_at ASC, id ASC",
-            (user_id, test_id, version_no),
+            (test_id, version_no),
         ).fetchall()
     return [dict(r) for r in rows]
 
 
-def output_nav(user_id, test_id, version_no, current_run_id) -> dict:
+def output_nav(test_id, version_no, current_run_id) -> dict:
     """Output-navigation context for one code version: the version's runs plus the
     position of ``current_run_id`` within them, so the Output tab can render
     "run i of N" with prev/next/latest links. ``current_run_id`` None (no run yet)
     yields an empty nav."""
-    runs = version_runs(user_id, test_id, version_no)
+    runs = version_runs(test_id, version_no)
     ids = [r["id"] for r in runs]
     idx = ids.index(current_run_id) if current_run_id in ids else (len(ids) - 1)
     return {
@@ -93,7 +89,7 @@ def output_nav(user_id, test_id, version_no, current_run_id) -> dict:
     }
 
 
-def latest_status_by_test(user_id) -> dict:
+def latest_status_by_test() -> dict:
     """test_id -> the status of that test's most recent *finished* run, for the
     coverage tree. Only terminal statuses count: an in-flight run says nothing about
     the endpoint yet, and letting it win would flip a passing test back to never-run.
@@ -101,9 +97,7 @@ def latest_status_by_test(user_id) -> dict:
     with db.cursor() as conn:
         rows = conn.execute(
             "SELECT test_id, status, MAX(id) FROM runs "
-            "WHERE user_id = ? AND status IN ('success', 'error', 'failed') "
-            "GROUP BY test_id",
-            (user_id,),
+            "WHERE status IN ('success', 'error', 'failed') GROUP BY test_id"
         ).fetchall()
     return {r["test_id"]: r["status"] for r in rows}
 

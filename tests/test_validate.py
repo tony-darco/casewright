@@ -99,27 +99,21 @@ def test_go_falls_back_to_signature_without_gofmt():
 # --- persistence round-trip (stored with the test, reloaded without re-running) --
 
 def test_validation_persists_and_reloads():
-    from web import db
     from web.services import generate as G
     from web.services import tests_store
 
-    db.init()
-    u = db.create_user("valpersist", "hash")
     val = {"ok": False, "method": "ast", "detail": "looks like Python, not Go",
            "language": "go", "label": "Go"}
-    t = tests_store.create_test(u["id"], "T", "p", "f.go", "package main", "go", [], [], val)
-    vm = G.view_model_from_test(tests_store.get_test(u["id"], t["id"]))
+    t = tests_store.create_test("T", "p", "f.go", "package main", "go", [], [], val)
+    vm = G.view_model_from_test(tests_store.get_test(t["id"]))
     assert vm["validation"]["ok"] is False
     assert vm["validation"]["detail"] == "looks like Python, not Go"
 
 
 def test_missing_validation_loads_as_none():
-    from web import db
     from web.services import generate as G
     from web.services import tests_store
 
-    db.init()
-    u = db.create_user("valnone", "hash")
-    t = tests_store.create_test(u["id"], "T", "p", "f.py", "code", "py", [], [])
-    vm = G.view_model_from_test(tests_store.get_test(u["id"], t["id"]))
+    t = tests_store.create_test("T", "p", "f.py", "code", "py", [], [])
+    vm = G.view_model_from_test(tests_store.get_test(t["id"]))
     assert vm["validation"] is None

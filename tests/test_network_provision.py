@@ -26,7 +26,7 @@ def test_example_clone_claims_and_returns():
     with mock.patch.object(np.meraki, "create_network", return_value={"id": "L_new", "orgId": "O1", "name": "run-1"}) as create, \
          mock.patch.object(np.meraki, "list_org_inventory", return_value=_inventory(_dev("Q2-A", "MR33", "wireless"))) as inv, \
          mock.patch.object(np.meraki, "claim_device") as claim:
-        res = np.provision(1, "12345678", "O1", [{"type": "wireless", "count": 1}],
+        res = np.provision("12345678", "O1", [{"type": "wireless", "count": 1}],
                            "example", "L_example", "key")
     assert isinstance(res, ProvisionResult) and res.network_id == "L_new"
     assert create.call_args.kwargs["copy_from_network_id"] == "L_example"
@@ -42,7 +42,7 @@ def test_scratch_invokes_agent():
          mock.patch.object(np.meraki, "list_org_inventory", return_value=_inventory(_dev("Q2-X", "MX64", "appliance"))), \
          mock.patch.object(np.meraki, "claim_device"), \
          mock.patch("rag.graph.network_agent.configure_scratch_network") as agent:
-        res = np.provision(1, "12345678", "O1", [{"type": "security_appliance", "count": 1}],
+        res = np.provision("12345678", "O1", [{"type": "security_appliance", "count": 1}],
                            "scratch", "", "key")
     agent.assert_called_once()
     assert res.network_id == "L_new"
@@ -55,7 +55,7 @@ def test_no_matching_inventory_raises_and_tears_down():
          mock.patch.object(np.meraki, "delete_network") as delete, \
          mock.patch.object(np.meraki, "remove_device"):
         with pytest.raises(ProvisionError):
-            np.provision(1, "12345678", "O1", [{"type": "wireless", "count": 1}],
+            np.provision("12345678", "O1", [{"type": "wireless", "count": 1}],
                          "example", "L_example", "key")
     # network was created then torn back down
     delete.assert_called_once_with("L_new", "key")
@@ -70,7 +70,7 @@ def test_partial_claim_failure_releases_prior_devices():
          mock.patch.object(np.meraki, "delete_network") as delete, \
          mock.patch.object(np.meraki, "remove_device") as remove:
         with pytest.raises(np.meraki.MerakiError):
-            np.provision(1, "12345678", "O1",
+            np.provision("12345678", "O1",
                          [{"type": "wireless", "count": 1}, {"type": "security_appliance", "count": 1}],
                          "scratch", "", "key")
     remove.assert_called_once_with("L_new", "Q2-A", "key")  # first (claimed) device released
@@ -100,7 +100,7 @@ def test_pinned_device_is_claimed_by_serial_not_by_type():
     with mock.patch.object(np.meraki, "create_network", return_value={"id": "L_new", "orgId": "O1", "name": "run-1"}), \
          mock.patch.object(np.meraki, "list_org_inventory", return_value=inv), \
          mock.patch.object(np.meraki, "claim_device") as claim:
-        res = np.provision(1, "12345678", "O1", [_pin("Q2-MR42", "MR42", "AP2")],
+        res = np.provision("12345678", "O1", [_pin("Q2-MR42", "MR42", "AP2")],
                            "example", "L_example", "key")
     # the MR16 sorts first: type-matching alone would have claimed the wrong AP
     claim.assert_called_once_with("L_new", ["Q2-MR42"], "key")
@@ -114,7 +114,7 @@ def test_pinned_and_generic_rows_claim_distinct_devices():
     with mock.patch.object(np.meraki, "create_network", return_value={"id": "L_new", "orgId": "O1", "name": "run-1"}), \
          mock.patch.object(np.meraki, "list_org_inventory", return_value=inv), \
          mock.patch.object(np.meraki, "claim_device"):
-        res = np.provision(1, "12345678", "O1",
+        res = np.provision("12345678", "O1",
                            [_pin("Q2-MR42", "MR42"), {"type": "wireless", "count": 1}],
                            "example", "L_example", "key")
     assert [d["serial"] for d in res.claimed_devices] == ["Q2-MR42", "Q2-MR16"]
@@ -129,7 +129,7 @@ def test_pinned_device_not_unclaimed_errors_and_tears_down():
          mock.patch.object(np.meraki, "claim_device"), \
          mock.patch.object(np.meraki, "delete_network") as delete:
         with pytest.raises(ProvisionError) as exc:
-            np.provision(1, "12345678", "O1", [_pin("Q2-MR42", "MR42", "AP2")],
+            np.provision("12345678", "O1", [_pin("Q2-MR42", "MR42", "AP2")],
                          "example", "L_example", "key")
     assert "AP2" in str(exc.value) and "Q2-MR42" in str(exc.value)
     delete.assert_called_once_with("L_new", "key")
@@ -142,7 +142,7 @@ def test_network_product_types_follow_a_pinned_devices_model():
     with mock.patch.object(np.meraki, "create_network", return_value={"id": "L_new", "orgId": "O1", "name": "run-1"}) as create, \
          mock.patch.object(np.meraki, "list_org_inventory", return_value=inv), \
          mock.patch.object(np.meraki, "claim_device"):
-        np.provision(1, "12345678", "O1", [_pin("Q2-MR42", "MR42")], "example", "L_example", "key")
+        np.provision("12345678", "O1", [_pin("Q2-MR42", "MR42")], "example", "L_example", "key")
     assert create.call_args[0][2] == ["wireless"]
 
 

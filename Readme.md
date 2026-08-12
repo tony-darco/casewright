@@ -89,6 +89,11 @@ Everything happens through the text box at the bottom of the screen.
 - **`/` starts a command.** Start typing one and a menu of matches appears above the box:
   **↑/↓** move the highlight, **Tab** completes it, **Enter** runs it (even half-typed —
   `/h`↵ runs `/help`), **Esc** closes the menu.
+- **The menu only offers what works here.** A line above the box names where you are —
+  `home`, `test · <name>`, `knowledge base`, `runs` — and the suggestions are scoped to
+  it. No `/run` before a test is loaded, no `/activate` outside the knowledge base.
+  **`/help`** fills the same menu with everything available in that place.
+- **↑/↓ recall what you typed before**, when the menu is closed.
 
 | | Command | Does |
 | --- | --- | --- |
@@ -100,21 +105,38 @@ Everything happens through the text box at the bottom of the screen.
 | | `/output` | the current test's latest run output |
 | | `/runs` | run history across all tests |
 | | `/coverage` | spec-coverage tree |
-| | `/kb` | knowledge base |
+| | `/kb` | knowledge bases (see below) |
 | | `/settings` | app settings |
-| **Do** | `/generate` | (re)generate from the current prompt |
+| **Do** | `/generate` | regenerate from the current prompt |
 | | `/run` | run the current test |
 | | `/repair` | send a failed run back through the pipeline |
+| | `/edit --code` | edit the generated code (saves a new version) |
+| | `/edit --prompt` | edit the description it was generated from |
 | | `/export` | copy the code to the clipboard |
 | | `/open <name or #>` | load a test from the library |
 | | `/version next \| prev` | step through a test's versions |
-| | `/save` | save the code or config you're viewing |
-| | `/activate <#>` | activate a knowledge-base version |
-| | `/embed` | embed the knowledge-base source |
-| | `/delete <#>` | delete an errored knowledge-base version |
-| **App** | `/help` | show the full command list |
+| | `/save` | save what you're editing (Settings) |
+| **Knowledge base** | `/kb` | list your knowledge bases |
+| | `/kb --new <url\|path> --split custom` | embed a new one from a URL or file |
+| | `/kb --new … --split langchain` | generic recursive chunking instead |
+| | `/kb --new … --name "My spec"` | label it (else the filename/URL is used) |
+| | `/kb --storage <chroma-url>` | keep vectors on a remote Chroma server |
+| | `/kb --storage local` | keep them inside the app |
+| | `/activate <#>` | make a version the one generation retrieves against |
+| | `/delete <#>` | delete an errored version |
+| **App** | `/help` | everything available where you are |
 | | `/back` | return to the workspace |
 | | `/quit` | exit (also `Ctrl+Q`) |
 
 `/settings`, `/kb`, `/coverage`, and `/runs` open their own screens; the command bar comes
-with you, so you can jump anywhere from anywhere.
+with you, so you can jump anywhere from anywhere — `/kb --new …` works without visiting
+the knowledge base first.
+
+**Opening a test** summarises it rather than dumping the file: the prompt it came from,
+its last few runs, and the head of the code. `/code` prints all of it, `/prompt` the whole
+prompt, `/output` the full run log.
+
+**`/edit`** opens the text in place — **ctrl+s** saves, **esc** discards. Saving code
+snapshots a new version, so the previous one stays reachable via `/version prev`; saving
+a prompt leaves the code alone, since rewriting the prompt is how you set up the next
+`/generate`. (Syntax highlighting needs tree-sitter — `pip install 'textual[syntax]'`.)

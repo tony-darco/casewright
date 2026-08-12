@@ -13,7 +13,6 @@ from textual.widgets import (
     TabPane,
 )
 
-from web import settings
 from web.deps import forget_failed_pipelines
 from web.services import (
     logs_store, meraki, ollama_admin, provider_store, run_settings_store, store,
@@ -25,6 +24,8 @@ _REASONING = [("Backend default", ""), ("On", "1"), ("Off", "0")]
 
 
 class SettingsScreen(CommandScreen):
+    PLACE = "settings"
+    PLACE_LABEL = "settings"
     BINDINGS = [("escape", "app.pop_screen", "Back")]
 
     def compose(self) -> ComposeResult:
@@ -38,9 +39,6 @@ class SettingsScreen(CommandScreen):
                 yield from self._run_pane()
             with TabPane("Logs", id="s-logs"):
                 yield from self._logs_pane()
-        yield Static(f"[dim]Saved to {settings.CONFIG_PATH.name} · secrets in "
-                     f"{settings.ENV_PATH.name} — both hand-editable at the repo root.[/dim]",
-                     id="settings-files")
         yield self.command_bar()
         yield Footer()
 
@@ -66,17 +64,15 @@ class SettingsScreen(CommandScreen):
             yield Static("", id="default-status")
 
     def _refresh_meraki(self) -> None:
-        uid = self.app.uid
-        masked = store.masked_meraki_key()
         self.query_one("#meraki-status", Static).update(
-            f"Key: {masked} [dim]· stored in .env[/dim]" if masked
+            "Key: configured" if store.key_configured()
             else "[dim]No API key set.[/dim]")
         lines = []
-        for org in store.list_orgs(uid):
+        for org in store.list_orgs():
             nets = org.get("networks", [])
             lines.append(f"• {org.get('name') or org['id']} ({org['id']}) — {len(nets)} network(s)")
         self.query_one("#orgs", Static).update("\n".join(lines) or "[dim]No organizations.[/dim]")
-        nets = store.verified_networks(uid)
+        nets = store.verified_networks()
         sel = self.query_one("#default-net", Select)
         sel.set_options([(f"{n['name']} · {n['orgName']}", n["id"]) for n in nets])
         cur = store.get_default_network_id()
@@ -96,16 +92,15 @@ class SettingsScreen(CommandScreen):
 
     @work(thread=True)
     def _add_org(self, org_id: str) -> None:
-        uid = self.app.uid
-        if store.org_exists(uid, org_id):
+        if store.org_exists(org_id):
             msg = f"[yellow]Organization {org_id} is already connected.[/yellow]"
         else:
             try:
                 key = store.get_meraki_key()
                 org = meraki.verify_org(org_id, key)
                 networks = meraki.list_networks(org_id, key)
-                store.save_org(uid, org)
-                store.set_networks_for_org(uid, org["id"], networks)
+                store.save_org(org)
+                store.set_networks_for_org(org["id"], networks)
                 msg = f"[green]Added {org.get('name') or org['id']}.[/green]"
             except meraki.MerakiError as exc:
                 msg = f"[red]{exc}[/red]"

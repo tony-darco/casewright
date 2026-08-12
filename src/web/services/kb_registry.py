@@ -1,15 +1,13 @@
 """In-memory registry of running knowledge-base embedding jobs (Knowledge Base
 feature).
 
-Same mechanism as gen_registry (a background thread decoupled from the client's
-SSE connection, with replay + live buffering via a Job), but keyed by kb_versions.id
-instead of tests.id — reuses gen_registry.Job directly (nothing in it is actually
-test-specific), but keeps its own _jobs dict so a test id and a KB version id can
-never collide in the same process-global registry.
+Same mechanism as gen_registry (a background thread with replay + live buffering via
+a Job), but keyed by kb_versions.id instead of tests.id — reuses gen_registry.Job
+directly (nothing in it is actually test-specific), but keeps its own _jobs dict so a
+test id and a KB version id can never collide in the same process-global registry.
 
-In-memory + single-process: fine for one uvicorn worker. A restart drops running
-jobs (the version row is left 'embedding'; the stream endpoint falls back to that
-persisted status).
+In-memory + single-process. A restart drops running jobs (the version row is left
+'embedding', and the screen falls back to that persisted status).
 """
 
 import threading
@@ -30,9 +28,9 @@ def _prune_locked():
         _jobs.pop(vid, None)
 
 
-def start(version_id, user_id, target):
+def start(version_id, target):
     """Create a Job and run ``target(job)`` in a background daemon thread."""
-    job = Job(version_id, user_id)
+    job = Job(version_id)
     with _lock:
         _prune_locked()
         _jobs[version_id] = job
@@ -47,10 +45,7 @@ def start(version_id, user_id, target):
     return job
 
 
-def get(version_id, user_id=None):
-    """The live Job for version_id, or None. Scoped to user_id when given."""
+def get(version_id):
+    """The live Job for version_id, or None."""
     with _lock:
-        job = _jobs.get(version_id)
-    if job is not None and user_id is not None and job.user_id != user_id:
-        return None
-    return job
+        return _jobs.get(version_id)
