@@ -1,4 +1,4 @@
-"""Model-provider settings: the settings store and the Ollama admin client."""
+"""Model-provider settings: the config.yaml-backed store and the Ollama admin client."""
 
 import json
 from unittest import mock
@@ -7,23 +7,6 @@ import pytest
 import requests
 
 from web.services import ollama_admin, provider_store
-
-
-@pytest.fixture(autouse=True, scope="module")
-def _db():
-    db.init()
-
-
-@pytest.fixture(autouse=True)
-def _allow_any_ollama_host(monkeypatch):
-    # These tests exercise the admin client's check/list/pull + URL-normalization
-    # mechanics, not the SSRF host policy (#16 — covered by tests/test_ssrf_ollama.py).
-    # Disable the default loopback restriction so their arbitrary test hostnames pass.
-    monkeypatch.setenv("AUTOTEST_OLLAMA_ALLOWED_HOSTS", "*")
-
-
-def _user(name):
-    return db.create_user(name, "x")["id"]
 
 
 # --- provider_store ---------------------------------------------------------------
@@ -55,7 +38,7 @@ def test_blank_fields_are_not_overrides():
     assert ov["base_url"] == "http://box:11434"
 
 
-def test_save_is_upsert():
+def test_save_overwrites_the_previous_values():
     provider_store.save_settings("ollama", "http://a:11434", "m1", "", None)
     provider_store.save_settings("ollama", "http://b:11434", "m2", "", 1.0)
     s = provider_store.get_settings()
@@ -130,7 +113,6 @@ def test_pull_model_server_lost_mid_stream():
 def test_reasoning_tristate_unset_on_off():
     """reasoning follows temperature's contract: NULL/unset = keep the backend
     default (absent from overrides), while On/Off are explicit user choices."""
-
     provider_store.save_settings("ollama", "http://box:11434", "", "", None, reasoning=None)
     assert provider_store.get_settings()["reasoning"] is None
     assert "reasoning" not in provider_store.overrides()

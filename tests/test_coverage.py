@@ -58,11 +58,6 @@ def test_leaf_state_worst_wins():
 
 # --- overlay -------------------------------------------------------------------
 
-def _user(name):
-    db.init()
-    return db.create_user(name, "h")["id"]
-
-
 def _finished_test(name, endpoints, deps=None):
     t = tests_store.create_generating(name, "p", "py", [])
     tests_store.finish_test(t["id"], "f.test.py", "code", endpoints, None,

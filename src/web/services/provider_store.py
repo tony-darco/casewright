@@ -1,41 +1,32 @@
 """Model-provider settings (Settings → Model provider).
 
-A single row in SQLite (db.provider_settings). Blank fields mean "use the
-backend default" — the .env / ProviderConfig defaults (rag.provider) stay
-authoritative, Settings only layers overrides on top. ``overrides()`` maps just
-the fields actually set onto ProviderConfig attribute names, so an empty settings
-row leaves the pipeline exactly on its defaults.
+Lives in config.yaml's ``provider`` section (web.settings). Blank fields mean "use
+the backend default" — the ProviderConfig defaults (rag.provider) stay authoritative,
+the file only layers overrides on top. ``overrides()`` maps just the fields actually
+set onto ProviderConfig attribute names, so an untouched section leaves the pipeline
+exactly on its defaults.
 """
 
-from web import db
+from web import settings
 
-DEFAULTS = {"provider": "ollama", "ollama_url": "", "chat_model": "", "embed_model": "",
-            "temperature": None, "reasoning": None}
+SECTION = "provider"
+DEFAULTS = dict(settings.DEFAULTS[SECTION])
 
 
 def get_settings() -> dict:
-    with db.cursor() as conn:
-        r = conn.execute(
-            "SELECT provider, ollama_url, chat_model, embed_model, temperature, reasoning "
-            "FROM provider_settings WHERE id = 1"
-        ).fetchone()
-    return dict(r) if r else dict(DEFAULTS)
+    return settings.section(SECTION)
 
 
-def save_settings(provider: str, ollama_url: str, chat_model: str,
-                  embed_model: str, temperature, reasoning=None) -> None:
-    with db.cursor() as conn:
-        conn.execute(
-            "INSERT INTO provider_settings (id, provider, ollama_url, chat_model, "
-            "embed_model, temperature, reasoning) VALUES (1, ?, ?, ?, ?, ?, ?) "
-            "ON CONFLICT(id) DO UPDATE SET provider = excluded.provider, "
-            "ollama_url = excluded.ollama_url, chat_model = excluded.chat_model, "
-            "embed_model = excluded.embed_model, temperature = excluded.temperature, "
-            "reasoning = excluded.reasoning",
-            (provider.strip(), ollama_url.strip(), chat_model.strip(),
-             embed_model.strip(), temperature,
-             None if reasoning is None else (1 if reasoning else 0)),
-        )
+def save_settings(provider: str, ollama_url: str, chat_model: str, embed_model: str,
+                  temperature, reasoning=None) -> None:
+    settings.save(SECTION, {
+        "provider": provider.strip(),
+        "ollama_url": ollama_url.strip(),
+        "chat_model": chat_model.strip(),
+        "embed_model": embed_model.strip(),
+        "temperature": None if temperature is None else float(temperature),
+        "reasoning": None if reasoning is None else bool(reasoning),
+    })
 
 
 def overrides() -> dict:

@@ -1,51 +1,47 @@
-"""Meraki store — the API key (encrypted) and the connected organizations /
-networks / devices, persisted as the single row of ``db.meraki_data``.
+"""The Meraki API key, and the connected organizations / networks / devices.
 
-The API key gets the secret treatment: encrypted at rest (crypto), write-only
-from the UI, never returned in full, never logged.
+The key is a secret and lives in ``.env`` (web.settings); the default example
+network is a setting and lives in config.yaml. What's left here is *data* — the
+fetched org -> network -> device tree — which stays in SQLite, as the single row of
+``db.meraki_data``.
 """
 
 import json
 
-from web import db
-from web.services import crypto
+from web import db, settings
 
 
 def _row() -> dict:
     with db.cursor() as conn:
-        r = conn.execute(
-            "SELECT api_key_enc, orgs_json, default_network_id FROM meraki_data WHERE id = 1"
-        ).fetchone()
-    return dict(r) if r else {"api_key_enc": None, "orgs_json": "[]", "default_network_id": ""}
+        r = conn.execute("SELECT orgs_json FROM meraki_data WHERE id = 1").fetchone()
+    return dict(r) if r else {"orgs_json": "[]"}
 
 
-def _save(api_key_enc, orgs: list) -> None:
+def _save(orgs: list) -> None:
     with db.cursor() as conn:
         conn.execute(
-            "INSERT INTO meraki_data (id, api_key_enc, orgs_json) VALUES (1, ?, ?) "
-            "ON CONFLICT(id) DO UPDATE SET api_key_enc = excluded.api_key_enc, "
-            "orgs_json = excluded.orgs_json",
-            (api_key_enc, json.dumps(orgs)),
+            "INSERT INTO meraki_data (id, orgs_json) VALUES (1, ?) "
+            "ON CONFLICT(id) DO UPDATE SET orgs_json = excluded.orgs_json",
+            (json.dumps(orgs),),
         )
 
 
-# --- API key (secret) ------------------------------------------------------------
+# --- API key (secret, in .env) ----------------------------------------------------
 
 def get_meraki_key() -> str:
-    enc = _row()["api_key_enc"]
-    return crypto.decrypt(enc) if enc else ""
+    return settings.secret(settings.MERAKI_API_KEY)
 
 
 def set_meraki_key(key: str) -> None:
-    _save(crypto.encrypt(key.strip()), json.loads(_row()["orgs_json"] or "[]"))
+    settings.set_secret(settings.MERAKI_API_KEY, key)
 
 
 def clear_meraki_key() -> None:
-    _save(None, json.loads(_row()["orgs_json"] or "[]"))
+    settings.clear_secret(settings.MERAKI_API_KEY)
 
 
 def key_configured() -> bool:
-    return bool(_row()["api_key_enc"])
+    return bool(get_meraki_key())
 
 
 def masked_meraki_key() -> str:
@@ -82,8 +78,8 @@ def remove_org(org_id: str) -> bool:
         return False
     dropped_nets = {n.get("id") for o in orgs if o.get("id") == org_id
                     for n in o.get("networks", [])}
-    _save(row["api_key_enc"], remaining)
-    if row["default_network_id"] in dropped_nets:
+    _save(remaining)
+    if get_default_network_id() in dropped_nets:
         set_default_network_id("")
     return True
 
@@ -99,7 +95,7 @@ def save_org(org: dict) -> dict:
     else:
         org = {**org, "networks": []}
         orgs.append(org)
-    _save(row["api_key_enc"], orgs)
+    _save(orgs)
     return org
 
 
@@ -117,7 +113,7 @@ def add_network(org_id: str, net: dict, devices: list) -> dict:
             else:
                 nets.append(entry)
             break
-    _save(row["api_key_enc"], orgs)
+    _save(orgs)
     return entry
 
 
@@ -130,7 +126,7 @@ def set_network_devices(network_id: str, devices: list) -> None:
         for net in org.get("networks", []):
             if net.get("id") == network_id:
                 net["devices"] = devices
-                _save(row["api_key_enc"], orgs)
+                _save(orgs)
                 return
 
 
@@ -179,18 +175,11 @@ def default_or_first_network_id(org_id: str = "") -> str:
 
 
 def get_default_network_id() -> str:
-    return _row()["default_network_id"] or ""
+    return settings.section("meraki")["default_network_id"] or ""
 
 
 def set_default_network_id(network_id: str) -> None:
-    """Set the default example network (targeted update that leaves the api key /
-    orgs tree untouched)."""
-    with db.cursor() as conn:
-        conn.execute(
-            "INSERT INTO meraki_data (id, default_network_id) VALUES (1, ?) "
-            "ON CONFLICT(id) DO UPDATE SET default_network_id = excluded.default_network_id",
-            (network_id.strip(),),
-        )
+    settings.save("meraki", {"default_network_id": network_id.strip()})
 
 
 def set_networks_for_org(org_id: str, networks: list) -> None:
@@ -204,4 +193,4 @@ def set_networks_for_org(org_id: str, networks: list) -> None:
             existing = {n.get("id"): n.get("devices", []) for n in org.get("networks", [])}
             org["networks"] = [{**net, "devices": existing.get(net.get("id"), [])} for net in networks]
             break
-    _save(row["api_key_enc"], orgs)
+    _save(orgs)

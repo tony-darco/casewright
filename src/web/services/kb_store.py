@@ -1,5 +1,6 @@
 """Persistence for knowledge-base embedding runs (SQLite `kb_versions` +
-`kb_settings`).
+`kb_settings`), plus the storage-location *setting*, which lives in config.yaml
+(web.settings) instead.
 
 A knowledge base is identified by its **version**, not by an owner: re-embedding
 a spec appends a new row and a new Chroma collection (``kb_v{id}``) rather than
@@ -10,7 +11,7 @@ Two-phase create (insert, then a follow-up update once the row id is known) sinc
 the collection name embeds the version's own id.
 """
 
-from web import db
+from web import db, settings
 
 
 def create_embedding(name, source_kind, split_method, source_label) -> dict:
@@ -125,19 +126,11 @@ def delete_version(version_id) -> bool:
 def get_storage() -> dict:
     """Where the vector store lives: {'storage_kind': 'local'|'remote',
     'storage_url': ...}. 'local' (the default) means the shared AUTOTEST_DATA_DIR
-    persist directory; 'remote' means a Chroma server URL."""
-    with db.cursor() as conn:
-        row = conn.execute(
-            "SELECT storage_kind, storage_url FROM kb_settings WHERE id = 1"
-        ).fetchone()
-    return dict(row) if row else {"storage_kind": "local", "storage_url": ""}
+    persist directory; 'remote' means a Chroma server URL. A setting, so it lives in
+    config.yaml — unlike the versions above, which are records."""
+    return settings.section("knowledge_base")
 
 
 def set_storage(storage_kind, storage_url) -> None:
-    with db.cursor() as conn:
-        conn.execute(
-            "INSERT INTO kb_settings (id, storage_kind, storage_url) VALUES (1, ?, ?) "
-            "ON CONFLICT(id) DO UPDATE SET storage_kind = excluded.storage_kind, "
-            "storage_url = excluded.storage_url",
-            (storage_kind, storage_url.strip()),
-        )
+    settings.save("knowledge_base", {"storage_kind": storage_kind,
+                                     "storage_url": storage_url.strip()})

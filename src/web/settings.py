@@ -186,16 +186,17 @@ def _owner_only(path: Path) -> None:
 
 # --- one-time migration ------------------------------------------------------------
 
-def migrate_from_db(user_id: int) -> bool:
+def migrate_from_db() -> bool:
     """Move settings out of SQLite and into the files, once.
 
-    Earlier builds kept these in per-user tables, with the Meraki key encrypted at
-    rest. A missing config.yaml is the marker for "not migrated yet": we seed it from
-    the database rather than from the defaults, so an existing install keeps its
+    Earlier builds kept these in the settings tables, with the Meraki key encrypted
+    at rest. A missing config.yaml is the marker for "not migrated yet": we seed it
+    from the database rather than from the defaults, so an existing install keeps its
     configured provider, containers, and API key. Returns True if it migrated.
 
-    The old rows are left in place — read-only from here on, and cheap insurance if
-    this needs unpicking.
+    Those tables are single-row now (id = 1), so there is one set of settings to
+    carry over. The old rows are left in place — read-only from here on, and cheap
+    insurance if this needs unpicking.
     """
     if CONFIG_PATH.exists():
         return False
@@ -208,7 +209,7 @@ def migrate_from_db(user_id: int) -> bool:
     with db.cursor() as conn:
         row = conn.execute(
             "SELECT provider, ollama_url, chat_model, embed_model, temperature, reasoning "
-            "FROM provider_settings WHERE user_id = ?", (user_id,)).fetchone()
+            "FROM provider_settings WHERE id = 1").fetchone()
         if row:
             fields = dict(row)
             fields["reasoning"] = None if fields["reasoning"] is None else bool(fields["reasoning"])
@@ -216,17 +217,17 @@ def migrate_from_db(user_id: int) -> bool:
 
         row = conn.execute(
             "SELECT python_image, go_image, script_image, timeout_seconds, cpu_limit, "
-            "memory_limit_mb, cleanup_policy FROM run_settings WHERE user_id = ?", (user_id,)).fetchone()
+            "memory_limit_mb, cleanup_policy FROM run_settings WHERE id = 1").fetchone()
         if row:
             data["run"].update(dict(row))
 
         row = conn.execute(
-            "SELECT storage_kind, storage_url FROM kb_settings WHERE user_id = ?", (user_id,)).fetchone()
+            "SELECT storage_kind, storage_url FROM kb_settings WHERE id = 1").fetchone()
         if row:
             data["knowledge_base"].update(dict(row))
 
         row = conn.execute(
-            "SELECT api_key_enc, default_network_id FROM meraki_data WHERE user_id = ?", (user_id,)).fetchone()
+            "SELECT api_key_enc, default_network_id FROM meraki_data WHERE id = 1").fetchone()
         if row:
             data["meraki"]["default_network_id"] = row["default_network_id"] or ""
             api_key_enc = row["api_key_enc"]

@@ -1,5 +1,5 @@
 """The file-backed settings layer: config.yaml for settings, .env for secrets, and
-the one-time migration out of the old per-user database rows.
+the one-time migration out of the old database rows.
 
 ``settings_files`` (conftest, autouse) points CONFIG_PATH/ENV_PATH at a tmp dir, so
 every test here starts from "no config files at all".
@@ -126,27 +126,25 @@ def test_set_secret_preserves_other_lines():
 # --- migration ---------------------------------------------------------------------
 
 @pytest.fixture
-def legacy_user():
-    """A user whose settings live in the old per-user tables."""
+def legacy_settings():
+    """An install whose settings still live in the database's settings tables."""
     db.init()
-    uid = db.create_user(f"legacy_{os.urandom(4).hex()}", "x")["id"]
     with db.cursor() as conn:
         conn.execute(
-            "INSERT INTO provider_settings (user_id, provider, ollama_url, chat_model, "
-            "embed_model, temperature, reasoning) VALUES (?, 'ollama', 'http://box:11434', "
-            "'mistral-small:22b', 'nomic-embed-text:latest', 0.4, 1)", (uid,))
+            "INSERT INTO provider_settings (id, provider, ollama_url, chat_model, "
+            "embed_model, temperature, reasoning) VALUES (1, 'ollama', 'http://box:11434', "
+            "'mistral-small:22b', 'nomic-embed-text:latest', 0.4, 1)")
         conn.execute(
-            "INSERT INTO run_settings (user_id, python_image, go_image, script_image, "
+            "INSERT INTO run_settings (id, python_image, go_image, script_image, "
             "timeout_seconds, cpu_limit, memory_limit_mb, cleanup_policy) "
-            "VALUES (?, 'python:3.11', 'golang:1.21', 'debian:12', 300, 2.0, 2048, 'never')", (uid,))
+            "VALUES (1, 'python:3.11', 'golang:1.21', 'debian:12', 300, 2.0, 2048, 'never')")
         conn.execute(
-            "INSERT INTO kb_settings (user_id, storage_kind, storage_url) "
-            "VALUES (?, 'remote', 'http://chroma:8000')", (uid,))
-    return uid
+            "INSERT INTO kb_settings (id, storage_kind, storage_url) "
+            "VALUES (1, 'remote', 'http://chroma:8000')")
 
 
-def test_migration_carries_settings_into_the_file(legacy_user):
-    assert settings.migrate_from_db(legacy_user) is True
+def test_migration_carries_settings_into_the_file(legacy_settings):
+    assert settings.migrate_from_db() is True
 
     provider = settings.section("provider")
     assert provider["ollama_url"] == "http://box:11434"
@@ -162,30 +160,29 @@ def test_migration_carries_settings_into_the_file(legacy_user):
                                                   "storage_url": "http://chroma:8000"}
 
 
-def test_migration_decrypts_the_stored_api_key(legacy_user, monkeypatch):
+def test_migration_decrypts_the_stored_api_key(legacy_settings, monkeypatch):
     key = Fernet.generate_key()
     monkeypatch.setenv("CASEWRIGHT_ENC_KEY", key.decode())
     with db.cursor() as conn:
         conn.execute(
-            "INSERT INTO meraki_data (user_id, api_key_enc, default_network_id) VALUES (?, ?, ?)",
-            (legacy_user, Fernet(key).encrypt(b"secret-meraki-key").decode(), "N_42"))
+            "INSERT INTO meraki_data (id, api_key_enc, default_network_id) VALUES (1, ?, ?)",
+            (Fernet(key).encrypt(b"secret-meraki-key").decode(), "N_42"))
 
-    settings.migrate_from_db(legacy_user)
+    settings.migrate_from_db()
 
     assert settings.secret(settings.MERAKI_API_KEY) == "secret-meraki-key"
     assert settings.section("meraki")["default_network_id"] == "N_42"
 
 
-def test_migration_runs_only_once(legacy_user):
-    assert settings.migrate_from_db(legacy_user) is True
+def test_migration_runs_only_once(legacy_settings):
+    assert settings.migrate_from_db() is True
     settings.save("provider", {"chat_model": "chosen-later"})
-    assert settings.migrate_from_db(legacy_user) is False   # config.yaml exists -> skip
+    assert settings.migrate_from_db() is False   # config.yaml exists -> skip
     assert settings.section("provider")["chat_model"] == "chosen-later"
 
 
 def test_migration_of_a_fresh_install_yields_defaults():
     db.init()
-    uid = db.create_user(f"fresh_{os.urandom(4).hex()}", "x")["id"]
-    assert settings.migrate_from_db(uid) is True     # nothing to carry over, but writes the file
+    assert settings.migrate_from_db() is True     # nothing to carry over, but writes the file
     assert settings.load() == settings.DEFAULTS
     assert settings.secret(settings.MERAKI_API_KEY) == ""

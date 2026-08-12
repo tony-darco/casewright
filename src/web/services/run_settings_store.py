@@ -1,43 +1,29 @@
-"""Ephemeral-container settings (Settings → Run / Containers).
+"""Ephemeral-container settings (Settings → Run containers).
 
-A single row in SQLite (db.run_settings), same pattern as provider_store. An
-absent row means "use the defaults" — the same defaults the table declares — so the
-runner subsystem always has a complete, valid config to work with.
+Lives in config.yaml's ``run`` section (web.settings), same pattern as
+provider_store. Unlike the provider section every field is always populated — the
+runner subsystem needs a complete, valid config, so blanks are not a "use the
+default" signal here and web.settings fills any the file omits.
 """
 
-from web import db
+from web import settings
 
-DEFAULTS = {
-    "python_image": "python:3.12-slim",
-    "go_image": "golang:1.22-alpine",
-    "script_image": "ubuntu:24.04",
-    "timeout_seconds": 120,
-    "cpu_limit": 1.0,
-    "memory_limit_mb": 512,
-    "cleanup_policy": "always",
-}
+SECTION = "run"
+DEFAULTS = dict(settings.DEFAULTS[SECTION])
 
 
 def get_settings() -> dict:
-    with db.cursor() as conn:
-        r = conn.execute(
-            "SELECT python_image, go_image, script_image, timeout_seconds, "
-            "cpu_limit, memory_limit_mb, cleanup_policy FROM run_settings WHERE id = 1"
-        ).fetchone()
-    return dict(r) if r else dict(DEFAULTS)
+    return settings.section(SECTION)
 
 
-def save_settings(python_image, go_image, script_image,
-                  timeout_seconds, cpu_limit, memory_limit_mb, cleanup_policy) -> None:
-    with db.cursor() as conn:
-        conn.execute(
-            "INSERT INTO run_settings (id, python_image, go_image, script_image, "
-            "timeout_seconds, cpu_limit, memory_limit_mb, cleanup_policy) "
-            "VALUES (1, ?, ?, ?, ?, ?, ?, ?) "
-            "ON CONFLICT(id) DO UPDATE SET python_image = excluded.python_image, "
-            "go_image = excluded.go_image, script_image = excluded.script_image, "
-            "timeout_seconds = excluded.timeout_seconds, cpu_limit = excluded.cpu_limit, "
-            "memory_limit_mb = excluded.memory_limit_mb, cleanup_policy = excluded.cleanup_policy",
-            (python_image.strip(), go_image.strip(), script_image.strip(),
-             int(timeout_seconds), float(cpu_limit), int(memory_limit_mb), cleanup_policy.strip()),
-        )
+def save_settings(python_image, go_image, script_image, timeout_seconds,
+                  cpu_limit, memory_limit_mb, cleanup_policy) -> None:
+    settings.save(SECTION, {
+        "python_image": python_image.strip(),
+        "go_image": go_image.strip(),
+        "script_image": script_image.strip(),
+        "timeout_seconds": int(timeout_seconds),
+        "cpu_limit": float(cpu_limit),
+        "memory_limit_mb": int(memory_limit_mb),
+        "cleanup_policy": cleanup_policy.strip(),
+    })
